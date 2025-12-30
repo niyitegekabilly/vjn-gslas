@@ -22,8 +22,6 @@ export const MENU_ITEMS = [
   { id: 'settings', label: { en: 'Settings', rw: 'Igenamiterere' }, icon: <Settings size={20} />, path: '/settings' },
   { id: 'audit', label: { en: 'Audit Logs', rw: 'Ubugenzuzi' }, icon: <ShieldAlert size={20} />, path: '/audit' },
   { id: 'help', label: { en: 'Help / Support', rw: 'Ubufasha' }, icon: <HelpCircle size={20} />, path: '/help' },
-  // Keeping Meeting Mode access via URL, but removing from main menu to fit the requested clean structure. 
-  // It is still accessible via Dashboard quick actions or direct link.
 ];
 
 export const LABELS = {
@@ -57,6 +55,9 @@ export const LABELS = {
     warning: "Warning",
     error: "Error",
     close: "Close",
+    next: "Next",
+    step: "Step",
+    of: "of",
     
     // Dashboard
     totalGroups: "Total Groups",
@@ -94,7 +95,7 @@ export const LABELS = {
     myLoans: "My Loan Balance",
     myAttendance: "My Attendance",
 
-    // Groups
+    // Groups & Forms
     groupsManagement: "Groups Management",
     manageGroupsDesc: "Manage GSLA governance and settings",
     newGroup: "New Group",
@@ -108,6 +109,26 @@ export const LABELS = {
     createGroupTitle: "Create New GSLA Group",
     identification: "Identification",
     financialRules: "Financial Rules",
+    groupName: "Group Name",
+    district: "District",
+    sector: "Sector",
+    cell: "Cell",
+    village: "Village",
+    gpsLocation: "GPS Location",
+    updateGps: "Update GPS",
+    getGps: "Get GPS",
+    coordinatesCaptured: "Coordinates captured",
+    coordinatesNotCaptured: "Coordinates not captured",
+    meetingFreq: "Meeting Freq.",
+    loanMultiplier: "Loan Multiplier",
+    constitution: "Constitution / Bylaws",
+    fileAttached: "File Attached",
+    noFileSelected: "No file selected",
+    uploadInstruction: "Upload the signed group constitution or internal rules for digital reference.",
+    president: "President",
+    secretary: "Secretary",
+    accountant: "Accountant",
+    selectMember: "Select Member",
     
     // Members
     addMember: "Add Member",
@@ -115,6 +136,10 @@ export const LABELS = {
     removeMember: "Remove Member",
     memberSearchPlaceholder: "Search (Name, Phone, ID)",
     loanBalance: "Loan Balance",
+    fullName: "Full Name",
+    nationalId: "National ID",
+    phoneNumber: "Phone Number",
+    role: "Role",
     
     // Loans
     loanManagement: "Loan Management",
@@ -131,6 +156,25 @@ export const LABELS = {
     monthlyPayment: "Monthly Payment",
     totalInterest: "Total Interest",
     totalRepayment: "Total Repayment",
+    hidePenalty: "Hide Penalty",
+    hideCalc: "Hide Calc",
+    penaltyType: "Penalty Type",
+    percentage: "Percentage",
+    fixedAmount: "Fixed Amount",
+    percentageRate: "Percentage Rate",
+    applyPenalties: "Apply Penalties",
+    simpleInterest: "Simple Interest",
+    perMonth: "Per month",
+    durationMonths: "Duration (Months)",
+    months: "Months",
+    formulaNote: "Formula: Principal + (Principal × Rate × Months). Actual amounts may vary.",
+    maxEligible: "Max Eligible Loan",
+    exceedsLimit: "Exceeds maximum limit",
+    repaymentFor: "Repaying loan for",
+    currentBalance: "Current Balance",
+    repaymentAmount: "Repayment Amount",
+    clearsLoan: "This payment will clear the loan.",
+    purpose: "Purpose",
     
     // Meeting Mode
     startMeeting: "Start Meeting Recording",
@@ -144,6 +188,17 @@ export const LABELS = {
     meetingSaved: "Meeting Saved!",
     meetingSavedDesc: "All transactions have been recorded successfully.",
     startNewMeeting: "Start New Meeting",
+    markAttendance: "Mark Attendance",
+    allPresent: "All Present",
+    reset: "Reset",
+    onlyPresent: "Only showing present members",
+    collectSavings: "Collect Savings",
+    loansFines: "Loans & Fines",
+    meetingSummary: "Meeting Summary",
+    repayments: "Repayments",
+    totalCashIn: "Total Cash In",
+    reviewTx: "Review Transactions",
+    saveDesc: "You are about to save transaction records.",
     
     // Contributions
     sharesLedger: "Shares Ledger",
@@ -214,8 +269,10 @@ export const LABELS = {
     profit: "Profit",
     totalPayout: "Total Payout",
     confidential: "Confidential Financial Report",
+    totalInflow: "Total Inflow",
+    totalOutflow: "Total Outflow",
     
-    // Settings
+    // Settings & Users
     settingsTitle: "Configuration",
     language: "System Language",
     languageDesc: "Choose between English and Kinyarwanda",
@@ -229,6 +286,23 @@ export const LABELS = {
     resetDbDesc: "Clear all local data and reset to initial state",
     resetSystem: "Reset System",
     confirmReset: "Are you sure you want to reset the database? This cannot be undone.",
+    systemUsers: "System Users & Roles",
+    manageAccess: "Manage access control and permissions",
+    addUser: "Add User",
+    totalUsers: "Total Users",
+    admins: "Admins",
+    groupLeaders: "Group Leaders",
+    lockedDisabled: "Locked/Disabled",
+    searchUsers: "Search users...",
+    scope: "Scope",
+    lastLogin: "Last Login",
+    createUser: "Create User",
+    editUser: "Edit User",
+    initialPassword: "Initial Password",
+    assignedGroup: "Assigned Group",
+    saveUser: "Save User",
+    never: "Never",
+    global: "Global / None",
 
     // Audit & Help
     auditLogs: "Audit Logs",
@@ -276,6 +350,9 @@ export const LABELS = {
     warning: "Icyitonderwa",
     error: "Ikosa",
     close: "Funga",
+    next: "Komeza",
+    step: "Intambwe",
+    of: "ya",
 
     // Dashboard
     totalGroups: "Amatsinda Yose",
@@ -313,7 +390,7 @@ export const LABELS = {
     myLoans: "Ideni Nsigaje",
     myAttendance: "Ubwitabire Bwanjye",
 
-    // Groups
+    // Groups & Forms
     groupsManagement: "Gucunga Amatsinda",
     manageGroupsDesc: "Gena imikorere n'amategeko y'amatsinda",
     newGroup: "Itsinda Rishya",
@@ -327,6 +404,26 @@ export const LABELS = {
     createGroupTitle: "Kurema Itsinda Rishya rya GSLA",
     identification: "Umwirondoro",
     financialRules: "Amategeko y'Imari",
+    groupName: "Izina ry'Itsinda",
+    district: "Akarere",
+    sector: "Umurenge",
+    cell: "Akagari",
+    village: "Umudugudu",
+    gpsLocation: "Ahantu (GPS)",
+    updateGps: "Vugurura GPS",
+    getGps: "Fata GPS",
+    coordinatesCaptured: "Imibare ya GPS yafashwe",
+    coordinatesNotCaptured: "Nta GPS yafashwe",
+    meetingFreq: "Inshuro z'Inama",
+    loanMultiplier: "Inkubo y'Inguzanyo",
+    constitution: "Amategeko Ngengamikorere",
+    fileAttached: "Dosiye yometseho",
+    noFileSelected: "Nta dosiye yahisemo",
+    uploadInstruction: "Shyiraho amategeko yashyizweho umukono cyangwa izindi nyandiko.",
+    president: "Perezida",
+    secretary: "Umunyamabanga",
+    accountant: "Umucungamari",
+    selectMember: "Hitamo Umunyamuryango",
 
     // Members
     addMember: "Ongeramo Umunyamuryango",
@@ -334,6 +431,10 @@ export const LABELS = {
     removeMember: "Kuramo Umunyamuryango",
     memberSearchPlaceholder: "Shakisha (Izina, Telefoni, Indangamuntu)",
     loanBalance: "Ideni Asigaje",
+    fullName: "Amazina Yose",
+    nationalId: "Indangamuntu",
+    phoneNumber: "Telefoni",
+    role: "Inshingano",
 
     // Loans
     loanManagement: "Gucunga Inguzanyo",
@@ -350,6 +451,25 @@ export const LABELS = {
     monthlyPayment: "Ubwishyu bwa Buri Kwezi",
     totalInterest: "Inyungu Yose",
     totalRepayment: "Ubwishyu Bwose",
+    hidePenalty: "Hisha Ibihano",
+    hideCalc: "Hisha Ibalura",
+    penaltyType: "Ubwoko bw'Igihano",
+    percentage: "Ijanisha",
+    fixedAmount: "Amafaranga Azwi",
+    percentageRate: "Igipimo cy'Ijanisha",
+    applyPenalties: "Emeza Ibihano",
+    simpleInterest: "Inyungu Isanzwe",
+    perMonth: "Ku kwezi",
+    durationMonths: "Igihe (Amezi)",
+    months: "Amezi",
+    formulaNote: "Ibalura: Inguzanyo + (Inguzanyo x Inyungu x Amezi).",
+    maxEligible: "Inguzanyo Ntarengwa yemewe",
+    exceedsLimit: "Irenze urugero rwemejwe",
+    repaymentFor: "Kwishyurira",
+    currentBalance: "Ideni Risigaye",
+    repaymentAmount: "Ayishyurwa",
+    clearsLoan: "Ubu bwishyu burasoza ideni.",
+    purpose: "Impamvu",
 
     // Meeting Mode
     startMeeting: "Tangira Kwandika Inama",
@@ -363,6 +483,17 @@ export const LABELS = {
     meetingSaved: "Inama yabitswe!",
     meetingSavedDesc: "Ibyakozwe byose byabitswe neza.",
     startNewMeeting: "Tangira Inama Nshya",
+    markAttendance: "Kwandika Abitabiriye",
+    allPresent: "Bose Bahari",
+    reset: "Subiramo",
+    onlyPresent: "Herekana gusa abahari",
+    collectSavings: "Kwakira Ubwizigame",
+    loansFines: "Inguzanyo & Amande",
+    meetingSummary: "Incamake y'Inama",
+    repayments: "Ubwishyu",
+    totalCashIn: "Amafaranga Yose Yinjiye",
+    reviewTx: "Reba Ibyakozwe",
+    saveDesc: "Ugiye kubika inyandiko z'imari.",
 
     // Contributions
     sharesLedger: "Igitabo cy'Imigabane",
@@ -433,8 +564,10 @@ export const LABELS = {
     profit: "Inyungu",
     totalPayout: "Ayishyurwa Yose",
     confidential: "Raporo y'Ibanga - Ntigasakazwe",
+    totalInflow: "Ayinjiye Yose",
+    totalOutflow: "Ayasohotse Yose",
 
-    // Settings
+    // Settings & Users
     settingsTitle: "Igenamiterere",
     language: "Ururimi rwa Sisitemu",
     languageDesc: "Hitamo hagati y'Icyongereza n'Ikinyarwanda",
@@ -448,6 +581,23 @@ export const LABELS = {
     resetDbDesc: "Siba byose utangire bushya",
     resetSystem: "Siba Sisitemu",
     confirmReset: "Ese urahenganya ushaka gusiba ububiko bwose? Ibi ntibigarurwa.",
+    systemUsers: "Abakoresha Sisitemu n'Inshingano",
+    manageAccess: "Gucunga uburenganzira bw'injira",
+    addUser: "Ongeramo Umukoresha",
+    totalUsers: "Abakoresha Bose",
+    admins: "Abaminisitirateri",
+    groupLeaders: "Abayobozi b'Amatsinda",
+    lockedDisabled: "Barafunze",
+    searchUsers: "Shakisha abakoresha...",
+    scope: "Aho akorera",
+    lastLogin: "Iheruka kwinjira",
+    createUser: "Rema Umukoresha",
+    editUser: "Hindura Umukoresha",
+    initialPassword: "Ijambo ry'ibanga ry'ibanze",
+    assignedGroup: "Itsinda Ayobora",
+    saveUser: "Bika Umukoresha",
+    never: "Ntabwo arinjira",
+    global: "Rusange / Ntabwo",
 
     // Audit & Help
     auditLogs: "Raporo y'Ubugenzuzi",

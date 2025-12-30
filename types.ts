@@ -115,6 +115,10 @@ export interface GSLAGroup {
   cell: string;
   village: string;
   location: string; // Display string
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
 
   // Governance (Member IDs)
   presidentId?: string;
@@ -128,6 +132,9 @@ export interface GSLAGroup {
   minShares: number;
   maxShares: number;
   maxLoanMultiplier: number; // Default 3
+  
+  // Documents
+  constitutionUrl?: string; // Base64 or URL
 
   // State
   currentCycleId: string;
@@ -164,6 +171,7 @@ export interface Member {
   joinDate: string;
   totalShares: number; // Cached total shares in current cycle
   totalLoans: number; // Current active loan principal
+  photoUrl?: string; // Member photo for identification
 }
 
 export interface Loan {

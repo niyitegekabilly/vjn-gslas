@@ -73,7 +73,12 @@ const GENERATED_ADDED_GROUPS: GSLAGroup[] = NEW_GROUPS_LIST.map((name, i) => {
     totalLoansOutstanding: 0,
     totalSolidarity: 0,
     createdAt: '2024-03-01',
-    auditHistory: []
+    auditHistory: [],
+    // Add some random coords around Musanze for visualization
+    coordinates: {
+        lat: -1.5 + (Math.random() * 0.1 - 0.05),
+        lng: 29.6 + (Math.random() * 0.1 - 0.05)
+    }
   };
 });
 
@@ -100,7 +105,8 @@ const STATIC_GROUPS: GSLAGroup[] = [
       totalSolidarity: 50000,
       createdAt: '2023-01-01',
       auditHistory: [],
-      presidentId: 'm1'
+      presidentId: 'm1',
+      coordinates: { lat: -1.5033, lng: 29.6327 }
     },
     {
       id: 'g2',
@@ -123,10 +129,11 @@ const STATIC_GROUPS: GSLAGroup[] = [
       totalLoansOutstanding: 0,
       totalSolidarity: 20000,
       createdAt: '2023-06-15',
-      auditHistory: []
+      auditHistory: [],
+      coordinates: { lat: -1.442, lng: 29.585 }
     },
     // --- Nyabihu District Groups ---
-    { id: 'g_n1', name: 'Tuzamurane-Twitezimbere (Youth)', branchId: 'b_nyabihu', district: 'Nyabihu', sector: 'Shyira', cell: 'Kanyamitana', village: '', location: 'Shyira, Nyabihu', meetingDay: 'Friday', meetingFrequency: MeetingFrequency.WEEKLY, shareValue: 300, minShares: 1, maxShares: 5, maxLoanMultiplier: 3, currentCycleId: '', status: GroupStatus.ACTIVE, totalSavings: 0, totalLoansOutstanding: 0, totalSolidarity: 0, createdAt: '2024-01-01', auditHistory: [], presidentId: 'm_n1' },
+    { id: 'g_n1', name: 'Tuzamurane-Twitezimbere (Youth)', branchId: 'b_nyabihu', district: 'Nyabihu', sector: 'Shyira', cell: 'Kanyamitana', village: '', location: 'Shyira, Nyabihu', meetingDay: 'Friday', meetingFrequency: MeetingFrequency.WEEKLY, shareValue: 300, minShares: 1, maxShares: 5, maxLoanMultiplier: 3, currentCycleId: '', status: GroupStatus.ACTIVE, totalSavings: 0, totalLoansOutstanding: 0, totalSolidarity: 0, createdAt: '2024-01-01', auditHistory: [], presidentId: 'm_n1', coordinates: { lat: -1.63, lng: 29.52 } },
     ...GENERATED_ADDED_GROUPS
 ];
 

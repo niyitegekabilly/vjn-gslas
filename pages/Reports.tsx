@@ -189,7 +189,7 @@ export default function Reports() {
                      value={filters.memberId}
                      onChange={e => setFilters({...filters, memberId: e.target.value})}
                    >
-                      <option value="">All {labels.members}</option>
+                      <option value="">{labels.members}</option>
                       {members.map(m => <option key={m.id} value={m.id}>{m.fullName}</option>)}
                    </select>
                 </div>
@@ -234,13 +234,13 @@ export default function Reports() {
                        <div className="space-y-8">
                           <div className="grid grid-cols-3 gap-6">
                              <div className="p-4 bg-green-50 rounded-lg border border-green-100 print:bg-transparent print:border-green-200">
-                                <p className="text-xs font-bold text-green-700 uppercase">Total Inflow</p>
+                                <p className="text-xs font-bold text-green-700 uppercase">{labels.totalInflow}</p>
                                 <p className="text-2xl font-bold text-green-900 mt-1">
                                    {Object.values(data.inflows || {}).reduce((a:any,b:any)=>a+b,0).toLocaleString()}
                                 </p>
                              </div>
                              <div className="p-4 bg-red-50 rounded-lg border border-red-100 print:bg-transparent print:border-red-200">
-                                <p className="text-xs font-bold text-red-700 uppercase">Total Outflow</p>
+                                <p className="text-xs font-bold text-red-700 uppercase">{labels.totalOutflow}</p>
                                 <p className="text-2xl font-bold text-red-900 mt-1">
                                    {Object.values(data.outflows || {}).reduce((a:any,b:any)=>a+b,0).toLocaleString()}
                                 </p>

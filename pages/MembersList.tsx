@@ -3,7 +3,7 @@ import React, { useContext, useState, useEffect, useRef } from 'react';
 import { AppContext } from '../App';
 import { api } from '../api/client';
 import { LABELS } from '../constants';
-import { Search, UserPlus, Phone, User as UserIcon, Loader2, Edit2, Trash2, X, Save, ChevronLeft, ChevronRight, Filter, Upload } from 'lucide-react';
+import { Search, UserPlus, Phone, User as UserIcon, Loader2, Edit2, Trash2, X, Save, ChevronLeft, ChevronRight, Filter, Upload, Camera } from 'lucide-react';
 import { MemberStatus, Member, UserRole } from '../types';
 import { CardSkeleton } from '../components/Skeleton';
 
@@ -31,7 +31,8 @@ export default function MembersList() {
     nationalId: '',
     phone: '',
     role: UserRole.MEMBER_USER,
-    status: MemberStatus.ACTIVE
+    status: MemberStatus.ACTIVE,
+    photoUrl: ''
   });
   const [submitting, setSubmitting] = useState(false);
   
@@ -64,7 +65,8 @@ export default function MembersList() {
         nationalId: member.nationalId,
         phone: member.phone,
         role: member.role as UserRole, // Ensure cast for safety
-        status: member.status
+        status: member.status,
+        photoUrl: member.photoUrl || ''
       });
     } else {
       setEditingMember(null);
@@ -73,7 +75,8 @@ export default function MembersList() {
         nationalId: '',
         phone: '',
         role: UserRole.MEMBER_USER,
-        status: MemberStatus.ACTIVE
+        status: MemberStatus.ACTIVE,
+        photoUrl: ''
       });
     }
     setIsModalOpen(true);
@@ -82,6 +85,21 @@ export default function MembersList() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingMember(null);
+  };
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5000000) { // 5MB limit
+        alert("Photo is too large. Max 5MB.");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({ ...prev, photoUrl: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -285,10 +303,14 @@ export default function MembersList() {
             <div key={member.id} className={`bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition group relative ${member.status === MemberStatus.EXITED ? 'opacity-75 bg-gray-50' : ''}`}>
               <div className="flex items-start justify-between">
                 <div className="flex items-center">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center border border-gray-200 ${
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center border border-gray-200 overflow-hidden ${
                     member.status === MemberStatus.ACTIVE ? 'bg-gray-100 text-gray-500' : 'bg-red-50 text-red-400'
                   }`}>
-                    <UserIcon size={24} />
+                    {member.photoUrl ? (
+                        <img src={member.photoUrl} alt={member.fullName} className="w-full h-full object-cover" />
+                    ) : (
+                        <UserIcon size={24} />
+                    )}
                   </div>
                   <div className="ml-4">
                     <h3 className="text-lg font-semibold text-gray-900">{member.fullName}</h3>
@@ -394,6 +416,26 @@ export default function MembersList() {
             </div>
             
             <form onSubmit={handleSubmit} className="p-6 space-y-5">
+              
+              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                 <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden border border-gray-200 flex-shrink-0">
+                    {formData.photoUrl ? (
+                      <img src={formData.photoUrl} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <UserIcon size={32} className="text-gray-400" />
+                    )}
+                 </div>
+                 <div>
+                   <label className="block text-sm font-medium text-gray-700 mb-1">Member Photo</label>
+                   <label className="cursor-pointer bg-white border border-gray-300 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-gray-50 flex items-center shadow-sm w-fit transition-colors">
+                       <Camera size={14} className="mr-2 text-gray-500" />
+                       Upload / Capture
+                       <input type="file" className="hidden" accept="image/*" capture="user" onChange={handlePhotoChange} />
+                   </label>
+                   <p className="text-xs text-gray-400 mt-1">Upload a clear headshot for identification.</p>
+                 </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
                 <input 

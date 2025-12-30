@@ -4,7 +4,7 @@ import { AppContext } from '../App';
 import { api } from '../api/client';
 import { LABELS } from '../constants';
 import { Transaction, Member, MemberStatus, AuditRecord } from '../types';
-import { PiggyBank, Search, Loader2, Plus, Filter, MoreVertical, AlertTriangle, History, XCircle, Edit, Save, X, Ban } from 'lucide-react';
+import { PiggyBank, Search, Loader2, Plus, Filter, MoreVertical, AlertTriangle, History, XCircle, Edit, Save, X, Ban, TrendingUp, ShieldCheck } from 'lucide-react';
 
 export default function Contributions() {
   const { activeGroupId, lang, groups } = useContext(AppContext);
@@ -169,6 +169,11 @@ export default function Contributions() {
 
   const activeMembers = members.filter(m => m.status === MemberStatus.ACTIVE);
 
+  // Pot Calculations (Non-voided only)
+  const validTransactions = transactions.filter(t => !t.isVoid);
+  const totalShareCapital = validTransactions.reduce((acc, t) => acc + (t.amount || 0), 0);
+  const totalSocialFund = validTransactions.reduce((acc, t) => acc + (t.solidarityAmount || 0), 0);
+
   if (loading) return <div className="p-12 flex justify-center"><Loader2 className="animate-spin text-gray-400" /></div>;
 
   return (
@@ -186,6 +191,31 @@ export default function Contributions() {
           <Plus size={18} className="mr-2" />
           {labels.newContribution}
         </button>
+      </div>
+
+      {/* Pots Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-emerald-100 flex items-center justify-between">
+           <div>
+              <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-1">Share Capital (Investment)</p>
+              <h3 className="text-2xl font-bold text-gray-900">{totalShareCapital.toLocaleString()} {labels.currency}</h3>
+              <p className="text-xs text-gray-400 mt-1">Refundable at cycle end</p>
+           </div>
+           <div className="p-3 bg-emerald-50 text-emerald-600 rounded-full">
+              <TrendingUp size={24} />
+           </div>
+        </div>
+        
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-orange-100 flex items-center justify-between">
+           <div>
+              <p className="text-xs font-bold text-orange-600 uppercase tracking-wider mb-1">Social Fund (Insurance)</p>
+              <h3 className="text-2xl font-bold text-gray-900">{totalSocialFund.toLocaleString()} {labels.currency}</h3>
+              <p className="text-xs text-gray-400 mt-1">Non-refundable pot</p>
+           </div>
+           <div className="p-3 bg-orange-50 text-orange-600 rounded-full">
+              <ShieldCheck size={24} />
+           </div>
+        </div>
       </div>
 
       {/* Filters */}
@@ -230,10 +260,10 @@ export default function Contributions() {
               <tr>
                 <th className="p-4">{labels.date}</th>
                 <th className="p-4">{labels.members}</th>
-                <th className="p-4">{labels.shareCount}</th>
-                <th className="p-4">{labels.amount}</th>
-                <th className="p-4">{labels.solidarity}</th>
-                <th className="p-4">Total</th>
+                <th className="p-4 text-center">{labels.shareCount}</th>
+                <th className="p-4 text-right">Share Capital</th>
+                <th className="p-4 text-right">Social Fund</th>
+                <th className="p-4 text-right">Total In</th>
                 <th className="p-4">{labels.status}</th>
                 <th className="p-4 text-right">{labels.actions}</th>
               </tr>
@@ -246,14 +276,14 @@ export default function Contributions() {
                   <tr key={t.id} className={`hover:bg-gray-50 ${t.isVoid ? 'bg-red-50/50' : ''}`}>
                     <td className="p-4 text-gray-500 text-sm whitespace-nowrap">{t.date}</td>
                     <td className="p-4 font-medium text-gray-900">{getMemberName(t.memberId)}</td>
-                    <td className="p-4">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
+                    <td className="p-4 text-center">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-800 border border-emerald-100">
                          {t.shareCount}
                       </span>
                     </td>
-                    <td className="p-4 text-gray-600 text-sm">{(t.amount).toLocaleString()}</td>
-                    <td className="p-4 text-gray-600 text-sm">{(t.solidarityAmount || 0).toLocaleString()}</td>
-                    <td className="p-4 font-mono font-bold text-green-700">
+                    <td className="p-4 text-gray-600 text-sm text-right">{(t.amount).toLocaleString()}</td>
+                    <td className="p-4 text-gray-600 text-sm text-right">{(t.solidarityAmount || 0).toLocaleString()}</td>
+                    <td className="p-4 font-mono font-bold text-gray-800 text-right">
                       {(t.amount + (t.solidarityAmount || 0)).toLocaleString()}
                     </td>
                     <td className="p-4">
@@ -309,7 +339,7 @@ export default function Contributions() {
       {/* CREATE MODAL */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full overflow-hidden animate-in fade-in zoom-in-95 duration-200">
              <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                <h3 className="font-bold text-gray-800 flex items-center">
                  <Plus size={20} className="mr-2 text-green-600" /> {labels.newContribution}
@@ -317,7 +347,7 @@ export default function Contributions() {
                <button onClick={() => setIsAddModalOpen(false)}><X size={20} className="text-gray-400 hover:text-gray-600" /></button>
              </div>
              
-             <form onSubmit={handleCreate} className="p-6 space-y-4">
+             <form onSubmit={handleCreate} className="p-6 space-y-5">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{labels.members}</label>
                   <select 
@@ -333,31 +363,36 @@ export default function Contributions() {
                   </select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                   <div>
-                     <label className="block text-sm font-medium text-gray-700 mb-1">{labels.shareCount}</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                   {/* Pot 1: Shares */}
+                   <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100">
+                     <h4 className="text-sm font-bold text-emerald-800 mb-3 flex items-center"><TrendingUp size={16} className="mr-2"/> Share Capital</h4>
+                     <label className="block text-xs font-medium text-gray-600 mb-1">{labels.shareCount}</label>
                      <input 
                        type="number"
                        min="0"
                        max={group?.maxShares}
                        value={formData.shareCount}
                        onChange={e => setFormData({...formData, shareCount: parseInt(e.target.value) || 0})}
-                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                       className="w-full px-3 py-2 border border-emerald-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none bg-white"
                      />
-                     <p className="text-xs text-green-600 mt-1 font-medium">
+                     <p className="text-xs text-emerald-600 mt-2 font-bold text-right">
                        = {(formData.shareCount * (group?.shareValue || 0)).toLocaleString()} {labels.currency}
                      </p>
                    </div>
-                   <div>
-                     <label className="block text-sm font-medium text-gray-700 mb-1">{labels.solidarity}</label>
+                   
+                   {/* Pot 2: Social Fund */}
+                   <div className="bg-orange-50 p-4 rounded-xl border border-orange-100">
+                     <h4 className="text-sm font-bold text-orange-800 mb-3 flex items-center"><ShieldCheck size={16} className="mr-2"/> Social Fund</h4>
+                     <label className="block text-xs font-medium text-gray-600 mb-1">{labels.amount} ({labels.currency})</label>
                      <input 
                        type="number"
                        min="0"
                        value={formData.solidarityAmount}
                        onChange={e => setFormData({...formData, solidarityAmount: parseInt(e.target.value) || 0})}
-                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                       className="w-full px-3 py-2 border border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none bg-white"
                      />
-                     <p className="text-xs text-gray-400 mt-1">{labels.currency}</p>
+                     <p className="text-xs text-orange-600 mt-2 text-right">Insurance Contribution</p>
                    </div>
                 </div>
 
@@ -427,7 +462,7 @@ export default function Contributions() {
 
                 <div className="grid grid-cols-2 gap-4">
                    <div>
-                     <label className="block text-sm font-medium text-gray-700 mb-1">{labels.shareCount}</label>
+                     <label className="block text-sm font-medium text-gray-700 mb-1">Share Capital</label>
                      <input 
                        type="number"
                        min="0"
@@ -438,7 +473,7 @@ export default function Contributions() {
                      />
                    </div>
                    <div>
-                     <label className="block text-sm font-medium text-gray-700 mb-1">{labels.solidarity}</label>
+                     <label className="block text-sm font-medium text-gray-700 mb-1">Social Fund</label>
                      <input 
                        type="number"
                        min="0"

@@ -36,6 +36,7 @@ interface AppContextType {
   activeGroupId: string;
   setActiveGroupId: (id: string) => void;
   groups: GSLAGroup[];
+  refreshApp: () => void;
 }
 
 export const AppContext = React.createContext<AppContextType>({
@@ -44,6 +45,7 @@ export const AppContext = React.createContext<AppContextType>({
   activeGroupId: '',
   setActiveGroupId: () => {},
   groups: [],
+  refreshApp: () => {},
 });
 
 const ProtectedRoute = ({ children }: { children?: React.ReactNode }) => {
@@ -304,6 +306,9 @@ const AppContent = () => {
   const [activeGroupId, setActiveGroupId] = useState('');
   const [groups, setGroups] = useState<GSLAGroup[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  const refreshApp = () => setRefreshTrigger(t => t + 1);
 
   useEffect(() => {
     // Only fetch when auth is ready
@@ -331,11 +336,11 @@ const AppContent = () => {
       
       setLoading(false);
     });
-  }, [user, authLoading]);
+  }, [user, authLoading, refreshTrigger]);
 
   const contextValue = useMemo(() => ({
-    lang, setLang, activeGroupId, setActiveGroupId, groups
-  }), [lang, activeGroupId, groups]);
+    lang, setLang, activeGroupId, setActiveGroupId, groups, refreshApp
+  }), [lang, activeGroupId, groups, refreshTrigger]);
 
   if (loading || authLoading) {
     return (

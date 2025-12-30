@@ -224,7 +224,7 @@ export default function LoanManager() {
             }`}
           >
             <Coins size={18} className="mr-2" />
-            {showFeeManager ? 'Hide Penalty' : labels.penaltyTool}
+            {showFeeManager ? labels.hidePenalty : labels.penaltyTool}
           </button>
           <button 
             onClick={() => { setShowCalculator(!showCalculator); setShowFeeManager(false); }}
@@ -235,7 +235,7 @@ export default function LoanManager() {
             }`}
           >
             <Calculator size={18} className="mr-2" />
-            {showCalculator ? 'Hide Calc' : labels.loanEstimator}
+            {showCalculator ? labels.hideCalc : labels.loanEstimator}
           </button>
           <button 
             onClick={() => setIsModalOpen(true)}
@@ -247,8 +247,7 @@ export default function LoanManager() {
         </div>
       </div>
 
-      {/* Repayment Modal & Other Modals - Kept same as previous */}
-      {/* ... (Repayment Modal code block omitted for brevity, it remains the same) ... */}
+      {/* Repayment Modal */}
       {isRepayModalOpen && repayingLoan && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-xl shadow-xl max-w-sm w-full overflow-hidden">
@@ -258,16 +257,16 @@ export default function LoanManager() {
              </div>
              <form onSubmit={handleRepaySubmit} className="p-6">
                 <div className="mb-4">
-                   <p className="text-sm text-gray-500 mb-1">Repaying loan for:</p>
+                   <p className="text-sm text-gray-500 mb-1">{labels.repaymentFor}:</p>
                    <p className="font-bold text-gray-900 text-lg">{repayingMember?.fullName}</p>
                 </div>
                 <div className="mb-6 bg-blue-50 p-3 rounded-lg flex justify-between items-center">
-                   <span className="text-sm text-blue-700">Current Balance:</span>
+                   <span className="text-sm text-blue-700">{labels.currentBalance}:</span>
                    <span className="font-bold text-blue-800">{repayingLoan.balance.toLocaleString()} {labels.currency}</span>
                 </div>
                 
                 <div className="mb-6">
-                   <label className="block text-sm font-medium text-gray-700 mb-1">Repayment Amount ({labels.currency})</label>
+                   <label className="block text-sm font-medium text-gray-700 mb-1">{labels.repaymentAmount} ({labels.currency})</label>
                    <input 
                       type="number"
                       min="1"
@@ -280,7 +279,7 @@ export default function LoanManager() {
                    />
                    {repayAmount && Number(repayAmount) >= repayingLoan.balance && (
                        <p className="text-xs text-green-600 font-bold mt-2 flex items-center animate-pulse">
-                           <CheckCircle size={14} className="mr-1"/> This payment will clear the loan.
+                           <CheckCircle size={14} className="mr-1"/> {labels.clearsLoan}
                        </p>
                    )}
                 </div>
@@ -297,7 +296,7 @@ export default function LoanManager() {
         </div>
       )}
 
-      {/* Loan Application Modal - Kept same */}
+      {/* Loan Application Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-xl shadow-xl max-w-lg w-full overflow-hidden">
@@ -310,7 +309,7 @@ export default function LoanManager() {
             
             <form onSubmit={handleCreateLoan} className="p-6 space-y-5">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Select Member</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{labels.selectMember}</label>
                 <select 
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                   value={selectedMemberId}
@@ -320,14 +319,14 @@ export default function LoanManager() {
                   }}
                   required
                 >
-                  <option value="">-- Choose Member --</option>
+                  <option value="">-- {labels.selectMember} --</option>
                   {members.map(m => (
-                    <option key={m.id} value={m.id}>{m.fullName} (Savings: {(m.totalShares * (group?.shareValue || 0)).toLocaleString()})</option>
+                    <option key={m.id} value={m.id}>{m.fullName} ({labels.totalSavings}: {(m.totalShares * (group?.shareValue || 0)).toLocaleString()})</option>
                   ))}
                 </select>
                 {selectedMember && (
                   <div className="mt-2 p-3 bg-blue-50 text-blue-700 rounded-lg text-sm flex justify-between items-center">
-                    <span>Max Eligible Loan (3x Savings):</span>
+                    <span>{labels.maxEligible}:</span>
                     <span className="font-bold">{maxLoanAmount.toLocaleString()} {labels.currency}</span>
                   </div>
                 )}
@@ -349,11 +348,11 @@ export default function LoanManager() {
                     required
                   />
                   {formAmount && Number(formAmount) > maxLoanAmount && (
-                    <span className="text-xs text-red-600 mt-1">Exceeds maximum limit</span>
+                    <span className="text-xs text-red-600 mt-1">{labels.exceedsLimit}</span>
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Duration (Months)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{labels.durationMonths}</label>
                   <input 
                     type="number"
                     min="1"
@@ -367,7 +366,7 @@ export default function LoanManager() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Purpose</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{labels.purpose}</label>
                 <textarea 
                   rows={2}
                   value={formPurpose}
@@ -401,7 +400,7 @@ export default function LoanManager() {
         </div>
       )}
 
-      {/* Tools Section (Calculator / Fee Manager) - Kept same logic, just rendering */}
+      {/* Tools Section (Calculator / Fee Manager) */}
       {showFeeManager && (
         <div className="bg-gradient-to-br from-white to-red-50 p-6 rounded-xl border border-red-100 shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
           <h3 className="text-lg font-semibold text-red-800 mb-4 flex items-center">
@@ -413,7 +412,7 @@ export default function LoanManager() {
           
           <div className="flex flex-col md:flex-row items-end gap-6">
             <div className="w-full md:w-64">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Penalty Type</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{labels.penaltyType}</label>
               <div className="flex rounded-lg shadow-sm">
                 <button
                   onClick={() => setFeeIsPercentage(true)}
@@ -421,7 +420,7 @@ export default function LoanManager() {
                     feeIsPercentage ? 'bg-red-100 text-red-700 border-red-200' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                   }`}
                 >
-                  Percentage (%)
+                  {labels.percentage} (%)
                 </button>
                 <button
                    onClick={() => setFeeIsPercentage(false)}
@@ -429,14 +428,14 @@ export default function LoanManager() {
                     !feeIsPercentage ? 'bg-red-100 text-red-700 border-red-200' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                   }`}
                 >
-                  Fixed Amount
+                  {labels.fixedAmount}
                 </button>
               </div>
             </div>
 
             <div className="w-full md:w-48">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {feeIsPercentage ? 'Percentage Rate' : `Fixed Amount (${labels.currency})`}
+                {feeIsPercentage ? labels.percentageRate : `${labels.fixedAmount} (${labels.currency})`}
               </label>
               <input 
                 type="number"
@@ -455,7 +454,7 @@ export default function LoanManager() {
               }`}
             >
               {applyingFees ? <Loader2 className="animate-spin mr-2" size={18} /> : <RefreshCw size={18} className="mr-2" />}
-              {applyingFees ? labels.processing : 'Apply Penalties'}
+              {applyingFees ? labels.processing : labels.applyPenalties}
             </button>
           </div>
 
@@ -474,7 +473,7 @@ export default function LoanManager() {
               <Calculator size={20} className="mr-2 text-blue-600" /> {labels.loanEstimator}
             </h3>
             <div className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold flex items-center">
-              <Info size={12} className="mr-1" /> Simple Interest
+              <Info size={12} className="mr-1" /> {labels.simpleInterest}
             </div>
           </div>
 
@@ -495,7 +494,7 @@ export default function LoanManager() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Interest Rate (%)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{labels.interestRate} (%)</label>
                   <input 
                     type="number" 
                     min="0"
@@ -504,10 +503,10 @@ export default function LoanManager() {
                     onChange={(e) => setCalcRate(Number(e.target.value))}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-shadow"
                   />
-                  <span className="text-xs text-gray-500 mt-1 block">Per month</span>
+                  <span className="text-xs text-gray-500 mt-1 block">{labels.perMonth}</span>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Duration</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{labels.durationMonths}</label>
                   <input 
                     type="number" 
                     min="1"
@@ -515,7 +514,7 @@ export default function LoanManager() {
                     onChange={(e) => setCalcDuration(Number(e.target.value))}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-shadow"
                   />
-                  <span className="text-xs text-gray-500 mt-1 block">Months</span>
+                  <span className="text-xs text-gray-500 mt-1 block">{labels.months}</span>
                 </div>
               </div>
             </div>
@@ -547,7 +546,7 @@ export default function LoanManager() {
               </div>
               <div className="mt-6 pt-4 border-t border-gray-100">
                  <p className="text-xs text-center text-gray-400">
-                    * Formula: <strong>Principal + (Principal × Rate × Months)</strong>. Actual amounts may vary based on disbursement dates.
+                    * {labels.formulaNote}
                 </p>
               </div>
             </div>
@@ -567,10 +566,10 @@ export default function LoanManager() {
               <table className="w-full text-left">
                 <thead className="bg-gray-50 text-xs uppercase text-gray-500">
                   <tr>
-                    <th className="p-4">Member</th>
-                    <th className="p-4">Amount</th>
-                    <th className="p-4">Purpose</th>
-                    <th className="p-4 text-right">Actions</th>
+                    <th className="p-4">{labels.members}</th>
+                    <th className="p-4">{labels.amount}</th>
+                    <th className="p-4">{labels.purpose}</th>
+                    <th className="p-4 text-right">{labels.actions}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -724,7 +723,7 @@ export default function LoanManager() {
                                     onClick={() => openRepayModal(loan)}
                                     className="w-full mt-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium flex justify-center items-center active:bg-blue-700"
                                 >
-                                    <Banknote size={16} className="mr-2" /> Record Repayment
+                                    <Banknote size={16} className="mr-2" /> {labels.recordRepayment}
                                 </button>
                             )}
                         </div>
@@ -739,15 +738,15 @@ export default function LoanManager() {
             <table className="w-full text-left text-sm">
               <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-200">
                 <tr>
-                  <th className="p-4">Member</th>
+                  <th className="p-4">{labels.members}</th>
                   <th className="p-4">Start Date</th>
                   <th className="p-4">Due Date</th>
                   <th className="p-4">Principal</th>
                   <th className="p-4">Repaid</th>
                   <th className="p-4">Balance</th>
-                  <th className="p-4">Status</th>
+                  <th className="p-4">{labels.status}</th>
                   <th className="p-4">Progress</th>
-                  <th className="p-4 text-right">Actions</th>
+                  <th className="p-4 text-right">{labels.actions}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -802,7 +801,7 @@ export default function LoanManager() {
                             <button 
                               onClick={() => openRepayModal(loan)}
                               className="p-2 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition-colors"
-                              title="Record Repayment"
+                              title={labels.recordRepayment}
                             >
                               <Banknote size={16} />
                             </button>

@@ -1,5 +1,8 @@
 {
   "name": "VJN GSLA Manager",
   "description": "A comprehensive Group Savings and Loans Association management system for Vision Jeunesse Nouvelle, featuring share tracking, loan management, and automated reporting.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [
+    "geolocation",
+    "camera"
+  ]
 }
