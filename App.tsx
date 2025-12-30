@@ -1,13 +1,17 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
-import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { 
-  Menu, Globe, Bell, LogOut, Loader2, ChevronDown, User
+  Menu, Globe, Bell, LogOut, Loader2, ChevronDown, User, Check, X
 } from 'lucide-react';
 import { MENU_ITEMS, LABELS } from './constants';
 import { api } from './api/client';
-import { GSLAGroup } from './types';
+import { GSLAGroup, Notification, User as UserType, UserRole } from './types';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { HelpAssistant } from './components/HelpAssistant';
 
 // Pages
+import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Groups from './pages/Groups';
 import MembersList from './pages/MembersList';
@@ -22,6 +26,8 @@ import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import AuditLogs from './pages/AuditLogs';
 import Help from './pages/Help';
+import UserManagement from './pages/UserManagement';
+import Notifications from './pages/Notifications';
 
 // Context definition
 interface AppContextType {
@@ -40,19 +46,54 @@ export const AppContext = React.createContext<AppContextType>({
   groups: [],
 });
 
-const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const ProtectedRoute = ({ children }: { children?: React.ReactNode }) => {
+  const { isAuthenticated, isLoading } = useAuth();
+  
+  if (isLoading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-green-600" size={32} /></div>;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  
+  return <>{children}</>;
+};
+
+const Layout: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
   const { lang, setLang, activeGroupId, setActiveGroupId, groups } = React.useContext(AppContext);
+  const { user, logout } = useAuth();
+  const labels = LABELS[lang];
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
-  const activeGroup = groups.find(g => g.id === activeGroupId);
+  // Notification State
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
+
+  useEffect(() => {
+    if (user) fetchNotifications();
+  }, [user]);
+
+  const fetchNotifications = () => {
+    api.getNotifications().then(setNotifications);
+  };
+
+  const handleMarkRead = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    await api.markNotificationRead(id);
+    fetchNotifications();
+  };
+
+  const handleMarkAllRead = async () => {
+    await api.markAllNotificationsRead();
+    fetchNotifications();
+  };
+
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden font-sans text-gray-900">
+    <div className="flex h-screen bg-gray-50 overflow-hidden font-sans text-gray-900 print:h-auto print:overflow-visible">
       {/* Sidebar Mobile Overlay */}
       {isSidebarOpen && (
         <div 
-          className="fixed inset-0 z-20 bg-black bg-opacity-50 lg:hidden"
+          className="fixed inset-0 z-20 bg-black bg-opacity-50 lg:hidden print:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -62,7 +103,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         fixed inset-y-0 left-0 z-30 w-64 bg-slate-900 text-white transform transition-transform duration-300 ease-in-out
         lg:translate-x-0 lg:static lg:inset-0
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-        flex flex-col shadow-xl
+        flex flex-col shadow-xl print:hidden
       `}>
         <div className="flex items-center justify-center h-16 bg-slate-950 border-b border-slate-800">
           <div className="flex items-center space-x-2">
@@ -74,13 +115,20 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         <nav className="flex-1 mt-6 px-3 space-y-1 overflow-y-auto custom-scrollbar">
           {MENU_ITEMS.map((item) => {
             const isActive = location.pathname === item.path;
+            
+            // Role Checks
+            if (item.id === 'users' && user?.role !== UserRole.SUPER_ADMIN && user?.role !== UserRole.ADMIN) return null;
+            if (item.id === 'audit' && user?.role !== UserRole.SUPER_ADMIN && user?.role !== UserRole.ADMIN) return null;
+            
             return (
-              <a
+              <button
                 key={item.id}
-                href={`#${item.path}`}
-                onClick={() => setSidebarOpen(false)}
+                onClick={() => {
+                  navigate(item.path);
+                  setSidebarOpen(false);
+                }}
                 className={`
-                  flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200
+                  w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200
                   ${isActive 
                     ? 'bg-green-600 text-white shadow-md' 
                     : 'text-slate-400 hover:bg-slate-800 hover:text-white'}
@@ -88,7 +136,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               >
                 <span className={`mr-3 ${isActive ? 'text-white' : 'text-slate-500'}`}>{item.icon}</span>
                 {item.label[lang]}
-              </a>
+              </button>
             );
           })}
         </nav>
@@ -99,9 +147,9 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden print:overflow-visible print:h-auto">
         {/* Top Header (Always Visible) */}
-        <header className="flex items-center justify-between h-16 px-4 sm:px-6 bg-white shadow-sm border-b border-gray-200 z-10">
+        <header className="flex items-center justify-between h-16 px-4 sm:px-6 bg-white shadow-sm border-b border-gray-200 z-10 print:hidden">
           <div className="flex items-center">
             <button
               onClick={() => setSidebarOpen(true)}
@@ -110,7 +158,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               <Menu size={24} />
             </button>
             <h1 className="text-lg font-bold text-gray-800 hidden md:block tracking-tight">
-              VJN GSLA Management System
+              {labels.appName}
             </h1>
           </div>
 
@@ -118,16 +166,22 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             {/* Group Selector */}
             <div className="relative group hidden sm:block">
               <div className="flex items-center space-x-2 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-lg">
-                <span className="text-xs text-gray-500 uppercase font-semibold">Group:</span>
-                <select 
-                  className="bg-transparent text-sm font-bold text-gray-800 outline-none cursor-pointer min-w-[120px]"
-                  value={activeGroupId}
-                  onChange={(e) => setActiveGroupId(e.target.value)}
-                >
-                  {groups.map(g => (
-                    <option key={g.id} value={g.id}>{g.name}</option>
-                  ))}
-                </select>
+                <span className="text-xs text-gray-500 uppercase font-semibold">{labels.groupSelector}</span>
+                {groups.length > 1 ? (
+                  <select 
+                    className="bg-transparent text-sm font-bold text-gray-800 outline-none cursor-pointer min-w-[120px]"
+                    value={activeGroupId}
+                    onChange={(e) => setActiveGroupId(e.target.value)}
+                  >
+                    {groups.map(g => (
+                      <option key={g.id} value={g.id}>{g.name}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className="text-sm font-bold text-gray-800 min-w-[120px] px-1">
+                    {groups.find(g => g.id === activeGroupId)?.name || 'Loading...'}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -135,70 +189,155 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             <button 
               onClick={() => setLang(lang === 'en' ? 'rw' : 'en')}
               className="flex items-center px-3 py-1.5 text-xs font-bold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 uppercase"
-              title="Switch Language"
+              title={labels.switchLanguage}
             >
               {lang === 'en' ? 'EN' : 'RW'}
             </button>
 
             {/* Notifications */}
-            <button className="relative p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors">
-              <Bell size={20} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white"></span>
-            </button>
+            <div className="relative">
+              <button 
+                onClick={() => setIsNotifOpen(!isNotifOpen)}
+                className={`relative p-2 rounded-full transition-colors ${isNotifOpen ? 'bg-blue-50 text-blue-600' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}
+              >
+                <Bell size={20} />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white animate-pulse"></span>
+                )}
+              </button>
+
+              {isNotifOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setIsNotifOpen(false)} />
+                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-200 z-20 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                    <div className="p-3 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                      <h3 className="text-sm font-bold text-gray-800">{labels.notifications}</h3>
+                      {unreadCount > 0 && (
+                        <button onClick={handleMarkAllRead} className="text-xs text-blue-600 hover:underline">
+                          {labels.markAllRead}
+                        </button>
+                      )}
+                    </div>
+                    <div className="max-h-80 overflow-y-auto">
+                      {notifications.length === 0 ? (
+                        <div className="p-8 text-center text-gray-400 text-sm">{labels.noNotifications}</div>
+                      ) : (
+                        <div className="divide-y divide-gray-100">
+                          {notifications.map(n => (
+                            <div 
+                              key={n.id} 
+                              className={`p-4 hover:bg-gray-50 transition-colors cursor-pointer ${!n.read ? 'bg-blue-50/50' : ''}`}
+                              onClick={() => { 
+                                if(!n.read) api.markNotificationRead(n.id).then(fetchNotifications);
+                              }}
+                            >
+                              <div className="flex justify-between items-start mb-1">
+                                <span className={`text-xs font-bold uppercase ${
+                                  n.type === 'WARNING' ? 'text-orange-600' :
+                                  n.type === 'SUCCESS' ? 'text-green-600' :
+                                  'text-blue-600'
+                                }`}>
+                                  {n.type}
+                                </span>
+                                <span className="text-xs text-gray-400">{new Date(n.date).toLocaleDateString()}</span>
+                              </div>
+                              <h4 className={`text-sm font-semibold mb-1 ${n.read ? 'text-gray-700' : 'text-gray-900'}`}>{n.title}</h4>
+                              <p className="text-xs text-gray-500">{n.message}</p>
+                              {!n.read && (
+                                <button 
+                                  onClick={(e) => handleMarkRead(n.id, e)}
+                                  className="mt-2 text-xs text-blue-600 flex items-center hover:underline"
+                                >
+                                  <Check size={12} className="mr-1" /> {labels.markRead}
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
 
             <div className="h-8 w-px bg-gray-200 mx-2 hidden sm:block"></div>
 
             {/* User Profile */}
             <div className="flex items-center">
               <div className="flex flex-col items-end mr-3 hidden sm:flex">
-                <span className="text-sm font-bold text-gray-800 leading-none">Jean Admin</span>
-                <span className="text-xs text-green-600 font-medium">Super Admin</span>
+                <span className="text-sm font-bold text-gray-800 leading-none">{user?.fullName || 'User'}</span>
+                <span className="text-xs text-green-600 font-medium">{user?.role || 'Guest'}</span>
               </div>
               <div className="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center text-white font-bold border-2 border-white shadow-sm">
-                JA
+                {user?.fullName.substring(0, 2).toUpperCase() || 'GS'}
               </div>
             </div>
 
             {/* Logout */}
-            <button className="p-2 text-red-500 hover:bg-red-50 rounded-lg ml-2" title="Logout">
+            <button 
+              onClick={logout}
+              className="p-2 text-red-500 hover:bg-red-50 rounded-lg ml-2" 
+              title={labels.logout}
+            >
               <LogOut size={20} />
             </button>
           </div>
         </header>
 
         {/* Scrollable Content */}
-        <main className="flex-1 overflow-y-auto bg-gray-50 p-4 sm:p-6 lg:p-8">
-          <div className="max-w-7xl mx-auto">
+        <main className="flex-1 overflow-y-auto bg-gray-50 p-4 sm:p-6 lg:p-8 print:overflow-visible print:h-auto print:bg-white print:p-0 relative">
+          <div className="max-w-7xl mx-auto print:max-w-none print:mx-0">
             {children}
           </div>
+          {/* HELP BOT */}
+          <HelpAssistant />
         </main>
       </div>
     </div>
   );
 };
 
-export default function App() {
+const AppContent = () => {
+  const { user, isLoading: authLoading } = useAuth();
   const [lang, setLang] = useState<'en' | 'rw'>('en');
   const [activeGroupId, setActiveGroupId] = useState('');
   const [groups, setGroups] = useState<GSLAGroup[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Initial fetch of groups
+    // Only fetch when auth is ready
+    if (authLoading) return;
+
     api.getGroups().then(data => {
-      setGroups(data);
-      if (data.length > 0) {
-        setActiveGroupId(data[0].id);
+      let availableGroups = data;
+
+      // Restrict groups if user is a GROUP_LEADER
+      if (user && user.role === UserRole.GROUP_LEADER && user.managedGroupId) {
+        availableGroups = data.filter(g => g.id === user.managedGroupId);
       }
+
+      setGroups(availableGroups);
+      
+      // Auto-select group
+      if (availableGroups.length > 0) {
+        // If current active is invalid or empty, set to first available
+        if (!activeGroupId || !availableGroups.find(g => g.id === activeGroupId)) {
+          setActiveGroupId(availableGroups[0].id);
+        }
+      } else {
+        setActiveGroupId('');
+      }
+      
       setLoading(false);
     });
-  }, []);
+  }, [user, authLoading]);
 
   const contextValue = useMemo(() => ({
     lang, setLang, activeGroupId, setActiveGroupId, groups
   }), [lang, activeGroupId, groups]);
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50">
         <div className="flex flex-col items-center">
@@ -212,27 +351,35 @@ export default function App() {
   return (
     <AppContext.Provider value={contextValue}>
       <HashRouter>
-        <Layout>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/groups" element={<Groups />} />
-            <Route path="/members" element={<MembersList />} />
-            <Route path="/seasons" element={<Seasons />} />
-            <Route path="/meeting" element={<MeetingMode />} />
-            <Route path="/contributions" element={<Contributions />} />
-            <Route path="/loans" element={<LoanManager />} />
-            <Route path="/fines" element={<Fines />} />
-            <Route path="/expenses" element={<Expenses />} />
-            <Route path="/attendance" element={<Attendance />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/audit" element={<AuditLogs />} />
-            <Route path="/help" element={<Help />} />
-            <Route path="/notifications" element={<div className="p-8 text-center text-gray-500">No new announcements.</div>} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Layout>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
+          <Route path="/groups" element={<ProtectedRoute><Layout><Groups /></Layout></ProtectedRoute>} />
+          <Route path="/members" element={<ProtectedRoute><Layout><MembersList /></Layout></ProtectedRoute>} />
+          <Route path="/seasons" element={<ProtectedRoute><Layout><Seasons /></Layout></ProtectedRoute>} />
+          <Route path="/meeting" element={<ProtectedRoute><Layout><MeetingMode /></Layout></ProtectedRoute>} />
+          <Route path="/contributions" element={<ProtectedRoute><Layout><Contributions /></Layout></ProtectedRoute>} />
+          <Route path="/loans" element={<ProtectedRoute><Layout><LoanManager /></Layout></ProtectedRoute>} />
+          <Route path="/fines" element={<ProtectedRoute><Layout><Fines /></Layout></ProtectedRoute>} />
+          <Route path="/expenses" element={<ProtectedRoute><Layout><Expenses /></Layout></ProtectedRoute>} />
+          <Route path="/attendance" element={<ProtectedRoute><Layout><Attendance /></Layout></ProtectedRoute>} />
+          <Route path="/reports" element={<ProtectedRoute><Layout><Reports /></Layout></ProtectedRoute>} />
+          <Route path="/notifications" element={<ProtectedRoute><Layout><Notifications /></Layout></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
+          <Route path="/audit" element={<ProtectedRoute><Layout><AuditLogs /></Layout></ProtectedRoute>} />
+          <Route path="/help" element={<ProtectedRoute><Layout><Help /></Layout></ProtectedRoute>} />
+          <Route path="/users" element={<ProtectedRoute><Layout><UserManagement /></Layout></ProtectedRoute>} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </HashRouter>
     </AppContext.Provider>
+  );
+};
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }

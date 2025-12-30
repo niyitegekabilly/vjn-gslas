@@ -1,58 +1,789 @@
-import React, { useContext } from 'react';
+
+import React, { useContext, useState, useEffect } from 'react';
 import { AppContext } from '../App';
+import { api } from '../api/client';
 import { LABELS } from '../constants';
-import { Building, MapPin, Plus } from 'lucide-react';
+import { Building, MapPin, Plus, User, Info, Settings, History, Shield, Users, ArrowRight, Loader2, Save, X, Search, Filter, Edit2, CheckCircle, Globe, DollarSign } from 'lucide-react';
+import { GSLAGroup, GroupStatus, MeetingFrequency, Member, AuditRecord, UserRole, MemberStatus } from '../types';
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+
+type ViewMode = 'LIST' | 'CREATE' | 'PROFILE' | 'EDIT';
 
 export default function Groups() {
-  const { groups, lang } = useContext(AppContext);
+  const { groups: allGroups, lang, setActiveGroupId } = useContext(AppContext);
   const labels = LABELS[lang];
+  const [view, setView] = useState<ViewMode>('LIST');
+  const [selectedGroup, setSelectedGroup] = useState<GSLAGroup | null>(null);
+
+  // Filter State
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | GroupStatus>('ALL');
+
+  const handleGroupClick = (group: GSLAGroup) => {
+    setSelectedGroup(group);
+    setView('PROFILE');
+  };
+
+  const handleCreateSuccess = (newGroup: GSLAGroup) => {
+    setSelectedGroup(newGroup);
+    setView('PROFILE');
+    window.location.reload(); // Quick refresh to sync global state
+  };
+
+  const handleEditSuccess = (updatedGroup: GSLAGroup) => {
+    setSelectedGroup(updatedGroup);
+    setView('PROFILE');
+    window.location.reload();
+  };
+
+  const filteredGroups = allGroups.filter(group => {
+    const matchesSearch = group.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          group.location.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'ALL' || group.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-800">{labels.group} Management</h2>
-        <button className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+      {view === 'LIST' && (
+        <GroupList 
+          groups={filteredGroups} 
+          onCreate={() => setView('CREATE')} 
+          onSelect={handleGroupClick}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          statusFilter={statusFilter}
+          setStatusFilter={setStatusFilter}
+          labels={labels}
+        />
+      )}
+      
+      {view === 'CREATE' && (
+        <CreateGroupForm 
+          onCancel={() => setView('LIST')} 
+          onSuccess={handleCreateSuccess} 
+          labels={labels}
+        />
+      )}
+
+      {view === 'EDIT' && selectedGroup && (
+        <EditGroupForm 
+          group={selectedGroup}
+          onCancel={() => setView('PROFILE')} 
+          onSuccess={handleEditSuccess} 
+          labels={labels}
+        />
+      )}
+
+      {view === 'PROFILE' && selectedGroup && (
+        <GroupProfile 
+          group={selectedGroup} 
+          onBack={() => setView('LIST')}
+          onEdit={() => setView('EDIT')}
+          onChangeGroup={() => {
+             api.getGroup(selectedGroup.id).then(g => g && setSelectedGroup(g));
+          }}
+          labels={labels}
+        />
+      )}
+    </div>
+  );
+}
+
+// --- SUB-COMPONENTS ---
+
+function GroupList({ 
+  groups, onCreate, onSelect, searchTerm, setSearchTerm, statusFilter, setStatusFilter, labels
+}: any) {
+  return (
+    <>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+           <h2 className="text-2xl font-bold text-gray-800">{labels.groupsManagement}</h2>
+           <p className="text-gray-500 text-sm">{labels.manageGroupsDesc}</p>
+        </div>
+        <button 
+          onClick={onCreate}
+          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm transition-colors"
+        >
           <Plus size={18} className="mr-2" />
-          New Group
+          {labels.newGroup}
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {groups.map(group => (
-          <div key={group.id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <div className="flex items-center mb-4">
-              <div className="p-3 bg-blue-50 rounded-lg text-blue-600 mr-4">
-                <Building size={24} />
-              </div>
-              <div>
-                <h3 className="font-bold text-gray-900">{group.name}</h3>
-                <div className="flex items-center text-sm text-gray-500">
-                  <MapPin size={14} className="mr-1" />
-                  {group.location}
-                </div>
-              </div>
-            </div>
-            
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-500">Share Value:</span>
-                <span className="font-medium">{group.shareValue} RWF</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Meeting Day:</span>
-                <span className="font-medium">{group.meetingDay}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Savings:</span>
-                <span className="font-medium text-green-600">{group.totalSavings.toLocaleString()} RWF</span>
-              </div>
-            </div>
+      {/* Search & Filter Toolbar */}
+      <div className="flex flex-col sm:flex-row gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
+          <input 
+            type="text" 
+            placeholder={labels.search} 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
+          />
+        </div>
+        <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
+          <Filter size={18} className="text-gray-500" />
+          <select 
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as any)}
+            className="bg-transparent text-sm font-medium text-gray-700 outline-none cursor-pointer"
+          >
+            <option value="ALL">All Status</option>
+            <option value={GroupStatus.ACTIVE}>Active</option>
+            <option value={GroupStatus.SUSPENDED}>Suspended</option>
+            <option value={GroupStatus.CLOSED}>Closed</option>
+          </select>
+        </div>
+      </div>
 
-            <button className="w-full mt-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
-              Manage Settings
-            </button>
+      {groups.length === 0 ? (
+        <div className="text-center py-12 bg-white rounded-xl border border-dashed border-gray-300">
+          <Building className="mx-auto h-12 w-12 text-gray-300 mb-3" />
+          <p className="text-gray-500">{labels.noData}</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {groups.map((group: GSLAGroup) => (
+            <div key={group.id} className={`bg-white p-6 rounded-xl shadow-sm border transition-all hover:shadow-md ${group.status === GroupStatus.ACTIVE ? 'border-gray-100 hover:border-blue-200' : 'border-red-100 bg-red-50/20'}`}>
+              <div className="flex justify-between items-start mb-4">
+                 <div className="flex items-center overflow-hidden">
+                  <div className={`p-3 rounded-lg mr-4 flex-shrink-0 ${group.status === GroupStatus.ACTIVE ? 'bg-blue-50 text-blue-600' : 'bg-gray-200 text-gray-500'}`}>
+                    <Building size={24} />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-bold text-gray-900 truncate text-lg">{group.name}</h3>
+                    <div className="flex items-center text-sm text-gray-500 truncate mt-1">
+                      <MapPin size={14} className="mr-1 flex-shrink-0" />
+                      <span className="truncate">{group.location}</span>
+                    </div>
+                  </div>
+                </div>
+                <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase flex-shrink-0 tracking-wide ${
+                  group.status === GroupStatus.ACTIVE ? 'bg-green-100 text-green-800' : 
+                  group.status === GroupStatus.SUSPENDED ? 'bg-orange-100 text-orange-800' : 'bg-red-100 text-red-800'
+                }`}>
+                  {group.status}
+                </span>
+              </div>
+              
+              <div className="grid grid-cols-3 gap-2 border-t border-gray-100 pt-4 mt-2">
+                 <div className="text-center">
+                    <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">{labels.totalSavings}</p>
+                    <p className="font-bold text-gray-800 text-sm mt-1">{(group.totalSavings || 0).toLocaleString()}</p>
+                 </div>
+                 <div className="text-center border-l border-gray-100">
+                    <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">{labels.loansActive}</p>
+                    <p className="font-bold text-blue-600 text-sm mt-1">{(group.totalLoansOutstanding || 0).toLocaleString()}</p>
+                 </div>
+                 <div className="text-center border-l border-gray-100">
+                    <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">{labels.shareValue}</p>
+                    <p className="font-bold text-gray-800 text-sm mt-1">{group.shareValue}</p>
+                 </div>
+              </div>
+
+              <button 
+                onClick={() => onSelect(group)}
+                className="w-full mt-5 flex items-center justify-center py-2.5 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg text-sm font-medium transition-colors border border-gray-200 hover:border-gray-300"
+              >
+                {labels.manageProfile} <ArrowRight size={16} className="ml-2" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+function CreateGroupForm({ onCancel, onSuccess, labels }: any) {
+  const [formData, setFormData] = useState({
+    name: '',
+    branchId: 'b1', // Default branch
+    district: '',
+    sector: '',
+    meetingDay: 'Friday',
+    shareValue: 100,
+    minShares: 1,
+    maxShares: 5
+  });
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      const newGroup = await api.createGroup(formData);
+      onSuccess(newGroup);
+    } catch (error: any) {
+      alert(error.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
+      <div className="p-6 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+        <h2 className="text-xl font-bold text-gray-800">{labels.createGroupTitle}</h2>
+        <button onClick={onCancel} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
+      </div>
+      
+      <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        {/* Identification */}
+        <div className="space-y-4">
+          <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wide flex items-center">
+            <Info size={16} className="mr-2" /> {labels.identification}
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Group Name</label>
+              <input 
+                required
+                value={formData.name}
+                onChange={e => setFormData({...formData, name: e.target.value})}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="e.g., Abakorerabushake"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">District</label>
+              <input 
+                value={formData.district}
+                onChange={e => setFormData({...formData, district: e.target.value})}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Sector</label>
+              <input 
+                value={formData.sector}
+                onChange={e => setFormData({...formData, sector: e.target.value})}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+              />
+            </div>
           </div>
-        ))}
+        </div>
+
+        <div className="border-t border-gray-100 my-6"></div>
+
+        {/* Financial Rules */}
+        <div className="space-y-4">
+          <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wide flex items-center">
+            <Settings size={16} className="mr-2" /> {labels.financialRules}
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+             <div className="col-span-2">
+               <label className="block text-sm font-medium text-gray-700 mb-1">Meeting Day</label>
+               <select 
+                 value={formData.meetingDay}
+                 onChange={e => setFormData({...formData, meetingDay: e.target.value})}
+                 className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white"
+               >
+                 {['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map(d => (
+                   <option key={d} value={d}>{d}</option>
+                 ))}
+               </select>
+             </div>
+             <div className="col-span-2">
+               <label className="block text-sm font-medium text-gray-700 mb-1">Share Value</label>
+               <div className="relative">
+                 <DollarSign size={14} className="absolute left-3 top-3 text-gray-400" />
+                 <input 
+                   type="number"
+                   min="50"
+                   step="50"
+                   value={formData.shareValue}
+                   onChange={e => setFormData({...formData, shareValue: parseInt(e.target.value)})}
+                   className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg"
+                 />
+               </div>
+             </div>
+             <div>
+               <label className="block text-sm font-medium text-gray-700 mb-1">Min Shares</label>
+               <input 
+                 type="number"
+                 min="1"
+                 value={formData.minShares}
+                 onChange={e => setFormData({...formData, minShares: parseInt(e.target.value)})}
+                 className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+               />
+             </div>
+             <div>
+               <label className="block text-sm font-medium text-gray-700 mb-1">Max Shares</label>
+               <input 
+                 type="number"
+                 min="1"
+                 value={formData.maxShares}
+                 onChange={e => setFormData({...formData, maxShares: parseInt(e.target.value)})}
+                 className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+               />
+             </div>
+          </div>
+        </div>
+
+        <div className="flex gap-4 pt-4">
+          <button type="button" onClick={onCancel} className="flex-1 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">{labels.cancel}</button>
+          <button type="submit" disabled={submitting} className="flex-1 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex justify-center items-center">
+            {submitting ? <Loader2 className="animate-spin" size={20} /> : labels.save}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function EditGroupForm({ group, onCancel, onSuccess, labels }: { group: GSLAGroup, onCancel: () => void, onSuccess: (g: GSLAGroup) => void, labels: any }) {
+  const { user } = useAuth();
+  const [members, setMembers] = useState<Member[]>([]);
+  const [loadingMembers, setLoadingMembers] = useState(false);
+
+  const [formData, setFormData] = useState({
+    name: group.name,
+    branchId: group.branchId,
+    district: group.district,
+    sector: group.sector,
+    cell: group.cell || '',
+    village: group.village || '',
+    meetingDay: group.meetingDay,
+    shareValue: group.shareValue,
+    minShares: group.minShares,
+    maxShares: group.maxShares,
+    maxLoanMultiplier: group.maxLoanMultiplier || 3,
+    status: group.status,
+    presidentId: group.presidentId || '',
+    secretaryId: group.secretaryId || '',
+    accountantId: group.accountantId || '',
+    reason: ''
+  });
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    setLoadingMembers(true);
+    api.getMembers(group.id).then(m => {
+        setMembers(m);
+        setLoadingMembers(false);
+    });
+  }, [group.id]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.reason.trim()) {
+      alert("Please provide a reason for modification.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      // Update location string if derived
+      const location = `${formData.sector}, ${formData.district}`;
+      
+      const updatedGroup = await api.updateGroup(
+          group.id, 
+          { ...formData, location }, 
+          formData.reason, 
+          user?.fullName || 'Unknown'
+      );
+      onSuccess(updatedGroup);
+    } catch (error: any) {
+      alert(error.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      <div className="p-6 border-b border-gray-100 bg-amber-50 flex justify-between items-center">
+        <h2 className="text-xl font-bold text-amber-900">{labels.modifyGroup}</h2>
+        <button onClick={onCancel} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
+      </div>
+      
+      <form onSubmit={handleSubmit} className="p-6 space-y-8">
+        
+        {/* Section 1: Identification & Location */}
+        <div className="space-y-4">
+          <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wide flex items-center border-b border-gray-100 pb-2">
+            <Info size={16} className="mr-2" /> {labels.identification}
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Group Name</label>
+              <input 
+                required
+                value={formData.name}
+                onChange={e => setFormData({...formData, name: e.target.value})}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div className="col-span-2 md:col-span-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">{labels.status}</label>
+              <select 
+                value={formData.status}
+                onChange={e => setFormData({...formData, status: e.target.value as GroupStatus})}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white"
+              >
+                {Object.values(GroupStatus).map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+            <div className="col-span-2 grid grid-cols-2 gap-4">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">District</label>
+                    <input 
+                        value={formData.district}
+                        onChange={e => setFormData({...formData, district: e.target.value})}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Sector</label>
+                    <input 
+                        value={formData.sector}
+                        onChange={e => setFormData({...formData, sector: e.target.value})}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Cell</label>
+                    <input 
+                        value={formData.cell}
+                        onChange={e => setFormData({...formData, cell: e.target.value})}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Village</label>
+                    <input 
+                        value={formData.village}
+                        onChange={e => setFormData({...formData, village: e.target.value})}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    />
+                </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Section 2: Governance */}
+        <div className="space-y-4">
+          <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wide flex items-center border-b border-gray-100 pb-2">
+            <Shield size={16} className="mr-2" /> {labels.governanceStructure}
+          </h3>
+          {loadingMembers ? (
+              <div className="text-sm text-gray-500 flex items-center"><Loader2 size={16} className="animate-spin mr-2"/> Loading members...</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">President</label>
+                    <select 
+                        value={formData.presidentId}
+                        onChange={e => setFormData({...formData, presidentId: e.target.value})}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white"
+                    >
+                        <option value="">-- Select --</option>
+                        {members.map(m => <option key={m.id} value={m.id}>{m.fullName}</option>)}
+                    </select>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Secretary</label>
+                    <select 
+                        value={formData.secretaryId}
+                        onChange={e => setFormData({...formData, secretaryId: e.target.value})}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white"
+                    >
+                        <option value="">-- Select --</option>
+                        {members.map(m => <option key={m.id} value={m.id}>{m.fullName}</option>)}
+                    </select>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Accountant</label>
+                    <select 
+                        value={formData.accountantId}
+                        onChange={e => setFormData({...formData, accountantId: e.target.value})}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white"
+                    >
+                        <option value="">-- Select --</option>
+                        {members.map(m => <option key={m.id} value={m.id}>{m.fullName}</option>)}
+                    </select>
+                </div>
+            </div>
+          )}
+        </div>
+
+        {/* Section 3: Financial Rules */}
+        <div className="space-y-4">
+          <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wide flex items-center border-b border-gray-100 pb-2">
+            <Settings size={16} className="mr-2" /> {labels.financialRules}
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+             <div className="col-span-2 md:col-span-1">
+               <label className="block text-sm font-medium text-gray-700 mb-1">Meeting Day</label>
+               <select 
+                 value={formData.meetingDay}
+                 onChange={e => setFormData({...formData, meetingDay: e.target.value})}
+                 className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white"
+               >
+                 {['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map(d => (
+                   <option key={d} value={d}>{d}</option>
+                 ))}
+               </select>
+             </div>
+             <div className="col-span-2 md:col-span-1">
+               <label className="block text-sm font-medium text-gray-700 mb-1">Share Value</label>
+               <input 
+                 type="number"
+                 min="50"
+                 step="50"
+                 value={formData.shareValue}
+                 onChange={e => setFormData({...formData, shareValue: parseInt(e.target.value)})}
+                 className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+               />
+             </div>
+             <div className="col-span-1">
+               <label className="block text-sm font-medium text-gray-700 mb-1">Min Shares</label>
+               <input 
+                 type="number"
+                 min="1"
+                 value={formData.minShares}
+                 onChange={e => setFormData({...formData, minShares: parseInt(e.target.value)})}
+                 className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+               />
+             </div>
+             <div className="col-span-1">
+               <label className="block text-sm font-medium text-gray-700 mb-1">Max Shares</label>
+               <input 
+                 type="number"
+                 min="1"
+                 value={formData.maxShares}
+                 onChange={e => setFormData({...formData, maxShares: parseInt(e.target.value)})}
+                 className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+               />
+             </div>
+             <div className="col-span-2 md:col-span-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Max Loan Multiplier</label>
+                <div className="relative">
+                    <span className="absolute left-3 top-2 text-gray-400 text-sm">x</span>
+                    <input 
+                        type="number"
+                        min="1"
+                        step="0.5"
+                        value={formData.maxLoanMultiplier}
+                        onChange={e => setFormData({...formData, maxLoanMultiplier: parseFloat(e.target.value)})}
+                        className="w-full pl-6 pr-4 py-2 border border-gray-300 rounded-lg"
+                    />
+                </div>
+             </div>
+          </div>
+        </div>
+
+        {/* Section 4: Audit */}
+        <div className="bg-amber-50 p-4 rounded-lg border border-amber-100 mt-4">
+           <label className="block text-sm font-bold text-amber-900 mb-1">Reason for Changes <span className="text-red-500">*</span></label>
+           <input 
+             required
+             value={formData.reason}
+             onChange={e => setFormData({...formData, reason: e.target.value})}
+             placeholder="e.g. Annual Policy Update, Leadership Change"
+             className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500"
+           />
+           <p className="text-xs text-amber-700 mt-2">
+               Change performed by: <strong>{user?.fullName || 'Unknown User'}</strong>
+           </p>
+        </div>
+
+        <div className="flex gap-4 pt-4">
+          <button type="button" onClick={onCancel} className="flex-1 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">{labels.cancel}</button>
+          <button type="submit" disabled={submitting} className="flex-1 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 flex justify-center items-center">
+            {submitting ? <Loader2 className="animate-spin" size={20} /> : <div className="flex items-center"><Save className="mr-2" size={18} /> Update Group</div>}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function GroupProfile({ group, onBack, onEdit, onChangeGroup, labels }: { group: GSLAGroup, onBack: () => void, onEdit: () => void, onChangeGroup: () => void, labels: any }) {
+  const [members, setMembers] = useState<Member[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { setActiveGroupId } = useContext(AppContext);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    setLoading(true);
+    api.getMembers(group.id).then(m => {
+      setMembers(m);
+      setLoading(false);
+    });
+  }, [group.id]);
+
+  return (
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <button onClick={onBack} className="flex items-center text-gray-500 hover:text-gray-800 transition-colors">
+          <ArrowRight className="rotate-180 mr-2" size={20} /> {labels.back}
+        </button>
+        <button 
+          onClick={() => { setActiveGroupId(group.id); alert(`Switched context to ${group.name}`); }}
+          className="text-sm font-bold text-blue-600 bg-blue-50 px-4 py-2 rounded-lg hover:bg-blue-100 flex items-center transition-colors border border-blue-100"
+        >
+          <CheckCircle size={16} className="mr-2" /> Select as Active Context
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main Info */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 relative group">
+             <button 
+               onClick={onEdit} 
+               className="absolute top-4 right-4 p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+               title={labels.modifyGroup}
+             >
+               <Edit2 size={20} />
+             </button>
+
+             <div className="flex justify-between items-start mb-6">
+                <div>
+                   <h1 className="text-3xl font-bold text-gray-900">{group.name}</h1>
+                   <div className="flex items-center text-gray-500 mt-2">
+                      <MapPin size={18} className="mr-1 text-gray-400" /> {group.location}
+                   </div>
+                </div>
+                <div className="flex flex-col items-end mr-12">
+                   <span className={`px-4 py-1.5 rounded-full text-sm font-bold uppercase tracking-wide ${group.status === GroupStatus.ACTIVE ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                      {group.status}
+                   </span>
+                   <span className="text-xs text-gray-400 mt-2 font-mono">ID: {group.id}</span>
+                </div>
+             </div>
+
+             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 py-6 border-t border-b border-gray-100">
+                <div>
+                   <p className="text-xs text-gray-400 uppercase font-bold tracking-wider">{labels.totalSavings}</p>
+                   <p className="text-xl font-bold text-gray-900 mt-1">{(group.totalSavings || 0).toLocaleString()}</p>
+                </div>
+                <div>
+                   <p className="text-xs text-gray-400 uppercase font-bold tracking-wider">{labels.loansActive}</p>
+                   <p className="text-xl font-bold text-blue-600 mt-1">{(group.totalLoansOutstanding || 0).toLocaleString()}</p>
+                </div>
+                <div>
+                   <p className="text-xs text-gray-400 uppercase font-bold tracking-wider">Social Fund</p>
+                   <p className="text-xl font-bold text-orange-600 mt-1">{(group.totalSolidarity || 0).toLocaleString()}</p>
+                </div>
+                <div 
+                  onClick={() => {
+                    setActiveGroupId(group.id);
+                    navigate('/members');
+                  }}
+                  className="cursor-pointer group/stat hover:bg-gray-50 rounded-lg -m-2 p-2 transition-colors"
+                  title="View Members List"
+                >
+                   <p className="text-xs text-gray-400 uppercase font-bold tracking-wider flex items-center group-hover/stat:text-blue-600">
+                     {labels.members} <ArrowRight size={12} className="ml-1 opacity-0 group-hover/stat:opacity-100 transition-opacity" />
+                   </p>
+                   <p className="text-xl font-bold text-gray-900 mt-1 group-hover/stat:text-blue-600">{members.length}</p>
+                </div>
+             </div>
+
+             <div className="mt-6">
+                <h3 className="font-bold text-gray-800 mb-4 flex items-center"><Shield size={20} className="mr-2 text-purple-600" /> {labels.governanceStructure}</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                   <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                      <p className="text-xs text-gray-500 uppercase font-bold mb-1">President</p>
+                      <p className="font-medium text-gray-900">{members.find(m => m.id === group.presidentId)?.fullName || 'Not Assigned'}</p>
+                   </div>
+                   <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                      <p className="text-xs text-gray-500 uppercase font-bold mb-1">Secretary</p>
+                      <p className="font-medium text-gray-900">{members.find(m => m.id === group.secretaryId)?.fullName || 'Not Assigned'}</p>
+                   </div>
+                   <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                      <p className="text-xs text-gray-500 uppercase font-bold mb-1">Accountant</p>
+                      <p className="font-medium text-gray-900">{members.find(m => m.id === group.accountantId)?.fullName || 'Not Assigned'}</p>
+                   </div>
+                </div>
+             </div>
+          </div>
+
+          {/* Audit History */}
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+             <h3 className="font-bold text-gray-800 mb-4 flex items-center"><History size={20} className="mr-2 text-gray-400" /> {labels.auditTrail}</h3>
+             <div className="space-y-4">
+                {(group.auditHistory && group.auditHistory.length > 0) ? (
+                   group.auditHistory.slice(-5).reverse().map(audit => (
+                      <div key={audit.id} className="text-sm border-l-2 border-gray-200 pl-4 py-2 hover:bg-gray-50 transition-colors rounded-r-lg">
+                         <div className="flex justify-between mb-1">
+                            <span className="font-semibold text-gray-900">{audit.reason}</span>
+                            <span className="text-xs text-gray-500">{new Date(audit.date).toLocaleDateString()}</span>
+                         </div>
+                         <p className="text-xs text-gray-500">
+                            Updated by <span className="font-medium text-gray-700">{audit.editorId}</span>: {audit.changes.map(c => c.field).join(', ')}
+                         </p>
+                      </div>
+                   ))
+                ) : (
+                   <p className="text-sm text-gray-400 italic">No recent changes recorded.</p>
+                )}
+             </div>
+          </div>
+        </div>
+
+        {/* Sidebar Info */}
+        <div className="space-y-6">
+           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+              <h3 className="font-bold text-gray-800 mb-4 flex items-center"><Settings size={20} className="mr-2 text-gray-400" /> {labels.financialConfiguration}</h3>
+              <ul className="space-y-3 text-sm">
+                 <li className="flex justify-between items-center pb-2 border-b border-gray-50">
+                    <span className="text-gray-600">Share Value</span>
+                    <span className="font-mono font-bold text-gray-800">{group.shareValue}</span>
+                 </li>
+                 <li className="flex justify-between items-center pb-2 border-b border-gray-50">
+                    <span className="text-gray-600">Min Shares</span>
+                    <span className="font-mono font-medium">{group.minShares}</span>
+                 </li>
+                 <li className="flex justify-between items-center pb-2 border-b border-gray-50">
+                    <span className="text-gray-600">Max Shares</span>
+                    <span className="font-mono font-medium">{group.maxShares}</span>
+                 </li>
+                 <li className="flex justify-between items-center pb-2 border-b border-gray-50">
+                    <span className="text-gray-600">Meeting Day</span>
+                    <span className="font-medium">{group.meetingDay}</span>
+                 </li>
+                 <li className="flex justify-between items-center">
+                    <span className="text-gray-600">Max Loan</span>
+                    <span className="font-medium">x{group.maxLoanMultiplier} Savings</span>
+                 </li>
+              </ul>
+              <button 
+                onClick={onEdit}
+                className="w-full mt-6 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-600 font-medium hover:bg-gray-50 hover:text-gray-800 transition-colors"
+              >
+                 Modify Rules
+              </button>
+           </div>
+
+           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+              <h3 className="font-bold text-gray-800 mb-4 flex items-center"><MapPin size={20} className="mr-2 text-gray-400" /> {labels.locationDetails}</h3>
+              <div className="space-y-3 text-sm">
+                 <div className="flex justify-between">
+                    <span className="text-gray-500">District</span>
+                    <span className="font-medium text-gray-900">{group.district}</span>
+                 </div>
+                 <div className="flex justify-between">
+                    <span className="text-gray-500">Sector</span>
+                    <span className="font-medium text-gray-900">{group.sector}</span>
+                 </div>
+                 <div className="flex justify-between">
+                    <span className="text-gray-500">Cell</span>
+                    <span className="font-medium text-gray-900">{group.cell}</span>
+                 </div>
+                 <div className="flex justify-between">
+                    <span className="text-gray-500">Village</span>
+                    <span className="font-medium text-gray-900">{group.village}</span>
+                 </div>
+              </div>
+           </div>
+        </div>
       </div>
     </div>
   );

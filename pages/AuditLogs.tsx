@@ -1,7 +1,13 @@
-import React from 'react';
+
+import React, { useContext } from 'react';
 import { ShieldAlert } from 'lucide-react';
+import { AppContext } from '../App';
+import { LABELS } from '../constants';
 
 export default function AuditLogs() {
+  const { lang } = useContext(AppContext);
+  const labels = LABELS[lang];
+
   const logs = [
     { id: 1, action: 'Meeting Data Saved', user: 'Jean Admin', timestamp: '2024-03-05 14:30', details: 'Added 15 records for Group A' },
     { id: 2, action: 'Loan Approved', user: 'Jean Admin', timestamp: '2024-03-04 09:15', details: 'Approved loan #L1 for M. Claire' },
@@ -11,7 +17,7 @@ export default function AuditLogs() {
   return (
     <div className="space-y-6">
        <h2 className="text-2xl font-bold text-gray-800 flex items-center">
-         <ShieldAlert className="mr-3 text-slate-800" /> Audit Logs
+         <ShieldAlert className="mr-3 text-slate-800" /> {labels.auditLogs}
        </h2>
        
        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">

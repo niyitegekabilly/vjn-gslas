@@ -1,16 +1,60 @@
-import React, { useContext } from 'react';
+
+import React, { useContext, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AppContext } from '../App';
 import { LABELS } from '../constants';
-import { Settings as SettingsIcon, Globe, Shield, Database, Trash2 } from 'lucide-react';
+import { api } from '../api/client';
+import { Settings as SettingsIcon, Globe, Shield, Database, Trash2, Upload, Download, X, User } from 'lucide-react';
 import { resetDatabase } from '../backend/db';
 
 export default function Settings() {
   const { lang, setLang } = useContext(AppContext);
   const labels = LABELS[lang];
+  const navigate = useNavigate();
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleExport = async () => {
+    const data = await api.getFullDatabaseBackup();
+    const dataStr = JSON.stringify(data, null, 2);
+    const blob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `vjn_backup_${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const content = event.target?.result as string;
+      if (content) {
+        if(window.confirm("This will overwrite all current data. Are you sure?")) {
+           const result = await api.importDatabase(content);
+           if (!result.success) {
+             alert("Import failed: " + result.error);
+           }
+        }
+      }
+    };
+    reader.readAsText(file);
+    // Reset input
+    e.target.value = '';
+  };
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-800">{labels.status} & Configuration</h2>
+      <h2 className="text-2xl font-bold text-gray-800">{labels.settingsTitle}</h2>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 divide-y divide-gray-100">
         
@@ -21,8 +65,8 @@ export default function Settings() {
               <Globe size={24} />
             </div>
             <div>
-              <h3 className="text-lg font-medium text-gray-900">System Language / Ururimi</h3>
-              <p className="text-sm text-gray-500 mt-1">Choose between English and Kinyarwanda.</p>
+              <h3 className="text-lg font-medium text-gray-900">{labels.language}</h3>
+              <p className="text-sm text-gray-500 mt-1">{labels.languageDesc}</p>
             </div>
           </div>
           <div className="flex items-center space-x-2">
@@ -48,12 +92,16 @@ export default function Settings() {
               <Shield size={24} />
             </div>
             <div>
-              <h3 className="text-lg font-medium text-gray-900">Users & Roles</h3>
-              <p className="text-sm text-gray-500 mt-1">Manage admin access and group leaders.</p>
+              <h3 className="text-lg font-medium text-gray-900">{labels.usersRoles}</h3>
+              <p className="text-sm text-gray-500 mt-1">{labels.usersRolesDesc}</p>
             </div>
           </div>
-          <button className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50">
-            Manage Users
+          <button 
+            onClick={() => navigate('/users')}
+            className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 flex items-center"
+          >
+            <User size={16} className="mr-2" />
+            {labels.manageUsers}
           </button>
         </div>
 
@@ -64,13 +112,31 @@ export default function Settings() {
               <Database size={24} />
             </div>
             <div>
-              <h3 className="text-lg font-medium text-gray-900">Data & Backup</h3>
-              <p className="text-sm text-gray-500 mt-1">Export all system data for offline storage.</p>
+              <h3 className="text-lg font-medium text-gray-900">{labels.dataBackup}</h3>
+              <p className="text-sm text-gray-500 mt-1">{labels.dataBackupDesc}</p>
             </div>
           </div>
-          <button className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50">
-            Export JSON
-          </button>
+          <div className="flex gap-2">
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              className="hidden" 
+              accept=".json" 
+              onChange={handleFileChange}
+            />
+            <button 
+              onClick={handleImportClick}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 flex items-center"
+            >
+              <Upload size={16} className="mr-2" /> Import
+            </button>
+            <button 
+              onClick={handleExport}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 flex items-center"
+            >
+              <Download size={16} className="mr-2" /> {labels.exportJson}
+            </button>
+          </div>
         </div>
 
         {/* Reset */}
@@ -80,19 +146,19 @@ export default function Settings() {
               <Trash2 size={24} />
             </div>
             <div>
-              <h3 className="text-lg font-medium text-red-900">Reset Database</h3>
-              <p className="text-sm text-red-600 mt-1">Clear all local data and reset to initial state.</p>
+              <h3 className="text-lg font-medium text-red-900">{labels.resetDb}</h3>
+              <p className="text-sm text-red-600 mt-1">{labels.resetDbDesc}</p>
             </div>
           </div>
           <button 
             onClick={() => {
-              if(window.confirm('Are you sure you want to reset the database? This cannot be undone.')) {
+              if(window.confirm(labels.confirmReset)) {
                 resetDatabase();
               }
             }}
             className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700"
           >
-            Reset System
+            {labels.resetSystem}
           </button>
         </div>
       </div>

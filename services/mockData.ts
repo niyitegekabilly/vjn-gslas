@@ -1,6 +1,8 @@
+
 import { 
   Branch, GSLAGroup, Cycle, Member, Loan, Transaction, 
-  UserRole, MemberStatus, LoanStatus, TransactionType, Attendance 
+  UserRole, MemberStatus, LoanStatus, TransactionType, Attendance,
+  GroupStatus, MeetingFrequency, AttendanceStatus
 } from '../types';
 
 // --- Constants ---
@@ -18,27 +20,48 @@ export const groups: GSLAGroup[] = [
     id: 'g1',
     name: 'Abakorerabushake',
     branchId: 'b1',
+    district: 'Musanze',
+    sector: 'Muhoza',
+    cell: 'Ruhengeri',
+    village: 'Kivumu',
     location: 'Muhoza, Musanze',
     meetingDay: 'Tuesday',
+    meetingFrequency: MeetingFrequency.WEEKLY,
     shareValue: 500,
     minShares: 1,
     maxShares: 5,
+    maxLoanMultiplier: 3,
     currentCycleId: 'c1',
+    status: GroupStatus.ACTIVE,
     totalSavings: 450000,
     totalLoansOutstanding: 150000,
+    totalSolidarity: 50000,
+    createdAt: '2023-01-01',
+    auditHistory: [],
+    presidentId: 'm1'
   },
   {
     id: 'g2',
     name: 'Tuzamurane',
     branchId: 'b1',
+    district: 'Musanze',
+    sector: 'Kinigi',
+    cell: 'Bisoke',
+    village: 'Nyange',
     location: 'Kinigi, Musanze',
     meetingDay: 'Friday',
+    meetingFrequency: MeetingFrequency.BIWEEKLY,
     shareValue: 200,
     minShares: 1,
     maxShares: 10,
+    maxLoanMultiplier: 3,
     currentCycleId: 'c2',
+    status: GroupStatus.ACTIVE,
     totalSavings: 120000,
     totalLoansOutstanding: 0,
+    totalSolidarity: 20000,
+    createdAt: '2023-06-15',
+    auditHistory: []
   }
 ];
 
@@ -60,10 +83,10 @@ export const cycles: Cycle[] = [
 ];
 
 export const members: Member[] = [
-  { id: 'm1', groupId: 'g1', fullName: 'Jean Pierre N.', nationalId: '11990800...', phone: '0788123456', role: UserRole.GROUP_ADMIN, status: MemberStatus.ACTIVE, joinDate: '2023-01-01', totalShares: 100, totalLoans: 0 },
-  { id: 'm2', groupId: 'g1', fullName: 'Marie Claire M.', nationalId: '11992700...', phone: '0788654321', role: UserRole.MEMBER, status: MemberStatus.ACTIVE, joinDate: '2023-01-01', totalShares: 80, totalLoans: 50000 },
-  { id: 'm3', groupId: 'g1', fullName: 'Emmanuel K.', nationalId: '11985600...', phone: '0722123123', role: UserRole.MEMBER, status: MemberStatus.ACTIVE, joinDate: '2023-02-10', totalShares: 60, totalLoans: 0 },
-  { id: 'm4', groupId: 'g1', fullName: 'Grace U.', nationalId: '11995400...', phone: '0733456456', role: UserRole.MEMBER, status: MemberStatus.SUSPENDED, joinDate: '2023-03-05', totalShares: 20, totalLoans: 0 },
+  { id: 'm1', groupId: 'g1', fullName: 'Jean Pierre N.', nationalId: '11990800...', phone: '0788123456', role: UserRole.GROUP_LEADER, status: MemberStatus.ACTIVE, joinDate: '2023-01-01', totalShares: 100, totalLoans: 0 },
+  { id: 'm2', groupId: 'g1', fullName: 'Marie Claire M.', nationalId: '11992700...', phone: '0788654321', role: UserRole.MEMBER_USER, status: MemberStatus.ACTIVE, joinDate: '2023-01-01', totalShares: 80, totalLoans: 50000 },
+  { id: 'm3', groupId: 'g1', fullName: 'Emmanuel K.', nationalId: '11985600...', phone: '0722123123', role: UserRole.MEMBER_USER, status: MemberStatus.ACTIVE, joinDate: '2023-02-10', totalShares: 60, totalLoans: 0 },
+  { id: 'm4', groupId: 'g1', fullName: 'Grace U.', nationalId: '11995400...', phone: '0733456456', role: UserRole.MEMBER_USER, status: MemberStatus.SUSPENDED, joinDate: '2023-03-05', totalShares: 20, totalLoans: 0 },
 ];
 
 export const loans: Loan[] = [
@@ -129,10 +152,13 @@ export const submitMeetingData = (
     // 1. Attendance
     attendanceLog.push({
       id: Math.random().toString(36),
+      meetingId: 'mock-meeting-id',
       groupId,
       date,
       memberId: entry.memberId,
-      status: entry.present ? 'PRESENT' : 'ABSENT'
+      status: entry.present ? AttendanceStatus.PRESENT : AttendanceStatus.ABSENT,
+      recordedBy: 'MOCK_USER',
+      auditHistory: []
     });
 
     // 2. Shares

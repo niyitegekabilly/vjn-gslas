@@ -1,3 +1,4 @@
+
 import React, { useContext, useState, useEffect } from 'react';
 import { AppContext } from '../App';
 import { LABELS } from '../constants';
@@ -90,13 +91,13 @@ export default function MeetingMode() {
         <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4">
           <CheckCircle size={32} />
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Meeting Saved!</h2>
-        <p className="text-gray-500 mb-6">All transactions have been recorded successfully.</p>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">{labels.meetingSaved}</h2>
+        <p className="text-gray-500 mb-6">{labels.meetingSavedDesc}</p>
         <button 
           onClick={() => { setSaved(false); window.location.reload(); /* Simple reload to reset state properly */ }}
           className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
         >
-          Start New Meeting
+          {labels.startNewMeeting}
         </button>
       </div>
     );
@@ -107,7 +108,7 @@ export default function MeetingMode() {
       <div className="flex flex-col md:flex-row md:items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">{labels.startMeeting}</h2>
-          <p className="text-gray-500 text-sm mt-1">Record attendance and transactions for the group meeting.</p>
+          <p className="text-gray-500 text-sm mt-1">{labels.meetingDesc}</p>
         </div>
         <div className="mt-4 md:mt-0">
           <input 
@@ -122,16 +123,16 @@ export default function MeetingMode() {
       {/* Summary Header */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-green-50 p-4 rounded-lg border border-green-100">
-          <p className="text-sm text-green-600 font-medium">Total Shares (Collected)</p>
-          <p className="text-2xl font-bold text-green-700">{summary.shares.toLocaleString()} RWF</p>
+          <p className="text-sm text-green-600 font-medium">{labels.sharesCollected}</p>
+          <p className="text-2xl font-bold text-green-700">{summary.shares.toLocaleString()} {labels.currency}</p>
         </div>
         <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-          <p className="text-sm text-blue-600 font-medium">Loan Repayments</p>
-          <p className="text-2xl font-bold text-blue-700">{summary.repay.toLocaleString()} RWF</p>
+          <p className="text-sm text-blue-600 font-medium">{labels.loanRepayments}</p>
+          <p className="text-2xl font-bold text-blue-700">{summary.repay.toLocaleString()} {labels.currency}</p>
         </div>
         <div className="bg-red-50 p-4 rounded-lg border border-red-100">
-          <p className="text-sm text-red-600 font-medium">Fines Collected</p>
-          <p className="text-2xl font-bold text-red-700">{summary.fines.toLocaleString()} RWF</p>
+          <p className="text-sm text-red-600 font-medium">{labels.finesCollected}</p>
+          <p className="text-2xl font-bold text-red-700">{summary.fines.toLocaleString()} {labels.currency}</p>
         </div>
       </div>
 
@@ -144,9 +145,9 @@ export default function MeetingMode() {
                 <th className="p-4 w-12">#</th>
                 <th className="p-4 min-w-[150px]">Member</th>
                 <th className="p-4 text-center">Att.</th>
-                <th className="p-4 min-w-[120px]">Shares (@{currentGroup?.shareValue})</th>
-                <th className="p-4 min-w-[140px]">Loan Repay</th>
-                <th className="p-4 min-w-[100px]">Fines</th>
+                <th className="p-4 min-w-[120px]">{labels.shareCount} (@{currentGroup?.shareValue})</th>
+                <th className="p-4 min-w-[140px]">{labels.loanRepayments}</th>
+                <th className="p-4 min-w-[100px]">{labels.fines}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -180,7 +181,7 @@ export default function MeetingMode() {
                       className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
                     />
                     <div className="text-xs text-gray-400 mt-1 text-right">
-                      {((entry.shares || 0) * (currentGroup?.shareValue || 0)).toLocaleString()} RWF
+                      {((entry.shares || 0) * (currentGroup?.shareValue || 0)).toLocaleString()} {labels.currency}
                     </div>
                   </td>
                   <td className="p-4">
@@ -215,7 +216,7 @@ export default function MeetingMode() {
             className={`flex items-center px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg shadow-sm transition-all ${submitting ? 'opacity-70 cursor-not-allowed' : ''}`}
           >
             {submitting ? <Loader2 className="animate-spin mr-2" size={20} /> : <Save size={20} className="mr-2" />}
-            {submitting ? 'Saving...' : labels.saveMeeting}
+            {submitting ? labels.processing : labels.saveMeeting}
           </button>
         </div>
       </div>

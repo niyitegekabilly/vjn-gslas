@@ -1,71 +1,69 @@
 import * as service from '../backend/service';
-import { GSLAGroup, Member, Loan, Transaction, Attendance, Cycle } from '../types';
+import { resetDatabase } from '../backend/db';
+import { GSLAGroup, Member, Loan, Transaction, Meeting, Attendance, Fine, FineCategory, User } from '../types';
 
-// Simulate network latency (300-600ms)
-const delay = (ms: number = 400) => new Promise(resolve => setTimeout(resolve, ms));
+const delay = (ms = 500) => new Promise(resolve => setTimeout(resolve, ms));
 
 export const api = {
-  getGroups: async (): Promise<GSLAGroup[]> => {
-    await delay();
-    return service.getGroups();
-  },
+  // Users
+  getUsers: async () => { await delay(); return service.getUsers(); },
+  createUser: async (user: Partial<User>, creatorId: string) => { await delay(); return service.createUser(user, creatorId); },
+  login: async (email: string, pass: string) => { await delay(); return service.login(email, pass); },
 
-  getGroup: async (id: string): Promise<GSLAGroup | undefined> => {
-    await delay();
-    return service.getGroup(id);
-  },
+  // Groups
+  getGroups: async () => { await delay(); return service.getGroups(); },
+  getGroup: async (id: string) => { await delay(); return service.getGroup(id); },
+  createGroup: async (data: any) => { await delay(); return service.createGroup(data); },
+  updateGroup: async (id: string, data: any, reason: string, editorId: string) => { await delay(); return service.updateGroup(id, data, reason, editorId); },
 
-  getMembers: async (groupId: string): Promise<Member[]> => {
-    await delay();
-    return service.getMembers(groupId);
-  },
+  // Members
+  getMembers: async (groupId: string) => { await delay(); return service.getMembers(groupId); },
+  addMember: async (groupId: string, data: any) => { await delay(); return service.addMember(groupId, data); },
+  updateMember: async (id: string, data: any) => { await delay(); return service.updateMember(id, data); },
+  deleteMember: async (id: string) => { await delay(); return service.deleteMember(id); },
+  importMembers: async (groupId: string, members: any[]) => { await delay(1000); return service.importMembers(groupId, members); },
 
-  getLoans: async (groupId: string): Promise<Loan[]> => {
-    await delay();
-    return service.getLoans(groupId);
-  },
+  // Loans
+  getLoans: async (groupId: string) => { await delay(); return service.getLoans(groupId); },
+  applyForLoan: async (groupId: string, data: any) => { await delay(); return service.applyForLoan(groupId, data); },
+  updateLoanStatus: async (loanId: string, status: any) => { await delay(); return service.updateLoanStatus(loanId, status); },
+  repayLoan: async (loanId: string, amount: number) => { await delay(); return service.repayLoan(loanId, amount); },
+  applyLateFees: async (groupId: string, config: any) => { await delay(); return service.applyLateFees(groupId, config); },
 
-  getTransactions: async (groupId: string): Promise<Transaction[]> => {
-    await delay();
-    return service.getTransactions(groupId);
-  },
+  // Transactions
+  getTransactions: async (groupId: string) => { await delay(); return service.getTransactions(groupId); },
+  getContributions: async (groupId: string) => { await delay(); return service.getContributions(groupId); },
+  addContribution: async (groupId: string, data: any) => { await delay(); return service.addContribution(groupId, data); },
+  updateContribution: async (id: string, data: any, userId: string, reason: string) => { await delay(); return service.updateContribution(id, data, userId, reason); },
+  voidContribution: async (id: string, reason: string, userId: string) => { await delay(); return service.voidContribution(id, reason, userId); },
+  getExpenses: async (groupId: string) => { await delay(); return service.getExpenses(groupId); },
+  submitMeeting: async (groupId: string, date: string, entries: any[]) => { await delay(1500); return service.submitMeeting(groupId, date, entries); },
 
-  getContributions: async (groupId: string): Promise<Transaction[]> => {
-    await delay();
-    return service.getContributions(groupId);
-  },
+  // Fines
+  getFines: async (groupId: string) => { await delay(); return service.getFines(groupId); },
+  getFineCategories: async (groupId: string) => { await delay(); return service.getFineCategories(groupId); },
+  createFine: async (groupId: string, data: any) => { await delay(); return service.createFine(groupId, data); },
+  payFine: async (fineId: string, amount: number, method: string, userId: string) => { await delay(); return service.payFine(fineId, amount); },
+  updateFine: async (id: string, data: any, userId: string, reason: string) => { await delay(); return service.updateFine(id, data, userId, reason); },
+  voidFine: async (id: string, reason: string, userId: string) => { await delay(); return service.voidFine(id, reason, userId); },
+  addFineCategory: async (groupId: string, name: string, amount: number) => { await delay(); return service.addFineCategory(groupId, name, amount); },
 
-  getFines: async (groupId: string): Promise<Transaction[]> => {
-    await delay();
-    return service.getFines(groupId);
-  },
+  // Attendance
+  getMeetings: async (groupId: string) => { await delay(); return service.getMeetings(groupId); },
+  createMeeting: async (groupId: string, data: any) => { await delay(); return service.createMeeting(groupId, data); },
+  getAttendance: async (groupId: string) => { await delay(); return service.getAttendance(groupId); },
+  saveAttendanceBatch: async (meetingId: string, records: any[], userId: string) => { await delay(); return service.saveAttendanceBatch(meetingId, records, userId); },
+  updateAttendance: async (id: string, data: any, userId: string, reason: string) => { await delay(); return service.updateAttendance(id, data, userId, reason); },
 
-  getExpenses: async (groupId: string): Promise<Transaction[]> => {
-    await delay();
-    return service.getExpenses(groupId);
-  },
-
-  getAttendance: async (groupId: string): Promise<Attendance[]> => {
-    await delay();
-    return service.getAttendance(groupId);
-  },
-
-  getCycle: async (cycleId: string): Promise<Cycle | undefined> => {
-    await delay();
-    return service.getCycle(cycleId);
-  },
-
-  applyLateFees: async (groupId: string, settings: { amount: number, isPercentage: boolean }) => {
-    await delay();
-    return service.applyOverdueFees(groupId, settings);
-  },
-
-  submitMeeting: async (
-    groupId: string, 
-    date: string, 
-    entries: any[]
-  ): Promise<{ success: boolean }> => {
-    await delay(800); // Slower write
-    return service.submitMeetingData(groupId, date, entries);
-  }
+  // System
+  getNotifications: async () => { await delay(); return service.getNotifications(); },
+  markNotificationRead: async (id: string) => { await delay(); return service.markNotificationRead(id); },
+  markAllNotificationsRead: async () => { await delay(); return service.markAllNotificationsRead(); },
+  getCycle: async (id: string) => { await delay(); return service.getCycle(id); },
+  generateReport: async (groupId: string, type: string, filters: any) => { await delay(1000); return service.generateReport(groupId, type, filters); },
+  
+  // Backup/Restore
+  getFullDatabaseBackup: async () => { await delay(); return service.getFullDatabaseBackup(); },
+  importDatabase: async (json: string) => { await delay(2000); return service.importDatabase(json); },
+  resetDatabase: async () => { resetDatabase(); }
 };

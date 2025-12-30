@@ -1,3 +1,4 @@
+
 import React, { useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppContext } from '../App';
@@ -6,10 +7,11 @@ import { api } from '../api/client';
 import { 
   Banknote, Users, TrendingUp, AlertTriangle, Loader2, 
   Calendar, ArrowRight, PlusCircle, CheckCircle, Wallet, 
-  Sprout, FileText, AlertOctagon, Clock, ArrowUpRight, ArrowDownRight
+  Sprout, FileText, AlertOctagon, Clock, ArrowUpRight, ArrowDownRight,
+  Activity, PieChart as PieIcon, BarChart3
 } from 'lucide-react';
 import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend
 } from 'recharts';
 import { LoanStatus, Member, Loan, Transaction, Cycle, Attendance } from '../types';
 
@@ -62,28 +64,75 @@ export default function Dashboard() {
   const totalPrincipalDisbursed = activeLoanList.reduce((acc, l) => acc + l.principal, 0);
 
   // Cash Balance Calculation (Approximate)
-  const totalFines = transactions.filter(t => t.type === 'FINE_PAYMENT').reduce((acc, t) => acc + t.amount, 0);
-  const totalExpenses = transactions.filter(t => t.type === 'EXPENSE').reduce((acc, t) => acc + t.amount, 0);
-  // Cash in Box = (Shares + Fines) - Expenses - PrincipalOut
-  const cashBalance = (totalSharesValue + totalFines - totalExpenses) - totalPrincipalDisbursed;
+  const allInflows = transactions.filter(t => !t.isVoid && ['SHARE_DEPOSIT', 'LOAN_REPAYMENT', 'FINE_PAYMENT'].includes(t.type)).reduce((acc, t) => acc + t.amount + (t.solidarityAmount || 0), 0);
+  const allOutflows = transactions.filter(t => !t.isVoid && ['EXPENSE', 'LOAN_DISBURSEMENT'].includes(t.type)).reduce((acc, t) => acc + t.amount, 0);
+  const cashBalance = allInflows - allOutflows;
 
-  // 3. Attendance
+  // 3. Attendance Stats
   const lastMeetingDate = attendance.length > 0 ? attendance[0].date : null;
   const lastMeetingAttendance = lastMeetingDate ? attendance.filter(a => a.date === lastMeetingDate) : [];
-  const absentCount = lastMeetingAttendance.filter(a => a.status === 'ABSENT').length;
+  
+  const totalAttendanceRecords = attendance.length;
+  const presentCountTotal = attendance.filter(a => a.status === 'PRESENT').length;
+  const attendanceRate = totalAttendanceRecords > 0 ? Math.round((presentCountTotal / totalAttendanceRecords) * 100) : 0;
 
-  // 4. Charts Data
+  // 4. Loan Health
+  const totalRepayableAll = loans.reduce((acc, l) => acc + l.totalRepayable, 0);
+  const totalBalanceAll = loans.reduce((acc, l) => acc + l.balance, 0);
+  const repaymentRate = totalRepayableAll > 0 ? Math.round(((totalRepayableAll - totalBalanceAll) / totalRepayableAll) * 100) : 100;
+
+  // 5. Charts Data
   const chartData = [
     { name: 'Savings', value: totalSharesValue, color: '#10b981' },
     { name: 'Loans Out', value: totalOutstandingLoans, color: '#3b82f6' },
     { name: 'Cash', value: cashBalance > 0 ? cashBalance : 0, color: '#6366f1' },
   ];
 
+  // 6. Trend Data (Last 6 Months)
+  const getLast6Months = () => {
+    const months = [];
+    const today = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      months.push(d.toISOString().slice(0, 7)); // YYYY-MM
+    }
+    return months;
+  };
+
+  const trendMonths = getLast6Months();
+  const trendData = trendMonths.map(month => {
+    const monthlyTx = transactions.filter(t => t.date.startsWith(month) && !t.isVoid);
+    return {
+      name: new Date(month + '-01').toLocaleDateString(lang === 'rw' ? 'fr-RW' : 'en-US', { month: 'short' }),
+      Savings: monthlyTx.filter(t => t.type === 'SHARE_DEPOSIT').reduce((acc, t) => acc + t.amount, 0),
+      Loans: monthlyTx.filter(t => t.type === 'LOAN_DISBURSEMENT').reduce((acc, t) => acc + t.amount, 0),
+      Repayments: monthlyTx.filter(t => t.type === 'LOAN_REPAYMENT').reduce((acc, t) => acc + t.amount, 0),
+    };
+  });
+
+  // 7. Upcoming Deadlines
+  const loansDueSoon = activeLoanList
+    .filter(l => l.balance > 0)
+    .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+    .slice(0, 3);
+
+  const getNextMeetingDate = () => {
+    if (!group) return new Date().toDateString();
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const targetDay = days.indexOf(group.meetingDay);
+    const today = new Date().getDay();
+    let diff = targetDay - today;
+    if (diff <= 0) diff += 7; // Next occurrence
+    const nextDate = new Date();
+    nextDate.setDate(nextDate.getDate() + diff);
+    return nextDate.toLocaleDateString(lang === 'rw' ? 'fr-RW' : 'en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  };
+
   if (loading || !group) {
     return (
       <div className="flex flex-col items-center justify-center h-96">
         <Loader2 className="animate-spin text-green-600 mb-4" size={48} />
-        <p className="text-gray-500 font-medium">Loading Dashboard...</p>
+        <p className="text-gray-500 font-medium">{labels.loading}</p>
       </div>
     );
   }
@@ -97,7 +146,7 @@ export default function Dashboard() {
         <div onClick={() => navigate('/members')} className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer group">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Members</p>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{labels.members}</p>
               <h3 className="text-2xl font-bold text-gray-900 mt-1">{totalMembers}</h3>
             </div>
             <div className="p-2 bg-gray-50 rounded-lg text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
@@ -110,10 +159,10 @@ export default function Dashboard() {
         <div onClick={() => navigate('/contributions')} className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer group">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Total Savings</p>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{labels.totalSavings}</p>
               <h3 className="text-2xl font-bold text-green-600 mt-1">{totalSharesValue.toLocaleString()}</h3>
               <p className="text-xs text-green-600 font-medium mt-1 flex items-center">
-                <ArrowUpRight size={12} className="mr-0.5" /> RWF
+                <ArrowUpRight size={12} className="mr-0.5" /> {labels.currency}
               </p>
             </div>
             <div className="p-2 bg-gray-50 rounded-lg text-gray-400 group-hover:bg-green-50 group-hover:text-green-600 transition-colors">
@@ -126,10 +175,10 @@ export default function Dashboard() {
         <div onClick={() => navigate('/loans')} className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer group">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Active Loans</p>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{labels.loansActive}</p>
               <h3 className="text-2xl font-bold text-blue-600 mt-1">{totalOutstandingLoans.toLocaleString()}</h3>
               <p className="text-xs text-blue-600 font-medium mt-1 flex items-center">
-                 {activeLoanList.length} Active
+                 {activeLoanList.length} {labels.status.split(' ')[0]}
               </p>
             </div>
             <div className="p-2 bg-gray-50 rounded-lg text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
@@ -138,16 +187,16 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Card 4: Overdue Loans (Alert Color) */}
+        {/* Card 4: Overdue Loans */}
         <div onClick={() => navigate('/loans')} className={`p-5 rounded-xl shadow-sm border hover:shadow-md transition-shadow cursor-pointer group ${overdueLoanList.length > 0 ? 'bg-red-50 border-red-200' : 'bg-white border-gray-100'}`}>
           <div className="flex justify-between items-start">
             <div>
-              <p className={`text-xs font-semibold uppercase tracking-wide ${overdueLoanList.length > 0 ? 'text-red-600' : 'text-gray-400'}`}>Overdue</p>
+              <p className={`text-xs font-semibold uppercase tracking-wide ${overdueLoanList.length > 0 ? 'text-red-600' : 'text-gray-400'}`}>{labels.overdue}</p>
               <h3 className={`text-2xl font-bold mt-1 ${overdueLoanList.length > 0 ? 'text-red-700' : 'text-gray-900'}`}>
                 {totalOverdueAmount.toLocaleString()}
               </h3>
               <p className={`text-xs font-medium mt-1 flex items-center ${overdueLoanList.length > 0 ? 'text-red-600' : 'text-gray-400'}`}>
-                 {overdueLoanList.length} Late Loans
+                 {overdueLoanList.length} {labels.lateLoans}
               </p>
             </div>
             <div className={`p-2 rounded-lg transition-colors ${overdueLoanList.length > 0 ? 'bg-white text-red-500' : 'bg-gray-50 text-gray-400'}`}>
@@ -160,10 +209,10 @@ export default function Dashboard() {
         <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow group">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Cash Balance</p>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{labels.cashBalance}</p>
               <h3 className="text-2xl font-bold text-gray-900 mt-1">{cashBalance.toLocaleString()}</h3>
               <p className="text-xs text-gray-500 font-medium mt-1">
-                 In Box/Bank
+                 {labels.currency}
               </p>
             </div>
             <div className="p-2 bg-gray-50 rounded-lg text-gray-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
@@ -173,7 +222,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* 3. CURRENT SEASON SNAPSHOT (Center Focus) */}
+      {/* 3. CURRENT SEASON SNAPSHOT */}
       <div className="bg-slate-900 rounded-2xl shadow-lg text-white p-8 relative overflow-hidden group">
         <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity duration-500">
           <Sprout size={240} />
@@ -188,48 +237,47 @@ export default function Dashboard() {
                   ? 'bg-red-500/20 text-red-300 border-red-500/30' 
                   : 'bg-green-500/20 text-green-300 border-green-500/30'
                 }`}>
-                  {cycle?.status || 'Active Season'}
+                  {cycle?.status || labels.activeSeasons}
                 </span>
                 <span className="text-slate-400 text-sm font-medium">{cycle?.startDate} — {cycle?.endDate || 'Present'}</span>
               </div>
-              <h2 className="text-3xl font-bold text-white tracking-tight">Current Season: 2024 Cycle A</h2>
+              <h2 className="text-3xl font-bold text-white tracking-tight">{labels.activeSeasons}: {new Date().getFullYear()}</h2>
             </div>
             
             {cycle?.status === 'CLOSED' && (
                <button className="mt-4 md:mt-0 px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold shadow-lg transition-colors flex items-center">
-                 <FileText size={18} className="mr-2" /> View Share-out Report
+                 <FileText size={18} className="mr-2" /> Report
                </button>
             )}
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 border-t border-slate-800 pt-8">
              <div>
-               <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">Share Value</p>
-               <p className="text-2xl font-bold text-white">{group.shareValue} RWF</p>
+               <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">{labels.shareValue}</p>
+               <p className="text-2xl font-bold text-white">{group.shareValue} {labels.currency}</p>
              </div>
              <div>
-               <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">Total Contributions</p>
-               <p className="text-2xl font-bold text-white">{totalSharesValue.toLocaleString()} RWF</p>
+               <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">{labels.sharesCollected}</p>
+               <p className="text-2xl font-bold text-white">{totalSharesValue.toLocaleString()} {labels.currency}</p>
              </div>
              <div>
-               <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">Loans Issued</p>
-               <p className="text-2xl font-bold text-white">{totalPrincipalDisbursed.toLocaleString()} RWF</p>
+               <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">{labels.loansActive}</p>
+               <p className="text-2xl font-bold text-white">{totalPrincipalDisbursed.toLocaleString()} {labels.currency}</p>
              </div>
              <div>
-               <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">Est. Share-out</p>
+               <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">Est. Value</p>
                <p className="text-2xl font-bold text-yellow-400">
-                  {/* Mock: Total + 5% profit */}
-                  {(totalSharesValue + (totalPrincipalDisbursed * 0.05)).toLocaleString()} RWF
+                  {(totalSharesValue + (totalPrincipalDisbursed * 0.05)).toLocaleString()} {labels.currency}
                </p>
              </div>
           </div>
         </div>
       </div>
 
-      {/* 5. QUICK ACTIONS (Behavior Shaping) */}
+      {/* 5. QUICK ACTIONS */}
       <div>
         <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-4 flex items-center">
-           Quick Actions
+           {labels.quickActions}
            <div className="h-px bg-gray-200 flex-1 ml-4"></div>
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
@@ -237,105 +285,149 @@ export default function Dashboard() {
             <div className="w-12 h-12 bg-green-50 text-green-600 rounded-full flex items-center justify-center mb-3 group-hover:bg-green-100 transition-colors">
               <PlusCircle size={24} />
             </div>
-            <span className="text-sm font-bold text-gray-700">Record Contribution</span>
+            <span className="text-sm font-bold text-gray-700 text-center">{labels.recordContribution}</span>
           </button>
 
           <button onClick={() => navigate('/loans')} className="flex flex-col items-center justify-center p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:border-blue-400 hover:shadow-md hover:-translate-y-1 transition-all group">
             <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-3 group-hover:bg-blue-100 transition-colors">
               <Banknote size={24} />
             </div>
-            <span className="text-sm font-bold text-gray-700">Loan Payment</span>
+            <span className="text-sm font-bold text-gray-700 text-center">{labels.recordRepayment}</span>
           </button>
 
           <button onClick={() => navigate('/fines')} className="flex flex-col items-center justify-center p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:border-red-400 hover:shadow-md hover:-translate-y-1 transition-all group">
             <div className="w-12 h-12 bg-red-50 text-red-600 rounded-full flex items-center justify-center mb-3 group-hover:bg-red-100 transition-colors">
               <AlertTriangle size={24} />
             </div>
-            <span className="text-sm font-bold text-gray-700">Add Fine</span>
+            <span className="text-sm font-bold text-gray-700 text-center">{labels.recordNewFine}</span>
           </button>
 
           <button onClick={() => navigate('/attendance')} className="flex flex-col items-center justify-center p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:border-purple-400 hover:shadow-md hover:-translate-y-1 transition-all group">
             <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-full flex items-center justify-center mb-3 group-hover:bg-purple-100 transition-colors">
               <CheckCircle size={24} />
             </div>
-            <span className="text-sm font-bold text-gray-700">Record Attendance</span>
+            <span className="text-sm font-bold text-gray-700 text-center">{labels.attendance}</span>
           </button>
 
           <button onClick={() => navigate('/expenses')} className="flex flex-col items-center justify-center p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:border-orange-400 hover:shadow-md hover:-translate-y-1 transition-all group">
             <div className="w-12 h-12 bg-orange-50 text-orange-600 rounded-full flex items-center justify-center mb-3 group-hover:bg-orange-100 transition-colors">
               <Wallet size={24} />
             </div>
-            <span className="text-sm font-bold text-gray-700">Add Expense</span>
+            <span className="text-sm font-bold text-gray-700 text-center">{labels.expenses}</span>
           </button>
         </div>
       </div>
 
-      {/* 4. ACTIVITY OVERVIEW (Two-Column Section) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      {/* 4. ACTIVITY & CHARTS SECTION */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         
-        {/* Left: Financial Activity Feed (2/3) */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-bold text-gray-800">Financial Activity</h3>
-            <button onClick={() => navigate('/reports')} className="text-sm font-medium text-blue-600 hover:underline">View Full History</button>
+        {/* Left: Financial Trends Chart */}
+        <div className="xl:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-bold text-gray-800 flex items-center">
+              <BarChart3 className="mr-2 text-gray-500" size={20} /> {labels.financialTrends}
+            </h3>
           </div>
-          
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            {transactions.length === 0 ? (
-              <div className="p-12 text-center text-gray-400">
-                <FileText size={48} className="mx-auto mb-4 opacity-20" />
-                <p>No transactions recorded yet.</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-gray-100">
-                {transactions.slice().reverse().slice(0, 7).map((t) => (
-                  <div key={t.id} className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors group">
-                     <div className="flex items-center gap-4">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                          t.type.includes('DEPOSIT') ? 'bg-green-100 text-green-600' :
-                          t.type.includes('LOAN') ? 'bg-blue-100 text-blue-600' :
-                          t.type.includes('FINE') || t.type.includes('PENALTY') ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'
-                        }`}>
-                           {t.type.includes('DEPOSIT') && <ArrowDownRight size={18} />}
-                           {t.type.includes('LOAN') && <Banknote size={18} />}
-                           {(t.type.includes('FINE') || t.type.includes('PENALTY')) && <AlertTriangle size={18} />}
-                           {t.type === 'EXPENSE' && <ArrowUpRight size={18} />}
-                        </div>
-                        <div>
-                           <p className="text-sm font-bold text-gray-900">
-                             {t.memberId ? members.find(m => m.id === t.memberId)?.fullName : 'Group Expense'}
-                           </p>
-                           <p className="text-xs text-gray-500">
-                             {t.type === 'SHARE_DEPOSIT' ? 'Contribution' : t.type.replace('_', ' ').toLowerCase()} • <span className="font-medium text-gray-400">{t.date}</span>
-                           </p>
-                        </div>
-                     </div>
-                     <span className={`font-mono font-bold text-sm ${
-                       t.type.includes('DEPOSIT') || t.type === 'LOAN_REPAYMENT' || t.type === 'FINE_PAYMENT' ? 'text-green-600' : 'text-gray-800'
-                     }`}>
-                        {t.type.includes('DEPOSIT') || t.type === 'LOAN_REPAYMENT' || t.type === 'FINE_PAYMENT' ? '+' : '-'} {t.amount.toLocaleString()}
-                     </span>
-                  </div>
-                ))}
-              </div>
-            )}
+          <div className="h-72 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#9ca3af' }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#9ca3af' }} tickFormatter={(value) => `${value / 1000}k`} />
+                <Tooltip 
+                  cursor={{ fill: '#f9fafb' }}
+                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                  formatter={(value: number) => [`${value.toLocaleString()} ${labels.currency}`, '']}
+                />
+                <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
+                <Bar dataKey="Savings" fill="#10b981" radius={[4, 4, 0, 0]} barSize={20} stackId="a" />
+                <Bar dataKey="Repayments" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={20} stackId="a" />
+                <Bar dataKey="Loans" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={20} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Right: Visual Summary & Alerts (1/3) */}
-        <div className="space-y-8">
-           {/* Visual Summary */}
+        {/* Right: Health Metrics & Deadlines */}
+        <div className="space-y-6">
+           
+           {/* KPI Cards */}
            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-6">Savings Distribution</h3>
-              <div className="h-64 relative">
+              <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-4">{labels.healthIndicators}</h3>
+              <div className="space-y-6">
+                 {/* Repayment Rate */}
+                 <div>
+                    <div className="flex justify-between text-sm mb-1">
+                       <span className="text-gray-600 font-medium">{labels.repaymentRate}</span>
+                       <span className={`font-bold ${repaymentRate < 90 ? 'text-orange-600' : 'text-green-600'}`}>{repaymentRate}%</span>
+                    </div>
+                    <div className="w-full bg-gray-100 rounded-full h-2">
+                       <div className={`h-2 rounded-full ${repaymentRate < 90 ? 'bg-orange-500' : 'bg-green-500'}`} style={{ width: `${repaymentRate}%` }}></div>
+                    </div>
+                 </div>
+
+                 {/* Attendance Rate */}
+                 <div>
+                    <div className="flex justify-between text-sm mb-1">
+                       <span className="text-gray-600 font-medium">{labels.attendanceRate}</span>
+                       <span className={`font-bold ${attendanceRate < 80 ? 'text-red-600' : 'text-blue-600'}`}>{attendanceRate}%</span>
+                    </div>
+                    <div className="w-full bg-gray-100 rounded-full h-2">
+                       <div className={`h-2 rounded-full ${attendanceRate < 80 ? 'bg-red-500' : 'bg-blue-500'}`} style={{ width: `${attendanceRate}%` }}></div>
+                    </div>
+                 </div>
+              </div>
+           </div>
+
+           {/* Upcoming Events / Deadlines */}
+           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-4">{labels.upcomingSchedule}</h3>
+              
+              <div className="flex items-center p-3 bg-blue-50 rounded-lg border border-blue-100 mb-4">
+                 <div className="p-2 bg-white rounded-md text-blue-600 mr-3 shadow-sm">
+                    <Calendar size={18} />
+                 </div>
+                 <div>
+                    <p className="text-xs text-blue-600 font-bold uppercase">{labels.nextMeeting}</p>
+                    <p className="text-sm font-bold text-blue-900">{getNextMeetingDate()}</p>
+                 </div>
+              </div>
+
+              {loansDueSoon.length > 0 ? (
+                 <div>
+                    <p className="text-xs font-bold text-gray-400 uppercase mb-2">{labels.loansDueSoon}</p>
+                    <div className="space-y-2">
+                       {loansDueSoon.map(loan => (
+                          <div key={loan.id} className="flex justify-between items-center text-sm p-2 hover:bg-gray-50 rounded border border-transparent hover:border-gray-100 transition-colors">
+                             <div className="flex items-center">
+                                <Clock size={14} className="text-orange-500 mr-2" />
+                                <span className="font-medium text-gray-700">{members.find(m => m.id === loan.memberId)?.fullName.split(' ')[0]}</span>
+                             </div>
+                             <div className="text-right">
+                                <p className="font-bold text-gray-900">{loan.balance.toLocaleString()}</p>
+                                <p className="text-xs text-gray-500">{loan.dueDate}</p>
+                             </div>
+                          </div>
+                       ))}
+                    </div>
+                 </div>
+              ) : (
+                 <p className="text-sm text-gray-400 italic text-center py-2">{labels.noData}</p>
+              )}
+           </div>
+
+           {/* Asset Allocation Mini-Chart */}
+           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-4">{labels.assetAllocation}</h3>
+              <div className="h-32 flex items-center">
                  <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
                       data={chartData}
                       cx="50%"
                       cy="50%"
-                      innerRadius={60}
-                      outerRadius={80}
+                      innerRadius={30}
+                      outerRadius={50}
                       paddingAngle={5}
                       dataKey="value"
                       stroke="none"
@@ -350,57 +442,14 @@ export default function Dashboard() {
                     />
                   </PieChart>
                 </ResponsiveContainer>
-                {/* Center text overlay */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                   <span className="text-xs text-gray-400 font-medium">Total</span>
-                   <span className="text-lg font-bold text-gray-800">{(totalSharesValue + totalOutstandingLoans + cashBalance).toLocaleString()}</span>
+                <div className="ml-4 space-y-2 text-xs">
+                   <div className="flex items-center"><div className="w-2 h-2 rounded-full bg-emerald-500 mr-2"></div>Savings</div>
+                   <div className="flex items-center"><div className="w-2 h-2 rounded-full bg-blue-500 mr-2"></div>Loans</div>
+                   <div className="flex items-center"><div className="w-2 h-2 rounded-full bg-indigo-500 mr-2"></div>Cash</div>
                 </div>
-              </div>
-              
-              <div className="mt-6 space-y-3">
-                 <div className="flex justify-between items-center text-sm">
-                    <div className="flex items-center"><div className="w-3 h-3 rounded-full bg-emerald-500 mr-2"></div>Savings</div>
-                    <span className="font-bold text-gray-700">{totalSharesValue.toLocaleString()}</span>
-                 </div>
-                 <div className="flex justify-between items-center text-sm">
-                    <div className="flex items-center"><div className="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>Loans Out</div>
-                    <span className="font-bold text-gray-700">{totalOutstandingLoans.toLocaleString()}</span>
-                 </div>
-                 <div className="flex justify-between items-center text-sm">
-                    <div className="flex items-center"><div className="w-3 h-3 rounded-full bg-indigo-500 mr-2"></div>Cash</div>
-                    <span className="font-bold text-gray-700">{cashBalance.toLocaleString()}</span>
-                 </div>
               </div>
            </div>
 
-           {/* 6. ALERTS & WARNINGS (Silent Guardian) */}
-           {(overdueLoanList.length > 0 || absentCount > 2) && (
-              <div className="space-y-4">
-                 <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide">Attention Needed</h3>
-                 
-                 {overdueLoanList.length > 0 && (
-                   <div className="bg-red-50 border border-red-100 rounded-xl p-4 flex gap-3">
-                     <AlertOctagon className="text-red-600 flex-shrink-0" size={20} />
-                     <div>
-                       <p className="text-sm font-bold text-red-800">{overdueLoanList.length} Overdue Loans</p>
-                       <p className="text-xs text-red-600 mt-1">Total: {totalOverdueAmount.toLocaleString()} RWF</p>
-                       <button onClick={() => navigate('/loans')} className="text-xs font-bold text-red-800 mt-2 underline">Review Loans</button>
-                     </div>
-                   </div>
-                 )}
-
-                 {absentCount > 2 && (
-                   <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 flex gap-3">
-                     <Clock className="text-amber-600 flex-shrink-0" size={20} />
-                     <div>
-                       <p className="text-sm font-bold text-amber-800">Low Attendance</p>
-                       <p className="text-xs text-amber-700 mt-1">{absentCount} members absent last meeting.</p>
-                       <button onClick={() => navigate('/attendance')} className="text-xs font-bold text-amber-800 mt-2 underline">Check Log</button>
-                     </div>
-                   </div>
-                 )}
-              </div>
-           )}
         </div>
       </div>
 
