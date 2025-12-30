@@ -5,6 +5,7 @@ import { api } from '../api/client';
 import { LABELS } from '../constants';
 import { Search, UserPlus, Phone, User as UserIcon, Loader2, Edit2, Trash2, X, Save, ChevronLeft, ChevronRight, Filter, Upload } from 'lucide-react';
 import { MemberStatus, Member, UserRole } from '../types';
+import { CardSkeleton } from '../components/Skeleton';
 
 const ITEMS_PER_PAGE = 24;
 
@@ -190,10 +191,6 @@ export default function MembersList() {
     currentPage * ITEMS_PER_PAGE
   );
 
-  if (loading && members.length === 0) {
-     return <div className="p-12 flex justify-center"><Loader2 className="animate-spin text-gray-400" /></div>;
-  }
-
   return (
     <div className="space-y-6 relative pb-12">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -270,7 +267,11 @@ export default function MembersList() {
         </div>
       </div>
 
-      {filteredMembers.length === 0 ? (
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, i) => <CardSkeleton key={i} />)}
+        </div>
+      ) : filteredMembers.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-xl border border-dashed border-gray-300">
           <div className="mx-auto w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-4">
             <Search className="text-gray-400" size={24} />

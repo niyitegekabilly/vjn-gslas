@@ -1,3 +1,4 @@
+
 import { db, saveDatabase, importDatabase as dbImport } from './db';
 import { 
   User, UserRole, UserStatus, 
@@ -202,6 +203,10 @@ export const repayLoan = (loanId: string, amount: number) => {
   const loan = db.loans.find((l: Loan) => l.id === loanId);
   if (!loan) throw new Error("Loan not found");
   
+  // Find group to get current cycle
+  const group = db.groups.find((g: GSLAGroup) => g.id === loan.groupId);
+  if (!group) throw new Error("Group not found for this loan");
+
   loan.balance -= amount;
   if (loan.balance <= 0) {
     loan.balance = 0;
@@ -220,15 +225,14 @@ export const repayLoan = (loanId: string, amount: number) => {
     id: `t_repay_${Date.now()}`,
     groupId: loan.groupId,
     memberId: loan.memberId,
-    cycleId: 'c1', 
+    cycleId: group.currentCycleId || 'unknown', 
     type: TransactionType.LOAN_REPAYMENT,
     amount: amount,
     date: new Date().toISOString().split('T')[0]
   });
 
   // Update group totals
-  const group = db.groups.find((g: GSLAGroup) => g.id === loan.groupId);
-  if (group) group.totalLoansOutstanding -= amount;
+  group.totalLoansOutstanding -= amount;
 
   saveDatabase();
   return loan;

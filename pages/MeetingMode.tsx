@@ -5,6 +5,7 @@ import { LABELS } from '../constants';
 import { api } from '../api/client';
 import { Member, LoanStatus, Loan } from '../types';
 import { Save, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
+import { TableRowSkeleton } from '../components/Skeleton';
 
 interface MeetingEntry {
   memberId: string;
@@ -82,7 +83,12 @@ export default function MeetingMode() {
   };
 
   if (loading) {
-    return <div className="p-12 flex justify-center"><Loader2 className="animate-spin text-gray-400" /></div>;
+    return (
+      <div className="space-y-4">
+        <div className="h-10 bg-gray-200 rounded animate-pulse w-1/3 mb-6" />
+        {[...Array(6)].map((_, i) => <TableRowSkeleton key={i} />)}
+      </div>
+    );
   }
 
   if (saved) {
@@ -115,29 +121,29 @@ export default function MeetingMode() {
             type="date" 
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none w-full md:w-auto"
           />
         </div>
       </div>
 
       {/* Summary Header */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-green-50 p-4 rounded-lg border border-green-100">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sticky top-0 z-20 bg-gray-50 pb-2 md:relative md:top-auto md:pb-0">
+        <div className="bg-green-50 p-4 rounded-lg border border-green-100 shadow-sm">
           <p className="text-sm text-green-600 font-medium">{labels.sharesCollected}</p>
           <p className="text-2xl font-bold text-green-700">{summary.shares.toLocaleString()} {labels.currency}</p>
         </div>
-        <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+        <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 shadow-sm hidden md:block">
           <p className="text-sm text-blue-600 font-medium">{labels.loanRepayments}</p>
           <p className="text-2xl font-bold text-blue-700">{summary.repay.toLocaleString()} {labels.currency}</p>
         </div>
-        <div className="bg-red-50 p-4 rounded-lg border border-red-100">
+        <div className="bg-red-50 p-4 rounded-lg border border-red-100 shadow-sm hidden md:block">
           <p className="text-sm text-red-600 font-medium">{labels.finesCollected}</p>
           <p className="text-2xl font-bold text-red-700">{summary.fines.toLocaleString()} {labels.currency}</p>
         </div>
       </div>
 
-      {/* Main Form */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      {/* --- DESKTOP TABLE VIEW --- */}
+      <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -208,17 +214,89 @@ export default function MeetingMode() {
             </tbody>
           </table>
         </div>
-        
-        <div className="p-6 bg-gray-50 border-t border-gray-200 flex justify-end">
-          <button
-            onClick={handleSubmit}
-            disabled={submitting}
-            className={`flex items-center px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg shadow-sm transition-all ${submitting ? 'opacity-70 cursor-not-allowed' : ''}`}
-          >
-            {submitting ? <Loader2 className="animate-spin mr-2" size={20} /> : <Save size={20} className="mr-2" />}
-            {submitting ? labels.processing : labels.saveMeeting}
-          </button>
-        </div>
+      </div>
+
+      {/* --- MOBILE CARD VIEW --- */}
+      <div className="md:hidden space-y-4">
+        {entries.map((entry, idx) => (
+          <div key={entry.memberId} className={`bg-white p-4 rounded-xl shadow-sm border ${!entry.present ? 'border-red-200 bg-red-50' : 'border-gray-200'}`}>
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h3 className="font-bold text-gray-900">{entry.fullName}</h3>
+                {entry.expectedLoan > 0 && (
+                  <span className="inline-flex items-center text-xs text-orange-600 font-medium mt-1">
+                    <AlertCircle size={12} className="mr-1" /> Loan Due: {entry.expectedLoan.toLocaleString()}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center">
+                <span className={`text-xs mr-2 ${entry.present ? 'text-green-600' : 'text-red-600 font-bold'}`}>
+                  {entry.present ? 'Present' : 'Absent'}
+                </span>
+                <input 
+                  type="checkbox"
+                  checked={entry.present}
+                  onChange={(e) => handleEntryChange(idx, 'present', e.target.checked)}
+                  className="w-6 h-6 text-green-600 rounded focus:ring-green-500"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <label className="block text-xs font-medium text-gray-500 mb-1">
+                  Shares (1 = {currentGroup?.shareValue.toLocaleString()} F)
+                </label>
+                <div className="relative">
+                  <input 
+                    type="number"
+                    min="0"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    value={entry.shares}
+                    onChange={(e) => handleEntryChange(idx, 'shares', parseInt(e.target.value) || 0)}
+                  />
+                  <div className="absolute right-3 top-2 text-sm text-gray-400 font-mono">
+                    {((entry.shares || 0) * (currentGroup?.shareValue || 0)).toLocaleString()} F
+                  </div>
+                </div>
+              </div>
+
+              {entry.expectedLoan > 0 && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Loan Repayment</label>
+                  <input 
+                    type="number"
+                    className="w-full px-3 py-2 border border-blue-200 bg-blue-50 rounded-lg text-blue-900 font-medium"
+                    value={entry.loanRepayment}
+                    onChange={(e) => handleEntryChange(idx, 'loanRepayment', parseInt(e.target.value) || 0)}
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Fines</label>
+                <input 
+                  type="number"
+                  className="w-full px-3 py-2 border border-red-200 bg-red-50 rounded-lg text-red-900"
+                  value={entry.fines}
+                  onChange={(e) => handleEntryChange(idx, 'fines', parseInt(e.target.value) || 0)}
+                />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      
+      {/* Submit Action */}
+      <div className="p-4 bg-white border-t border-gray-200 sticky bottom-0 z-20 md:static md:bg-gray-50 md:p-6 md:border-t flex justify-end shadow-lg md:shadow-none">
+        <button
+          onClick={handleSubmit}
+          disabled={submitting}
+          className={`w-full md:w-auto flex justify-center items-center px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg shadow-sm transition-all ${submitting ? 'opacity-70 cursor-not-allowed' : ''}`}
+        >
+          {submitting ? <Loader2 className="animate-spin mr-2" size={20} /> : <Save size={20} className="mr-2" />}
+          {submitting ? labels.processing : labels.saveMeeting}
+        </button>
       </div>
     </div>
   );

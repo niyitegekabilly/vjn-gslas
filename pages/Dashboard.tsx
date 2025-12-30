@@ -6,12 +6,13 @@ import { useAuth } from '../contexts/AuthContext';
 import { LABELS } from '../constants';
 import { api } from '../api/client';
 import { 
-  Banknote, Users, TrendingUp, AlertTriangle, Loader2, 
-  Calendar, ArrowRight, PlusCircle, CheckCircle, Wallet, 
-  Sprout, Clock, ArrowUpRight, ArrowDownRight,
-  ShieldAlert, Building, Sparkles, ChevronRight
+  Banknote, Users, TrendingUp, AlertTriangle, 
+  Calendar, PlusCircle, CheckCircle, Wallet, 
+  Sprout, Clock, ArrowDownRight,
+  ShieldAlert, Building, Sparkles, AlertCircle
 } from 'lucide-react';
 import { LoanStatus, Member, Loan, Transaction, Cycle, Attendance, Fine, UserRole } from '../types';
+import { DashboardSkeleton } from '../components/Skeleton';
 
 export default function Dashboard() {
   const { lang, activeGroupId, groups } = useContext(AppContext);
@@ -51,12 +52,7 @@ export default function Dashboard() {
   }, [activeGroupId, group]);
 
   if (loading || !group) {
-    return (
-      <div className="flex flex-col items-center justify-center h-96">
-        <Loader2 className="animate-spin text-green-600 mb-4" size={48} />
-        <p className="text-gray-500 font-medium animate-pulse">{labels.loading}</p>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   // --- CALCULATIONS ---
@@ -91,8 +87,6 @@ export default function Dashboard() {
   const contributionsMonth = validTx.filter(t => t.type === 'SHARE_DEPOSIT' && t.date.startsWith(currentMonthStr)).reduce((acc, t) => acc + t.amount, 0);
 
   // 4. Attendance
-  const lastMeetingDate = attendance.length > 0 ? attendance[attendance.length - 1].date : null; // Assuming sorted or grab latest
-  // Re-sort attendance to be safe for "Last Meeting" logic
   const sortedAttendance = [...attendance].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   const latestDate = sortedAttendance.length > 0 ? sortedAttendance[0].date : null;
   const lastMeetingRecords = latestDate ? sortedAttendance.filter(a => a.date === latestDate) : [];
@@ -154,7 +148,7 @@ export default function Dashboard() {
                 </p>
              </div>
              <p className="text-sm text-green-600 flex items-center">
-                <CheckCircle size={14} className="mr-1" /> Secure & Growing
+                <CheckCircle size={14} className="mr-1" /> {myMember.totalShares} Shares Owned
              </p>
           </div>
 
@@ -199,7 +193,7 @@ export default function Dashboard() {
                     <p className="text-2xl font-bold text-gray-900 mt-2">{myAttRate}%</p>
                  </div>
                  <div className="w-12 h-12 rounded-full border-4 border-blue-50 flex items-center justify-center text-xs font-bold text-blue-600">
-                    {myAttRate}
+                    {myAttRate}%
                  </div>
               </div>
            </div>
@@ -228,10 +222,10 @@ export default function Dashboard() {
               {greeting}, <span className="text-green-400">{user?.fullName.split(' ')[0]}</span>
             </h1>
             <p className="mt-2 text-slate-300 max-w-xl text-sm leading-relaxed">
-              Here's your group's financial health at a glance. 
+              System Status: <span className="text-green-400 font-medium">Operational</span>. 
               {overdueLoanList.length > 0 
-                ? <span className="text-orange-300 font-semibold ml-1"><AlertTriangle size={14} className="inline mb-1"/> {overdueLoanList.length} loans require attention.</span> 
-                : <span className="text-green-300 font-semibold ml-1"><CheckCircle size={14} className="inline mb-1"/> All loans are healthy.</span>
+                ? <span className="text-orange-300 font-semibold ml-1">Attention needed: {overdueLoanList.length} overdue loans.</span> 
+                : <span className="text-green-300 font-semibold ml-1">Financial health is good.</span>
               }
             </p>
           </div>
@@ -306,7 +300,7 @@ export default function Dashboard() {
            </div>
 
            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Active Loans */}
+              {/* Active Loans Count */}
               <div 
                 onClick={() => navigate('/loans')}
                 className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:border-blue-200 transition-colors cursor-pointer group"
@@ -316,6 +310,20 @@ export default function Dashboard() {
                        <Banknote size={24} />
                     </div>
                     <span className="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded-full">{activeLoanList.length} Active</span>
+                 </div>
+                 <p className="text-gray-500 text-xs font-bold uppercase tracking-wider">{labels.loansActive}</p>
+                 <p className="text-2xl font-bold text-gray-900 mt-1">{activeLoanList.length}</p>
+              </div>
+
+              {/* Outstanding Balance */}
+              <div 
+                onClick={() => navigate('/loans')}
+                className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:border-blue-200 transition-colors cursor-pointer group"
+              >
+                 <div className="flex justify-between items-start mb-4">
+                    <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                       <TrendingUp size={24} />
+                    </div>
                  </div>
                  <p className="text-gray-500 text-xs font-bold uppercase tracking-wider">{labels.outstandingLoans}</p>
                  <p className="text-2xl font-bold text-gray-900 mt-1">{totalOutstandingLoans.toLocaleString()} <span className="text-sm font-normal text-gray-400">RWF</span></p>
@@ -351,15 +359,16 @@ export default function Dashboard() {
               {/* Unpaid Fines */}
               <div 
                 onClick={() => navigate('/fines')}
-                className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:border-orange-200 transition-colors cursor-pointer sm:col-span-2 flex items-center justify-between"
+                className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:border-orange-200 transition-colors cursor-pointer flex flex-col justify-between"
               >
+                 <div className="flex justify-between items-start mb-4">
+                    <div className="p-2 bg-orange-50 text-orange-600 rounded-lg">
+                       <AlertCircle size={24} />
+                    </div>
+                 </div>
                  <div>
                     <p className="text-gray-500 text-xs font-bold uppercase tracking-wider">{labels.unpaidFinesTotal}</p>
                     <p className="text-2xl font-bold text-gray-900 mt-1">{totalUnpaidFines.toLocaleString()} <span className="text-sm font-normal text-gray-400">RWF</span></p>
-                 </div>
-                 <div className="flex items-center text-orange-500 bg-orange-50 px-4 py-2 rounded-lg">
-                    <span className="text-sm font-bold mr-2">View List</span>
-                    <ArrowRight size={16} />
                  </div>
               </div>
            </div>
@@ -374,29 +383,41 @@ export default function Dashboard() {
               <div className="h-px bg-gray-200 flex-1 ml-4"></div>
            </div>
 
-           {/* Stats List */}
            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-              {/* Contributions */}
+              {/* Contributions Season */}
               <div className="p-4 border-b border-gray-100 flex items-center justify-between hover:bg-gray-50 transition-colors">
                  <div className="flex items-center">
-                    <div className="w-8 h-8 rounded-full bg-green-50 text-green-600 flex items-center justify-center mr-3">
-                       <ArrowUpRight size={16} />
+                    <div className="w-8 h-8 rounded-full bg-green-100 text-green-700 flex items-center justify-center mr-3">
+                       <TrendingUp size={16} />
                     </div>
                     <div>
-                       <p className="text-xs text-gray-500 font-bold uppercase">In (Month)</p>
+                       <p className="text-xs text-gray-500 font-bold uppercase">{labels.contributionsSeason}</p>
+                       <p className="text-sm font-bold text-gray-900">{contributionsSeason.toLocaleString()}</p>
+                    </div>
+                 </div>
+              </div>
+
+              {/* Contributions Month */}
+              <div className="p-4 border-b border-gray-100 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                 <div className="flex items-center">
+                    <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mr-3">
+                       <Calendar size={16} />
+                    </div>
+                    <div>
+                       <p className="text-xs text-gray-500 font-bold uppercase">{labels.contributionsMonth}</p>
                        <p className="text-sm font-bold text-gray-900">{contributionsMonth.toLocaleString()}</p>
                     </div>
                  </div>
               </div>
               
-              {/* Expenses */}
+              {/* Expenses Season */}
               <div className="p-4 border-b border-gray-100 flex items-center justify-between hover:bg-gray-50 transition-colors">
                  <div className="flex items-center">
                     <div className="w-8 h-8 rounded-full bg-red-50 text-red-600 flex items-center justify-center mr-3">
                        <ArrowDownRight size={16} />
                     </div>
                     <div>
-                       <p className="text-xs text-gray-500 font-bold uppercase">Out (Season)</p>
+                       <p className="text-xs text-gray-500 font-bold uppercase">{labels.expensesSeason}</p>
                        <p className="text-sm font-bold text-gray-900">{expensesSeason.toLocaleString()}</p>
                     </div>
                  </div>
@@ -406,24 +427,28 @@ export default function Dashboard() {
               <div className="p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => navigate('/attendance')}>
                  <div className="flex justify-between items-center mb-2">
                     <p className="text-xs text-gray-500 font-bold uppercase">{labels.lastAttendance}</p>
-                    <span className="text-sm font-bold text-blue-600">{lastMeetingPercent}%</span>
+                    <span className={`text-sm font-bold ${lastMeetingPercent >= 80 ? 'text-green-600' : 'text-orange-600'}`}>{lastMeetingPercent}%</span>
                  </div>
                  <div className="w-full bg-gray-100 rounded-full h-1.5">
-                    <div className="bg-blue-600 h-1.5 rounded-full" style={{ width: `${lastMeetingPercent}%` }}></div>
+                    <div className={`h-1.5 rounded-full ${lastMeetingPercent >= 80 ? 'bg-green-500' : 'bg-orange-500'}`} style={{ width: `${lastMeetingPercent}%` }}></div>
                  </div>
                  <p className="text-xs text-gray-400 mt-1 text-right">{latestDate ? new Date(latestDate).toLocaleDateString() : 'No Data'}</p>
               </div>
 
-              {/* Warnings */}
-              {repeatedAbsenceCount > 0 && (
-                 <div className="p-4 bg-red-50 flex items-center justify-between cursor-pointer hover:bg-red-100 transition-colors" onClick={() => navigate('/attendance')}>
-                    <div className="flex items-center text-red-700">
-                       <AlertTriangle size={16} className="mr-2" />
-                       <span className="text-sm font-bold">{repeatedAbsenceCount} Members</span>
+              {/* Repeated Absence */}
+              <div className={`p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors ${repeatedAbsenceCount > 0 ? 'bg-red-50 hover:bg-red-100' : ''}`} onClick={() => navigate('/attendance')}>
+                 <div className="flex items-center">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${repeatedAbsenceCount > 0 ? 'bg-red-200 text-red-700' : 'bg-gray-100 text-gray-500'}`}>
+                       <AlertTriangle size={16} />
                     </div>
-                    <span className="text-xs text-red-600 font-medium">Chronic Absence</span>
+                    <div>
+                       <p className={`text-xs font-bold uppercase ${repeatedAbsenceCount > 0 ? 'text-red-700' : 'text-gray-500'}`}>{labels.repeatedAbsence}</p>
+                       <p className={`text-sm font-bold ${repeatedAbsenceCount > 0 ? 'text-red-900' : 'text-gray-900'}`}>
+                          {repeatedAbsenceCount} {repeatedAbsenceCount === 1 ? 'Member' : 'Members'}
+                       </p>
+                    </div>
                  </div>
-              )}
+              </div>
            </div>
         </div>
       </div>

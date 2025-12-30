@@ -376,12 +376,37 @@ function EditGroupForm({ group, onCancel, onSuccess, labels }: { group: GSLAGrou
     }
     setSubmitting(true);
     try {
-      // Update location string if derived
-      const location = `${formData.sector}, ${formData.district}`;
+      // Logic to detect only changes
+      const changes: any = {};
+      let hasChanges = false;
+      const isDifferent = (a: any, b: any) => String(a) !== String(b || '');
+
+      (Object.keys(formData) as Array<keyof typeof formData>).forEach(key => {
+         if (key === 'reason') return;
+         // @ts-ignore
+         if (isDifferent(formData[key], group[key])) {
+            // @ts-ignore
+            changes[key] = formData[key];
+            hasChanges = true;
+         }
+      });
+
+      // Special check for location derived field
+      const newLocation = `${formData.sector}, ${formData.district}`;
+      if (newLocation !== group.location) {
+         changes.location = newLocation;
+         hasChanges = true;
+      }
+
+      if (!hasChanges) {
+         alert("No changes detected.");
+         setSubmitting(false);
+         return;
+      }
       
       const updatedGroup = await api.updateGroup(
           group.id, 
-          { ...formData, location }, 
+          changes, 
           formData.reason, 
           user?.fullName || 'Unknown'
       );
@@ -687,7 +712,18 @@ function GroupProfile({ group, onBack, onEdit, onChangeGroup, labels }: { group:
              </div>
 
              <div className="mt-6">
-                <h3 className="font-bold text-gray-800 mb-4 flex items-center"><Shield size={20} className="mr-2 text-purple-600" /> {labels.governanceStructure}</h3>
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="font-bold text-gray-800 flex items-center"><Shield size={20} className="mr-2 text-purple-600" /> {labels.governanceStructure}</h3>
+                    <button 
+                        onClick={() => {
+                            setActiveGroupId(group.id);
+                            navigate('/members');
+                        }}
+                        className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center bg-blue-50 px-3 py-1 rounded-full transition-colors"
+                    >
+                        View Full List <ArrowRight size={14} className="ml-1" />
+                    </button>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                    <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
                       <p className="text-xs text-gray-500 uppercase font-bold mb-1">President</p>
@@ -708,21 +744,37 @@ function GroupProfile({ group, onBack, onEdit, onChangeGroup, labels }: { group:
           {/* Audit History */}
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
              <h3 className="font-bold text-gray-800 mb-4 flex items-center"><History size={20} className="mr-2 text-gray-400" /> {labels.auditTrail}</h3>
-             <div className="space-y-4">
+             <div className="space-y-6 relative">
+                <div className="absolute top-0 bottom-0 left-2.5 w-px bg-gray-200"></div>
                 {(group.auditHistory && group.auditHistory.length > 0) ? (
-                   group.auditHistory.slice(-5).reverse().map(audit => (
-                      <div key={audit.id} className="text-sm border-l-2 border-gray-200 pl-4 py-2 hover:bg-gray-50 transition-colors rounded-r-lg">
-                         <div className="flex justify-between mb-1">
-                            <span className="font-semibold text-gray-900">{audit.reason}</span>
-                            <span className="text-xs text-gray-500">{new Date(audit.date).toLocaleDateString()}</span>
+                   group.auditHistory.slice().reverse().map(audit => (
+                      <div key={audit.id} className="relative pl-8">
+                         <div className="absolute left-0 top-1.5 w-5 h-5 rounded-full border-2 border-white bg-blue-100 ring-1 ring-blue-500 flex items-center justify-center">
+                            <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
                          </div>
-                         <p className="text-xs text-gray-500">
-                            Updated by <span className="font-medium text-gray-700">{audit.editorId}</span>: {audit.changes.map(c => c.field).join(', ')}
-                         </p>
+                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-1">
+                            <span className="font-bold text-gray-900 text-sm">{audit.reason}</span>
+                            <span className="text-xs text-gray-400">{new Date(audit.date).toLocaleString()}</span>
+                         </div>
+                         <div className="text-xs text-gray-500 mb-2">
+                            by <span className="font-medium text-gray-700">{audit.editorId}</span>
+                         </div>
+                         <div className="bg-gray-50 rounded-lg p-3 border border-gray-100 space-y-2">
+                            {audit.changes.map((c, idx) => (
+                               <div key={idx} className="flex flex-col sm:flex-row sm:items-center text-xs">
+                                  <span className="font-mono text-gray-500 uppercase w-32 shrink-0">{c.field}</span>
+                                  <div className="flex items-center flex-1">
+                                     <span className="text-red-500 bg-red-50 px-1.5 py-0.5 rounded decoration-slice line-through mr-2 max-w-[120px] truncate" title={String(c.oldValue)}>{String(c.oldValue || '-')}</span>
+                                     <ArrowRight size={10} className="text-gray-400 mr-2" />
+                                     <span className="text-green-700 bg-green-50 px-1.5 py-0.5 rounded font-medium max-w-[120px] truncate" title={String(c.newValue)}>{String(c.newValue || '-')}</span>
+                                  </div>
+                               </div>
+                            ))}
+                         </div>
                       </div>
                    ))
                 ) : (
-                   <p className="text-sm text-gray-400 italic">No recent changes recorded.</p>
+                   <p className="text-sm text-gray-400 italic pl-8">No recent changes recorded.</p>
                 )}
              </div>
           </div>
@@ -738,50 +790,34 @@ function GroupProfile({ group, onBack, onEdit, onChangeGroup, labels }: { group:
                     <span className="font-mono font-bold text-gray-800">{group.shareValue}</span>
                  </li>
                  <li className="flex justify-between items-center pb-2 border-b border-gray-50">
-                    <span className="text-gray-600">Min Shares</span>
-                    <span className="font-mono font-medium">{group.minShares}</span>
-                 </li>
-                 <li className="flex justify-between items-center pb-2 border-b border-gray-50">
-                    <span className="text-gray-600">Max Shares</span>
-                    <span className="font-mono font-medium">{group.maxShares}</span>
-                 </li>
-                 <li className="flex justify-between items-center pb-2 border-b border-gray-50">
                     <span className="text-gray-600">Meeting Day</span>
-                    <span className="font-medium">{group.meetingDay}</span>
+                    <span className="font-medium text-gray-900">{group.meetingDay}</span>
                  </li>
-                 <li className="flex justify-between items-center">
-                    <span className="text-gray-600">Max Loan</span>
-                    <span className="font-medium">x{group.maxLoanMultiplier} Savings</span>
+                 <li className="flex justify-between items-center pb-2 border-b border-gray-50">
+                    <span className="text-gray-600">Frequency</span>
+                    <span className="font-medium text-gray-900">{group.meetingFrequency}</span>
+                 </li>
+                 <li className="flex justify-between items-center pt-2">
+                    <span className="text-gray-600">Loan Limit</span>
+                    <span className="font-medium text-gray-900">{group.maxLoanMultiplier}x Savings</span>
                  </li>
               </ul>
-              <button 
-                onClick={onEdit}
-                className="w-full mt-6 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-600 font-medium hover:bg-gray-50 hover:text-gray-800 transition-colors"
-              >
-                 Modify Rules
-              </button>
            </div>
 
-           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-              <h3 className="font-bold text-gray-800 mb-4 flex items-center"><MapPin size={20} className="mr-2 text-gray-400" /> {labels.locationDetails}</h3>
-              <div className="space-y-3 text-sm">
-                 <div className="flex justify-between">
-                    <span className="text-gray-500">District</span>
-                    <span className="font-medium text-gray-900">{group.district}</span>
-                 </div>
-                 <div className="flex justify-between">
-                    <span className="text-gray-500">Sector</span>
-                    <span className="font-medium text-gray-900">{group.sector}</span>
-                 </div>
-                 <div className="flex justify-between">
-                    <span className="text-gray-500">Cell</span>
-                    <span className="font-medium text-gray-900">{group.cell}</span>
-                 </div>
-                 <div className="flex justify-between">
-                    <span className="text-gray-500">Village</span>
-                    <span className="font-medium text-gray-900">{group.village}</span>
-                 </div>
-              </div>
+           <div className="bg-blue-50 p-6 rounded-xl border border-blue-100">
+              <h3 className="font-bold text-blue-900 mb-2">Cycle Status</h3>
+              <p className="text-sm text-blue-700 mb-4">
+                 Current cycle ID: <span className="font-mono bg-white px-2 py-0.5 rounded border border-blue-100">{group.currentCycleId || 'None'}</span>
+              </p>
+              <button 
+                onClick={() => {
+                    setActiveGroupId(group.id);
+                    navigate('/seasons');
+                }}
+                className="w-full py-2 bg-white text-blue-600 rounded-lg text-sm font-bold shadow-sm hover:bg-blue-50 border border-blue-200 transition-colors"
+              >
+                 Manage Cycles
+              </button>
            </div>
         </div>
       </div>

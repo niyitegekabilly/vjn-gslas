@@ -4,7 +4,8 @@ import { AppContext } from '../App';
 import { api } from '../api/client';
 import { LABELS } from '../constants';
 import { LoanStatus, Loan, Member } from '../types';
-import { Check, X, AlertTriangle, FileText, Calculator, Loader2, Coins, RefreshCw, Info, Plus, Banknote, Search, Filter } from 'lucide-react';
+import { Check, X, AlertTriangle, FileText, Calculator, Loader2, Coins, RefreshCw, Info, Plus, Banknote, Search, Filter, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { TableRowSkeleton } from '../components/Skeleton';
 
 export default function LoanManager() {
   const { activeGroupId, lang, groups } = useContext(AppContext);
@@ -48,6 +49,9 @@ export default function LoanManager() {
   // Filter State
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'DEFAULTED' | 'CLEARED'>('ALL');
+
+  // Mobile Expanded State
+  const [expandedLoanId, setExpandedLoanId] = useState<string | null>(null);
 
   const fetchData = () => {
     if (!activeGroupId) return;
@@ -111,7 +115,7 @@ export default function LoanManager() {
 
   const openRepayModal = (loan: Loan) => {
     setRepayLoanId(loan.id);
-    setRepayAmount(''); // Start empty or default to balance? Let's start empty.
+    setRepayAmount(''); // Start empty
     setIsRepayModalOpen(true);
   };
 
@@ -168,8 +172,7 @@ export default function LoanManager() {
 
   const pendingLoans = loans.filter(l => l.status === LoanStatus.PENDING);
   
-  // Filter active loans (originally was loans.filter(l => l.status === ACTIVE || DEFAULTED))
-  // Now we apply the additional filters on top of the base set of non-pending loans
+  // Filter active loans
   const filteredActiveLoans = loans.filter(l => {
     // Exclude pending and rejected from this list
     if (l.status === LoanStatus.PENDING || l.status === LoanStatus.REJECTED) return false;
@@ -197,39 +200,46 @@ export default function LoanManager() {
   const monthlyPayment = calcDuration > 0 ? totalRepayment / calcDuration : 0;
 
   if (loading) {
-     return <div className="p-12 flex justify-center"><Loader2 className="animate-spin text-gray-400" /></div>;
+     return (
+       <div className="space-y-6">
+         <div className="h-12 bg-gray-200 rounded animate-pulse mb-6" />
+         <div className="space-y-4">
+           {[...Array(5)].map((_, i) => <TableRowSkeleton key={i} />)}
+         </div>
+       </div>
+     );
   }
 
   return (
     <div className="space-y-8 relative">
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
         <h2 className="text-2xl font-bold text-gray-800">{labels.loanManagement}</h2>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 w-full xl:w-auto">
            <button 
             onClick={() => { setShowFeeManager(!showFeeManager); setShowCalculator(false); }}
-            className={`flex items-center px-4 py-2 border rounded-lg shadow-sm transition-colors ${
+            className={`flex-1 xl:flex-none flex justify-center items-center px-4 py-2 border rounded-lg shadow-sm transition-colors ${
               showFeeManager 
                 ? 'bg-red-50 border-red-200 text-red-700' 
                 : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
             }`}
           >
             <Coins size={18} className="mr-2" />
-            {showFeeManager ? 'Hide Penalty Tool' : labels.penaltyTool}
+            {showFeeManager ? 'Hide Penalty' : labels.penaltyTool}
           </button>
           <button 
             onClick={() => { setShowCalculator(!showCalculator); setShowFeeManager(false); }}
-            className={`flex items-center px-4 py-2 border rounded-lg shadow-sm transition-colors ${
+            className={`flex-1 xl:flex-none flex justify-center items-center px-4 py-2 border rounded-lg shadow-sm transition-colors ${
               showCalculator 
                 ? 'bg-blue-50 border-blue-200 text-blue-700' 
                 : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
             }`}
           >
             <Calculator size={18} className="mr-2" />
-            {showCalculator ? 'Hide Calculator' : labels.loanEstimator}
+            {showCalculator ? 'Hide Calc' : labels.loanEstimator}
           </button>
           <button 
             onClick={() => setIsModalOpen(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow-sm hover:bg-blue-700 flex items-center"
+            className="flex-1 xl:flex-none justify-center px-4 py-2 bg-blue-600 text-white rounded-lg shadow-sm hover:bg-blue-700 flex items-center"
           >
             <Plus size={18} className="mr-2" />
             {labels.newLoanApp}
@@ -237,7 +247,8 @@ export default function LoanManager() {
         </div>
       </div>
 
-      {/* Repayment Modal */}
+      {/* Repayment Modal & Other Modals - Kept same as previous */}
+      {/* ... (Repayment Modal code block omitted for brevity, it remains the same) ... */}
       {isRepayModalOpen && repayingLoan && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-xl shadow-xl max-w-sm w-full overflow-hidden">
@@ -262,11 +273,16 @@ export default function LoanManager() {
                       min="1"
                       max={repayingLoan.balance}
                       value={repayAmount}
-                      onChange={(e) => setRepayAmount(Number(e.target.value))}
+                      onChange={(e) => setRepayAmount(e.target.value === '' ? '' : Number(e.target.value))}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                       required
                       autoFocus
                    />
+                   {repayAmount && Number(repayAmount) >= repayingLoan.balance && (
+                       <p className="text-xs text-green-600 font-bold mt-2 flex items-center animate-pulse">
+                           <CheckCircle size={14} className="mr-1"/> This payment will clear the loan.
+                       </p>
+                   )}
                 </div>
                 
                 <button 
@@ -281,7 +297,7 @@ export default function LoanManager() {
         </div>
       )}
 
-      {/* Loan Application Modal */}
+      {/* Loan Application Modal - Kept same */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-xl shadow-xl max-w-lg w-full overflow-hidden">
@@ -325,7 +341,7 @@ export default function LoanManager() {
                     min="1"
                     max={maxLoanAmount}
                     value={formAmount}
-                    onChange={(e) => setFormAmount(Number(e.target.value))}
+                    onChange={(e) => setFormAmount(e.target.value === '' ? '' : Number(e.target.value))}
                     className={`w-full px-4 py-2 border rounded-lg focus:ring-2 outline-none ${
                        formAmount && Number(formAmount) > maxLoanAmount ? 'border-red-300 focus:ring-red-200' : 'border-gray-300 focus:ring-blue-500'
                     }`}
@@ -385,7 +401,7 @@ export default function LoanManager() {
         </div>
       )}
 
-      {/* Late Fee Manager Section */}
+      {/* Tools Section (Calculator / Fee Manager) - Kept same logic, just rendering */}
       {showFeeManager && (
         <div className="bg-gradient-to-br from-white to-red-50 p-6 rounded-xl border border-red-100 shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
           <h3 className="text-lg font-semibold text-red-800 mb-4 flex items-center">
@@ -451,7 +467,6 @@ export default function LoanManager() {
         </div>
       )}
 
-      {/* Calculator Section */}
       {showCalculator && (
         <div className="bg-gradient-to-br from-white to-blue-50 p-6 rounded-xl border border-blue-100 shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
           <div className="flex justify-between items-start mb-4">
@@ -547,48 +562,61 @@ export default function LoanManager() {
             <FileText size={20} className="mr-2" /> {labels.pendingApproval}
           </h3>
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <table className="w-full text-left">
-              <thead className="bg-gray-50 text-xs uppercase text-gray-500">
-                <tr>
-                  <th className="p-4">Member</th>
-                  <th className="p-4">Amount</th>
-                  <th className="p-4">Purpose</th>
-                  <th className="p-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {pendingLoans.map(loan => (
-                  <tr key={loan.id}>
-                    <td className="p-4 font-medium">{getMemberName(loan.memberId)}</td>
-                    <td className="p-4">{loan.principal.toLocaleString()} {labels.currency}</td>
-                    <td className="p-4 text-gray-600">{loan.purpose}</td>
-                    <td className="p-4 flex justify-end gap-2">
-                      <button 
-                        onClick={() => handleUpdateStatus(loan.id, LoanStatus.ACTIVE)}
-                        disabled={!!actionProcessing}
-                        className="p-2 bg-green-100 text-green-600 rounded hover:bg-green-200 disabled:opacity-50" 
-                        title={labels.approve}
-                      >
-                         {actionProcessing === loan.id ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
-                      </button>
-                      <button 
-                        onClick={() => handleUpdateStatus(loan.id, LoanStatus.REJECTED)}
-                        disabled={!!actionProcessing}
-                        className="p-2 bg-red-100 text-red-600 rounded hover:bg-red-200 disabled:opacity-50" 
-                        title={labels.reject}
-                      >
-                        <X size={18} />
-                      </button>
-                    </td>
+            {/* Desktop Table for Pending */}
+            <div className="hidden md:block">
+              <table className="w-full text-left">
+                <thead className="bg-gray-50 text-xs uppercase text-gray-500">
+                  <tr>
+                    <th className="p-4">Member</th>
+                    <th className="p-4">Amount</th>
+                    <th className="p-4">Purpose</th>
+                    <th className="p-4 text-right">Actions</th>
                   </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {pendingLoans.map(loan => (
+                    <tr key={loan.id}>
+                      <td className="p-4 font-medium">{getMemberName(loan.memberId)}</td>
+                      <td className="p-4">{loan.principal.toLocaleString()} {labels.currency}</td>
+                      <td className="p-4 text-gray-600">{loan.purpose}</td>
+                      <td className="p-4 flex justify-end gap-2">
+                        <button onClick={() => handleUpdateStatus(loan.id, LoanStatus.ACTIVE)} disabled={!!actionProcessing} className="p-2 bg-green-100 text-green-600 rounded hover:bg-green-200 disabled:opacity-50" title={labels.approve}>
+                           {actionProcessing === loan.id ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
+                        </button>
+                        <button onClick={() => handleUpdateStatus(loan.id, LoanStatus.REJECTED)} disabled={!!actionProcessing} className="p-2 bg-red-100 text-red-600 rounded hover:bg-red-200 disabled:opacity-50" title={labels.reject}>
+                          <X size={18} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {/* Mobile Cards for Pending */}
+            <div className="md:hidden divide-y divide-gray-100">
+                {pendingLoans.map(loan => (
+                    <div key={loan.id} className="p-4">
+                        <div className="flex justify-between items-start mb-2">
+                            <span className="font-bold text-gray-900">{getMemberName(loan.memberId)}</span>
+                            <span className="text-lg font-bold text-gray-800">{loan.principal.toLocaleString()} F</span>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-3">{loan.purpose}</p>
+                        <div className="flex gap-2">
+                            <button onClick={() => handleUpdateStatus(loan.id, LoanStatus.ACTIVE)} disabled={!!actionProcessing} className="flex-1 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-medium flex justify-center items-center">
+                                {labels.approve}
+                            </button>
+                            <button onClick={() => handleUpdateStatus(loan.id, LoanStatus.REJECTED)} disabled={!!actionProcessing} className="flex-1 py-2 bg-red-100 text-red-700 rounded-lg text-sm font-medium flex justify-center items-center">
+                                {labels.reject}
+                            </button>
+                        </div>
+                    </div>
                 ))}
-              </tbody>
-            </table>
+            </div>
           </div>
         </section>
       )}
 
-      {/* Active Loans Table */}
+      {/* Active Loans Table/Cards */}
       <section>
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
           <h3 className="text-lg font-semibold text-gray-700">{labels.portfolio}</h3>
@@ -620,7 +648,93 @@ export default function LoanManager() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        {/* --- MOBILE CARD VIEW --- */}
+        <div className="md:hidden space-y-4">
+            {filteredActiveLoans.length === 0 ? (
+                <div className="p-8 text-center text-gray-500 bg-white rounded-xl border border-dashed border-gray-300">{labels.noData}</div>
+            ) : (
+                filteredActiveLoans.map(loan => {
+                    const repaid = loan.totalRepayable - loan.balance;
+                    const progress = loan.totalRepayable > 0 ? (repaid / loan.totalRepayable) * 100 : 100;
+                    const isOverdue = loan.status !== LoanStatus.CLEARED && new Date(loan.dueDate) < new Date();
+                    const isDefaulted = loan.status === LoanStatus.DEFAULTED;
+                    const isExpanded = expandedLoanId === loan.id;
+
+                    return (
+                        <div key={loan.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                            <div className="flex justify-between items-start mb-3">
+                                <div>
+                                    <h4 className="font-bold text-gray-900">{getMemberName(loan.memberId)}</h4>
+                                    <div className="flex items-center mt-1 space-x-2">
+                                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold ${
+                                            loan.status === LoanStatus.ACTIVE ? 'bg-blue-100 text-blue-800' :
+                                            loan.status === LoanStatus.DEFAULTED ? 'bg-red-100 text-red-800' :
+                                            loan.status === LoanStatus.CLEARED ? 'bg-green-100 text-green-800' :
+                                            'bg-gray-100 text-gray-800'
+                                        }`}>
+                                            {loan.status}
+                                        </span>
+                                        {isOverdue && <span className="text-xs text-red-600 font-bold flex items-center"><AlertTriangle size={12} className="mr-1"/> Overdue</span>}
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-lg font-bold text-gray-900">{loan.balance.toLocaleString()}</p>
+                                    <p className="text-xs text-gray-500">Balance</p>
+                                </div>
+                            </div>
+
+                            {/* Progress Bar */}
+                            <div className="mb-3">
+                                <div className="flex justify-between text-xs mb-1">
+                                    <span className="text-gray-500">Progress</span>
+                                    <span className="font-medium text-gray-700">{Math.round(progress)}%</span>
+                                </div>
+                                <div className="w-full bg-gray-100 rounded-full h-2">
+                                    <div className={`h-2 rounded-full ${isDefaulted ? 'bg-red-500' : 'bg-blue-600'}`} style={{ width: `${progress}%` }}></div>
+                                </div>
+                            </div>
+
+                            <button 
+                                onClick={() => setExpandedLoanId(isExpanded ? null : loan.id)}
+                                className="w-full flex items-center justify-between text-xs text-gray-500 py-2 border-t border-gray-100"
+                            >
+                                {isExpanded ? 'Hide Details' : 'Show Details'}
+                                {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                            </button>
+
+                            {isExpanded && (
+                                <div className="pt-2 text-sm space-y-2 border-t border-gray-100 animate-in fade-in zoom-in-95 duration-200">
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-500">Principal:</span>
+                                        <span className="font-medium">{loan.principal.toLocaleString()}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-500">Due Date:</span>
+                                        <span className={`font-medium ${isOverdue ? 'text-red-600' : ''}`}>{loan.dueDate}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-500">Start Date:</span>
+                                        <span className="font-medium">{loan.startDate}</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {loan.status !== LoanStatus.CLEARED && (
+                                <button 
+                                    onClick={() => openRepayModal(loan)}
+                                    className="w-full mt-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium flex justify-center items-center active:bg-blue-700"
+                                >
+                                    <Banknote size={16} className="mr-2" /> Record Repayment
+                                </button>
+                            )}
+                        </div>
+                    );
+                })
+            )}
+        </div>
+
+        {/* --- DESKTOP TABLE VIEW --- */}
+        <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
            <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-200">
