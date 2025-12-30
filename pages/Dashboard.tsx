@@ -2,21 +2,20 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppContext } from '../App';
+import { useAuth } from '../contexts/AuthContext';
 import { LABELS } from '../constants';
 import { api } from '../api/client';
 import { 
   Banknote, Users, TrendingUp, AlertTriangle, Loader2, 
   Calendar, ArrowRight, PlusCircle, CheckCircle, Wallet, 
-  Sprout, FileText, AlertOctagon, Clock, ArrowUpRight, ArrowDownRight,
-  Activity, PieChart as PieIcon, BarChart3
+  Sprout, Clock, ArrowUpRight, ArrowDownRight,
+  ShieldAlert, Building, Sparkles, ChevronRight
 } from 'lucide-react';
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend
-} from 'recharts';
-import { LoanStatus, Member, Loan, Transaction, Cycle, Attendance } from '../types';
+import { LoanStatus, Member, Loan, Transaction, Cycle, Attendance, Fine, UserRole } from '../types';
 
 export default function Dashboard() {
   const { lang, activeGroupId, groups } = useContext(AppContext);
+  const { user } = useAuth();
   const labels = LABELS[lang];
   const navigate = useNavigate();
 
@@ -25,6 +24,7 @@ export default function Dashboard() {
   const [members, setMembers] = useState<Member[]>([]);
   const [loans, setLoans] = useState<Loan[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [fines, setFines] = useState<Fine[]>([]);
   const [cycle, setCycle] = useState<Cycle | null>(null);
   const [attendance, setAttendance] = useState<Attendance[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,18 +37,29 @@ export default function Dashboard() {
       api.getLoans(activeGroupId),
       api.getTransactions(activeGroupId),
       api.getAttendance(activeGroupId),
+      api.getFines(activeGroupId),
       group?.currentCycleId ? api.getCycle(group.currentCycleId) : Promise.resolve(null)
-    ]).then(([m, l, t, a, c]) => {
+    ]).then(([m, l, t, a, f, c]) => {
       setMembers(m);
       setLoans(l);
       setTransactions(t);
       setAttendance(a);
+      setFines(f);
       setCycle(c || null);
       setLoading(false);
     });
   }, [activeGroupId, group]);
 
-  // --- Calculations for "Truth" ---
+  if (loading || !group) {
+    return (
+      <div className="flex flex-col items-center justify-center h-96">
+        <Loader2 className="animate-spin text-green-600 mb-4" size={48} />
+        <p className="text-gray-500 font-medium animate-pulse">{labels.loading}</p>
+      </div>
+    );
+  }
+
+  // --- CALCULATIONS ---
   
   // 1. Members
   const totalMembers = members.length;
@@ -61,405 +72,406 @@ export default function Dashboard() {
   
   const totalOutstandingLoans = activeLoanList.reduce((acc, l) => acc + l.balance, 0);
   const totalOverdueAmount = overdueLoanList.reduce((acc, l) => acc + l.balance, 0);
-  const totalPrincipalDisbursed = activeLoanList.reduce((acc, l) => acc + l.principal, 0);
-
-  // Cash Balance Calculation (Approximate)
-  const allInflows = transactions.filter(t => !t.isVoid && ['SHARE_DEPOSIT', 'LOAN_REPAYMENT', 'FINE_PAYMENT'].includes(t.type)).reduce((acc, t) => acc + t.amount + (t.solidarityAmount || 0), 0);
-  const allOutflows = transactions.filter(t => !t.isVoid && ['EXPENSE', 'LOAN_DISBURSEMENT'].includes(t.type)).reduce((acc, t) => acc + t.amount, 0);
-  const cashBalance = allInflows - allOutflows;
-
-  // 3. Attendance Stats
-  const lastMeetingDate = attendance.length > 0 ? attendance[0].date : null;
-  const lastMeetingAttendance = lastMeetingDate ? attendance.filter(a => a.date === lastMeetingDate) : [];
   
-  const totalAttendanceRecords = attendance.length;
-  const presentCountTotal = attendance.filter(a => a.status === 'PRESENT').length;
-  const attendanceRate = totalAttendanceRecords > 0 ? Math.round((presentCountTotal / totalAttendanceRecords) * 100) : 0;
+  // Cash Balance: (Shares + Repayments + Fines + Solidarity) - (Expenses + Disbursements)
+  const validTx = transactions.filter(t => !t.isVoid);
+  const inflows = validTx.filter(t => ['SHARE_DEPOSIT', 'LOAN_REPAYMENT', 'FINE_PAYMENT'].includes(t.type)).reduce((acc, t) => acc + t.amount + (t.solidarityAmount || 0), 0);
+  const outflows = validTx.filter(t => ['EXPENSE', 'LOAN_DISBURSEMENT'].includes(t.type)).reduce((acc, t) => acc + t.amount, 0);
+  const cashBalance = inflows - outflows;
 
-  // 4. Loan Health
-  const totalRepayableAll = loans.reduce((acc, l) => acc + l.totalRepayable, 0);
-  const totalBalanceAll = loans.reduce((acc, l) => acc + l.balance, 0);
-  const repaymentRate = totalRepayableAll > 0 ? Math.round(((totalRepayableAll - totalBalanceAll) / totalRepayableAll) * 100) : 100;
+  // Unpaid Fines
+  const totalUnpaidFines = fines.filter(f => f.status !== 'VOID' && f.status !== 'PAID').reduce((acc, f) => acc + (f.amount - f.paidAmount), 0);
 
-  // 5. Charts Data
-  const chartData = [
-    { name: 'Savings', value: totalSharesValue, color: '#10b981' },
-    { name: 'Loans Out', value: totalOutstandingLoans, color: '#3b82f6' },
-    { name: 'Cash', value: cashBalance > 0 ? cashBalance : 0, color: '#6366f1' },
-  ];
+  // 3. Activity & Flow
+  const currentSeasonTxs = validTx.filter(t => t.cycleId === group.currentCycleId);
+  const contributionsSeason = currentSeasonTxs.filter(t => t.type === 'SHARE_DEPOSIT').reduce((acc, t) => acc + t.amount, 0);
+  const expensesSeason = currentSeasonTxs.filter(t => t.type === 'EXPENSE').reduce((acc, t) => acc + t.amount, 0);
+  
+  const currentMonthStr = new Date().toISOString().slice(0, 7); // YYYY-MM
+  const contributionsMonth = validTx.filter(t => t.type === 'SHARE_DEPOSIT' && t.date.startsWith(currentMonthStr)).reduce((acc, t) => acc + t.amount, 0);
 
-  // 6. Trend Data (Last 6 Months)
-  const getLast6Months = () => {
-    const months = [];
-    const today = new Date();
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-      months.push(d.toISOString().slice(0, 7)); // YYYY-MM
-    }
-    return months;
-  };
+  // 4. Attendance
+  const lastMeetingDate = attendance.length > 0 ? attendance[attendance.length - 1].date : null; // Assuming sorted or grab latest
+  // Re-sort attendance to be safe for "Last Meeting" logic
+  const sortedAttendance = [...attendance].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const latestDate = sortedAttendance.length > 0 ? sortedAttendance[0].date : null;
+  const lastMeetingRecords = latestDate ? sortedAttendance.filter(a => a.date === latestDate) : [];
+  
+  const lastMeetingPresent = lastMeetingRecords.filter(a => a.status === 'PRESENT').length;
+  const lastMeetingTotal = lastMeetingRecords.length;
+  const lastMeetingPercent = lastMeetingTotal > 0 ? Math.round((lastMeetingPresent / lastMeetingTotal) * 100) : 0;
 
-  const trendMonths = getLast6Months();
-  const trendData = trendMonths.map(month => {
-    const monthlyTx = transactions.filter(t => t.date.startsWith(month) && !t.isVoid);
-    return {
-      name: new Date(month + '-01').toLocaleDateString(lang === 'rw' ? 'fr-RW' : 'en-US', { month: 'short' }),
-      Savings: monthlyTx.filter(t => t.type === 'SHARE_DEPOSIT').reduce((acc, t) => acc + t.amount, 0),
-      Loans: monthlyTx.filter(t => t.type === 'LOAN_DISBURSEMENT').reduce((acc, t) => acc + t.amount, 0),
-      Repayments: monthlyTx.filter(t => t.type === 'LOAN_REPAYMENT').reduce((acc, t) => acc + t.amount, 0),
-    };
+  // Repeated Absences (more than 2)
+  const absenceCounts: Record<string, number> = {};
+  attendance.filter(a => a.status === 'ABSENT').forEach(a => {
+    absenceCounts[a.memberId] = (absenceCounts[a.memberId] || 0) + 1;
   });
+  const repeatedAbsenceCount = Object.values(absenceCounts).filter(count => count > 2).length;
 
-  // 7. Upcoming Deadlines
-  const loansDueSoon = activeLoanList
-    .filter(l => l.balance > 0)
-    .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
-    .slice(0, 3);
+  // --- TIME GREETING ---
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening';
 
-  const getNextMeetingDate = () => {
-    if (!group) return new Date().toDateString();
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const targetDay = days.indexOf(group.meetingDay);
-    const today = new Date().getDay();
-    let diff = targetDay - today;
-    if (diff <= 0) diff += 7; // Next occurrence
-    const nextDate = new Date();
-    nextDate.setDate(nextDate.getDate() + diff);
-    return nextDate.toLocaleDateString(lang === 'rw' ? 'fr-RW' : 'en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-  };
+  // --- MEMBER VIEW RENDER ---
+  if (user?.role === UserRole.MEMBER_USER) {
+    const myMember = members.find(m => m.id === user.linkedMemberId);
+    if (!myMember) return <div className="p-8 text-center text-gray-500">Member record not linked. Please contact admin.</div>;
 
-  if (loading || !group) {
+    const myActiveLoan = loans.find(l => l.memberId === myMember.id && (l.status === 'ACTIVE' || l.status === 'DEFAULTED'));
+    const myFines = fines.filter(f => f.memberId === myMember.id && f.status !== 'PAID' && f.status !== 'VOID');
+    const myFineTotal = myFines.reduce((acc, f) => acc + (f.amount - f.paidAmount), 0);
+    const myAtt = attendance.filter(a => a.memberId === myMember.id);
+    const myAttRate = myAtt.length > 0 ? Math.round((myAtt.filter(a => a.status === 'PRESENT').length / myAtt.length) * 100) : 100;
+
     return (
-      <div className="flex flex-col items-center justify-center h-96">
-        <Loader2 className="animate-spin text-green-600 mb-4" size={48} />
-        <p className="text-gray-500 font-medium">{labels.loading}</p>
+      <div className="space-y-8 animate-in fade-in duration-500 pb-12">
+        {/* Member Welcome Hero */}
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-3xl p-8 text-white shadow-xl">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <p className="text-blue-200 text-sm font-medium uppercase tracking-wider mb-1">{greeting}</p>
+              <h1 className="text-3xl font-bold">{myMember.fullName}</h1>
+              <p className="text-blue-100 mt-2 flex items-center">
+                <Building size={16} className="mr-2" /> {group.name}
+              </p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm px-6 py-3 rounded-xl border border-white/20">
+              <p className="text-xs text-blue-200 uppercase">My Shares</p>
+              <p className="text-2xl font-bold">{myMember.totalShares}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between h-48">
+             <div>
+                <div className="w-10 h-10 bg-green-50 rounded-full flex items-center justify-center text-green-600 mb-4">
+                   <Wallet size={20} />
+                </div>
+                <p className="text-gray-500 font-medium text-sm uppercase">{labels.mySavings}</p>
+                <p className="text-3xl font-bold text-gray-900 mt-2">
+                   {(myMember.totalShares * group.shareValue).toLocaleString()} <span className="text-sm font-medium text-gray-400">{labels.currency}</span>
+                </p>
+             </div>
+             <p className="text-sm text-green-600 flex items-center">
+                <CheckCircle size={14} className="mr-1" /> Secure & Growing
+             </p>
+          </div>
+
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between h-48">
+             <div>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-4 ${myActiveLoan ? 'bg-blue-50 text-blue-600' : 'bg-gray-50 text-gray-400'}`}>
+                   <Banknote size={20} />
+                </div>
+                <p className="text-gray-500 font-medium text-sm uppercase">{labels.myLoans}</p>
+                <p className={`text-3xl font-bold mt-2 ${myActiveLoan ? 'text-blue-600' : 'text-gray-400'}`}>
+                   {myActiveLoan ? myActiveLoan.balance.toLocaleString() : '0'} <span className="text-sm font-medium text-gray-400">{labels.currency}</span>
+                </p>
+             </div>
+             {myActiveLoan ? (
+               <p className="text-sm text-orange-600 flex items-center">
+                  <Clock size={14} className="mr-1" /> Due: {new Date(myActiveLoan.dueDate).toLocaleDateString()}
+               </p>
+             ) : (
+               <p className="text-sm text-gray-400">No active loans</p>
+             )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+           <div className={`p-6 rounded-2xl shadow-sm border ${myFineTotal > 0 ? 'bg-red-50 border-red-100' : 'bg-white border-gray-100'}`}>
+              <div className="flex justify-between items-start">
+                 <div>
+                    <p className={`font-medium text-sm uppercase ${myFineTotal > 0 ? 'text-red-600' : 'text-gray-500'}`}>{labels.unpaidFinesTotal}</p>
+                    <p className={`text-2xl font-bold mt-2 ${myFineTotal > 0 ? 'text-red-700' : 'text-gray-900'}`}>
+                       {myFineTotal.toLocaleString()} {labels.currency}
+                    </p>
+                 </div>
+                 <AlertTriangle className={`${myFineTotal > 0 ? 'text-red-500' : 'text-gray-300'}`} size={24} />
+              </div>
+              {myFineTotal > 0 && <p className="text-xs text-red-600 mt-4">Please clear this with the treasurer.</p>}
+           </div>
+
+           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+              <div className="flex justify-between items-start">
+                 <div>
+                    <p className="text-gray-500 font-medium text-sm uppercase">{labels.myAttendance}</p>
+                    <p className="text-2xl font-bold text-gray-900 mt-2">{myAttRate}%</p>
+                 </div>
+                 <div className="w-12 h-12 rounded-full border-4 border-blue-50 flex items-center justify-center text-xs font-bold text-blue-600">
+                    {myAttRate}
+                 </div>
+              </div>
+           </div>
+        </div>
       </div>
     );
   }
 
+  // --- LEADER / ADMIN VIEW RENDER ---
+
   return (
     <div className="space-y-8 pb-12 animate-in fade-in duration-500">
       
-      {/* 2. HERO SUMMARY CARDS (Row 1) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        {/* Card 1: Members */}
-        <div onClick={() => navigate('/members')} className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer group">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{labels.members}</p>
-              <h3 className="text-2xl font-bold text-gray-900 mt-1">{totalMembers}</h3>
+      {/* 1. Welcome Hero Section */}
+      <div className="relative overflow-hidden bg-slate-900 text-white rounded-3xl p-8 shadow-xl">
+        <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-green-500 rounded-full opacity-10 blur-3xl"></div>
+        <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-64 h-64 bg-blue-500 rounded-full opacity-10 blur-3xl"></div>
+        
+        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+          <div>
+            <div className="flex items-center space-x-2 text-slate-400 mb-2 text-sm font-medium">
+              <Calendar size={16} />
+              <span>{new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
             </div>
-            <div className="p-2 bg-gray-50 rounded-lg text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
-              <Users size={20} />
-            </div>
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
+              {greeting}, <span className="text-green-400">{user?.fullName.split(' ')[0]}</span>
+            </h1>
+            <p className="mt-2 text-slate-300 max-w-xl text-sm leading-relaxed">
+              Here's your group's financial health at a glance. 
+              {overdueLoanList.length > 0 
+                ? <span className="text-orange-300 font-semibold ml-1"><AlertTriangle size={14} className="inline mb-1"/> {overdueLoanList.length} loans require attention.</span> 
+                : <span className="text-green-300 font-semibold ml-1"><CheckCircle size={14} className="inline mb-1"/> All loans are healthy.</span>
+              }
+            </p>
+          </div>
+          
+          <div className="flex gap-3">
+             <button 
+               onClick={() => navigate('/meeting')}
+               className="flex items-center px-5 py-3 bg-green-600 hover:bg-green-500 text-white rounded-xl font-bold shadow-lg transition-all transform hover:scale-105 active:scale-95"
+             >
+               <PlusCircle size={20} className="mr-2" /> {labels.startNewMeeting}
+             </button>
           </div>
         </div>
+      </div>
 
-        {/* Card 2: Savings */}
-        <div onClick={() => navigate('/contributions')} className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer group">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{labels.totalSavings}</p>
-              <h3 className="text-2xl font-bold text-green-600 mt-1">{totalSharesValue.toLocaleString()}</h3>
-              <p className="text-xs text-green-600 font-medium mt-1 flex items-center">
-                <ArrowUpRight size={12} className="mr-0.5" /> {labels.currency}
-              </p>
-            </div>
-            <div className="p-2 bg-gray-50 rounded-lg text-gray-400 group-hover:bg-green-50 group-hover:text-green-600 transition-colors">
-              <Banknote size={20} />
-            </div>
-          </div>
-        </div>
+      {/* 2. Core "Trust" Numbers */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard 
+          title={labels.totalSavings}
+          value={`${totalSharesValue.toLocaleString()}`}
+          subValue={labels.currency}
+          icon={<Wallet size={24} />}
+          color="green"
+          onClick={() => navigate('/contributions')}
+        />
+        <StatCard 
+          title={labels.cashBalance}
+          value={`${cashBalance.toLocaleString()}`}
+          subValue="Available Cash"
+          icon={<Banknote size={24} />}
+          color="blue"
+          onClick={() => navigate('/expenses')}
+        />
+        <StatCard 
+          title={labels.members}
+          value={totalMembers.toString()}
+          subValue="Active Members"
+          icon={<Users size={24} />}
+          color="indigo"
+          onClick={() => navigate('/members')}
+        />
+        {(user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.ADMIN) ? (
+           <StatCard 
+             title={labels.totalGroups}
+             value={groups.length.toString()}
+             subValue="Active Groups"
+             icon={<Building size={24} />}
+             color="slate"
+             onClick={() => navigate('/groups')}
+           />
+        ) : (
+           <StatCard 
+             title={labels.activeSeasons}
+             value={cycle?.status || 'None'}
+             subValue={cycle?.startDate || 'No Date'}
+             icon={<Sprout size={24} />}
+             color="teal"
+             onClick={() => navigate('/seasons')}
+           />
+        )}
+      </div>
 
-        {/* Card 3: Active Loans */}
-        <div onClick={() => navigate('/loans')} className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer group">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{labels.loansActive}</p>
-              <h3 className="text-2xl font-bold text-blue-600 mt-1">{totalOutstandingLoans.toLocaleString()}</h3>
-              <p className="text-xs text-blue-600 font-medium mt-1 flex items-center">
-                 {activeLoanList.length} {labels.status.split(' ')[0]}
-              </p>
-            </div>
-            <div className="p-2 bg-gray-50 rounded-lg text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
-              <TrendingUp size={20} />
-            </div>
-          </div>
-        </div>
-
-        {/* Card 4: Overdue Loans */}
-        <div onClick={() => navigate('/loans')} className={`p-5 rounded-xl shadow-sm border hover:shadow-md transition-shadow cursor-pointer group ${overdueLoanList.length > 0 ? 'bg-red-50 border-red-200' : 'bg-white border-gray-100'}`}>
-          <div className="flex justify-between items-start">
-            <div>
-              <p className={`text-xs font-semibold uppercase tracking-wide ${overdueLoanList.length > 0 ? 'text-red-600' : 'text-gray-400'}`}>{labels.overdue}</p>
-              <h3 className={`text-2xl font-bold mt-1 ${overdueLoanList.length > 0 ? 'text-red-700' : 'text-gray-900'}`}>
-                {totalOverdueAmount.toLocaleString()}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* 3. Operational & Risk Center */}
+        <div className="lg:col-span-2 space-y-6">
+           <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-gray-800 flex items-center">
+                <ShieldAlert size={20} className="mr-2 text-gray-400" /> Operational & Risk
               </h3>
-              <p className={`text-xs font-medium mt-1 flex items-center ${overdueLoanList.length > 0 ? 'text-red-600' : 'text-gray-400'}`}>
-                 {overdueLoanList.length} {labels.lateLoans}
-              </p>
-            </div>
-            <div className={`p-2 rounded-lg transition-colors ${overdueLoanList.length > 0 ? 'bg-white text-red-500' : 'bg-gray-50 text-gray-400'}`}>
-              <AlertOctagon size={20} />
-            </div>
-          </div>
-        </div>
+              <div className="h-px bg-gray-200 flex-1 ml-4"></div>
+           </div>
 
-        {/* Card 5: Cash Balance */}
-        <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow group">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{labels.cashBalance}</p>
-              <h3 className="text-2xl font-bold text-gray-900 mt-1">{cashBalance.toLocaleString()}</h3>
-              <p className="text-xs text-gray-500 font-medium mt-1">
-                 {labels.currency}
-              </p>
-            </div>
-            <div className="p-2 bg-gray-50 rounded-lg text-gray-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
-              <Wallet size={20} />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 3. CURRENT SEASON SNAPSHOT */}
-      <div className="bg-slate-900 rounded-2xl shadow-lg text-white p-8 relative overflow-hidden group">
-        <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity duration-500">
-          <Sprout size={240} />
-        </div>
-        
-        <div className="relative z-10">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${
-                  cycle?.status === 'CLOSED' 
-                  ? 'bg-red-500/20 text-red-300 border-red-500/30' 
-                  : 'bg-green-500/20 text-green-300 border-green-500/30'
-                }`}>
-                  {cycle?.status || labels.activeSeasons}
-                </span>
-                <span className="text-slate-400 text-sm font-medium">{cycle?.startDate} — {cycle?.endDate || 'Present'}</span>
-              </div>
-              <h2 className="text-3xl font-bold text-white tracking-tight">{labels.activeSeasons}: {new Date().getFullYear()}</h2>
-            </div>
-            
-            {cycle?.status === 'CLOSED' && (
-               <button className="mt-4 md:mt-0 px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold shadow-lg transition-colors flex items-center">
-                 <FileText size={18} className="mr-2" /> Report
-               </button>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 border-t border-slate-800 pt-8">
-             <div>
-               <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">{labels.shareValue}</p>
-               <p className="text-2xl font-bold text-white">{group.shareValue} {labels.currency}</p>
-             </div>
-             <div>
-               <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">{labels.sharesCollected}</p>
-               <p className="text-2xl font-bold text-white">{totalSharesValue.toLocaleString()} {labels.currency}</p>
-             </div>
-             <div>
-               <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">{labels.loansActive}</p>
-               <p className="text-2xl font-bold text-white">{totalPrincipalDisbursed.toLocaleString()} {labels.currency}</p>
-             </div>
-             <div>
-               <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">Est. Value</p>
-               <p className="text-2xl font-bold text-yellow-400">
-                  {(totalSharesValue + (totalPrincipalDisbursed * 0.05)).toLocaleString()} {labels.currency}
-               </p>
-             </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 5. QUICK ACTIONS */}
-      <div>
-        <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-4 flex items-center">
-           {labels.quickActions}
-           <div className="h-px bg-gray-200 flex-1 ml-4"></div>
-        </h3>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <button onClick={() => navigate('/meeting')} className="flex flex-col items-center justify-center p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:border-green-400 hover:shadow-md hover:-translate-y-1 transition-all group">
-            <div className="w-12 h-12 bg-green-50 text-green-600 rounded-full flex items-center justify-center mb-3 group-hover:bg-green-100 transition-colors">
-              <PlusCircle size={24} />
-            </div>
-            <span className="text-sm font-bold text-gray-700 text-center">{labels.recordContribution}</span>
-          </button>
-
-          <button onClick={() => navigate('/loans')} className="flex flex-col items-center justify-center p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:border-blue-400 hover:shadow-md hover:-translate-y-1 transition-all group">
-            <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-3 group-hover:bg-blue-100 transition-colors">
-              <Banknote size={24} />
-            </div>
-            <span className="text-sm font-bold text-gray-700 text-center">{labels.recordRepayment}</span>
-          </button>
-
-          <button onClick={() => navigate('/fines')} className="flex flex-col items-center justify-center p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:border-red-400 hover:shadow-md hover:-translate-y-1 transition-all group">
-            <div className="w-12 h-12 bg-red-50 text-red-600 rounded-full flex items-center justify-center mb-3 group-hover:bg-red-100 transition-colors">
-              <AlertTriangle size={24} />
-            </div>
-            <span className="text-sm font-bold text-gray-700 text-center">{labels.recordNewFine}</span>
-          </button>
-
-          <button onClick={() => navigate('/attendance')} className="flex flex-col items-center justify-center p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:border-purple-400 hover:shadow-md hover:-translate-y-1 transition-all group">
-            <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-full flex items-center justify-center mb-3 group-hover:bg-purple-100 transition-colors">
-              <CheckCircle size={24} />
-            </div>
-            <span className="text-sm font-bold text-gray-700 text-center">{labels.attendance}</span>
-          </button>
-
-          <button onClick={() => navigate('/expenses')} className="flex flex-col items-center justify-center p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:border-orange-400 hover:shadow-md hover:-translate-y-1 transition-all group">
-            <div className="w-12 h-12 bg-orange-50 text-orange-600 rounded-full flex items-center justify-center mb-3 group-hover:bg-orange-100 transition-colors">
-              <Wallet size={24} />
-            </div>
-            <span className="text-sm font-bold text-gray-700 text-center">{labels.expenses}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* 4. ACTIVITY & CHARTS SECTION */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-        
-        {/* Left: Financial Trends Chart */}
-        <div className="xl:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-bold text-gray-800 flex items-center">
-              <BarChart3 className="mr-2 text-gray-500" size={20} /> {labels.financialTrends}
-            </h3>
-          </div>
-          <div className="h-72 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#9ca3af' }} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#9ca3af' }} tickFormatter={(value) => `${value / 1000}k`} />
-                <Tooltip 
-                  cursor={{ fill: '#f9fafb' }}
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                  formatter={(value: number) => [`${value.toLocaleString()} ${labels.currency}`, '']}
-                />
-                <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
-                <Bar dataKey="Savings" fill="#10b981" radius={[4, 4, 0, 0]} barSize={20} stackId="a" />
-                <Bar dataKey="Repayments" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={20} stackId="a" />
-                <Bar dataKey="Loans" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={20} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Right: Health Metrics & Deadlines */}
-        <div className="space-y-6">
-           
-           {/* KPI Cards */}
-           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-4">{labels.healthIndicators}</h3>
-              <div className="space-y-6">
-                 {/* Repayment Rate */}
-                 <div>
-                    <div className="flex justify-between text-sm mb-1">
-                       <span className="text-gray-600 font-medium">{labels.repaymentRate}</span>
-                       <span className={`font-bold ${repaymentRate < 90 ? 'text-orange-600' : 'text-green-600'}`}>{repaymentRate}%</span>
+           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Active Loans */}
+              <div 
+                onClick={() => navigate('/loans')}
+                className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:border-blue-200 transition-colors cursor-pointer group"
+              >
+                 <div className="flex justify-between items-start mb-4">
+                    <div className="p-2 bg-blue-50 text-blue-600 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                       <Banknote size={24} />
                     </div>
-                    <div className="w-full bg-gray-100 rounded-full h-2">
-                       <div className={`h-2 rounded-full ${repaymentRate < 90 ? 'bg-orange-500' : 'bg-green-500'}`} style={{ width: `${repaymentRate}%` }}></div>
-                    </div>
+                    <span className="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded-full">{activeLoanList.length} Active</span>
                  </div>
+                 <p className="text-gray-500 text-xs font-bold uppercase tracking-wider">{labels.outstandingLoans}</p>
+                 <p className="text-2xl font-bold text-gray-900 mt-1">{totalOutstandingLoans.toLocaleString()} <span className="text-sm font-normal text-gray-400">RWF</span></p>
+              </div>
 
-                 {/* Attendance Rate */}
+              {/* Overdue Loans (Alert State) */}
+              <div 
+                onClick={() => navigate('/loans')}
+                className={`p-6 rounded-2xl shadow-sm border cursor-pointer transition-colors group ${
+                  overdueLoanList.length > 0 
+                  ? 'bg-red-50 border-red-200 hover:border-red-300' 
+                  : 'bg-white border-gray-100 hover:border-green-200'
+                }`}
+              >
+                 <div className="flex justify-between items-start mb-4">
+                    <div className={`p-2 rounded-lg transition-colors ${
+                       overdueLoanList.length > 0 ? 'bg-red-100 text-red-600' : 'bg-green-50 text-green-600'
+                    }`}>
+                       <AlertTriangle size={24} />
+                    </div>
+                    {overdueLoanList.length > 0 && (
+                       <span className="bg-red-100 text-red-800 text-xs font-bold px-2 py-1 rounded-full animate-pulse">{overdueLoanList.length} Overdue</span>
+                    )}
+                 </div>
+                 <p className={`text-xs font-bold uppercase tracking-wider ${overdueLoanList.length > 0 ? 'text-red-600' : 'text-gray-500'}`}>
+                    {labels.overdue}
+                 </p>
+                 <p className={`text-2xl font-bold mt-1 ${overdueLoanList.length > 0 ? 'text-red-700' : 'text-gray-900'}`}>
+                    {totalOverdueAmount.toLocaleString()} <span className={`text-sm font-normal ${overdueLoanList.length > 0 ? 'text-red-400' : 'text-gray-400'}`}>RWF</span>
+                 </p>
+              </div>
+
+              {/* Unpaid Fines */}
+              <div 
+                onClick={() => navigate('/fines')}
+                className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:border-orange-200 transition-colors cursor-pointer sm:col-span-2 flex items-center justify-between"
+              >
                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                       <span className="text-gray-600 font-medium">{labels.attendanceRate}</span>
-                       <span className={`font-bold ${attendanceRate < 80 ? 'text-red-600' : 'text-blue-600'}`}>{attendanceRate}%</span>
-                    </div>
-                    <div className="w-full bg-gray-100 rounded-full h-2">
-                       <div className={`h-2 rounded-full ${attendanceRate < 80 ? 'bg-red-500' : 'bg-blue-500'}`} style={{ width: `${attendanceRate}%` }}></div>
-                    </div>
+                    <p className="text-gray-500 text-xs font-bold uppercase tracking-wider">{labels.unpaidFinesTotal}</p>
+                    <p className="text-2xl font-bold text-gray-900 mt-1">{totalUnpaidFines.toLocaleString()} <span className="text-sm font-normal text-gray-400">RWF</span></p>
+                 </div>
+                 <div className="flex items-center text-orange-500 bg-orange-50 px-4 py-2 rounded-lg">
+                    <span className="text-sm font-bold mr-2">View List</span>
+                    <ArrowRight size={16} />
                  </div>
               </div>
            </div>
+        </div>
 
-           {/* Upcoming Events / Deadlines */}
-           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-4">{labels.upcomingSchedule}</h3>
-              
-              <div className="flex items-center p-3 bg-blue-50 rounded-lg border border-blue-100 mb-4">
-                 <div className="p-2 bg-white rounded-md text-blue-600 mr-3 shadow-sm">
-                    <Calendar size={18} />
+        {/* 4. Activity & Discipline Sidebar */}
+        <div className="space-y-6">
+           <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-gray-800 flex items-center">
+                <TrendingUp size={20} className="mr-2 text-gray-400" /> Flow & Discipline
+              </h3>
+              <div className="h-px bg-gray-200 flex-1 ml-4"></div>
+           </div>
+
+           {/* Stats List */}
+           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+              {/* Contributions */}
+              <div className="p-4 border-b border-gray-100 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                 <div className="flex items-center">
+                    <div className="w-8 h-8 rounded-full bg-green-50 text-green-600 flex items-center justify-center mr-3">
+                       <ArrowUpRight size={16} />
+                    </div>
+                    <div>
+                       <p className="text-xs text-gray-500 font-bold uppercase">In (Month)</p>
+                       <p className="text-sm font-bold text-gray-900">{contributionsMonth.toLocaleString()}</p>
+                    </div>
                  </div>
-                 <div>
-                    <p className="text-xs text-blue-600 font-bold uppercase">{labels.nextMeeting}</p>
-                    <p className="text-sm font-bold text-blue-900">{getNextMeetingDate()}</p>
+              </div>
+              
+              {/* Expenses */}
+              <div className="p-4 border-b border-gray-100 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                 <div className="flex items-center">
+                    <div className="w-8 h-8 rounded-full bg-red-50 text-red-600 flex items-center justify-center mr-3">
+                       <ArrowDownRight size={16} />
+                    </div>
+                    <div>
+                       <p className="text-xs text-gray-500 font-bold uppercase">Out (Season)</p>
+                       <p className="text-sm font-bold text-gray-900">{expensesSeason.toLocaleString()}</p>
+                    </div>
                  </div>
               </div>
 
-              {loansDueSoon.length > 0 ? (
-                 <div>
-                    <p className="text-xs font-bold text-gray-400 uppercase mb-2">{labels.loansDueSoon}</p>
-                    <div className="space-y-2">
-                       {loansDueSoon.map(loan => (
-                          <div key={loan.id} className="flex justify-between items-center text-sm p-2 hover:bg-gray-50 rounded border border-transparent hover:border-gray-100 transition-colors">
-                             <div className="flex items-center">
-                                <Clock size={14} className="text-orange-500 mr-2" />
-                                <span className="font-medium text-gray-700">{members.find(m => m.id === loan.memberId)?.fullName.split(' ')[0]}</span>
-                             </div>
-                             <div className="text-right">
-                                <p className="font-bold text-gray-900">{loan.balance.toLocaleString()}</p>
-                                <p className="text-xs text-gray-500">{loan.dueDate}</p>
-                             </div>
-                          </div>
-                       ))}
-                    </div>
+              {/* Attendance */}
+              <div className="p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => navigate('/attendance')}>
+                 <div className="flex justify-between items-center mb-2">
+                    <p className="text-xs text-gray-500 font-bold uppercase">{labels.lastAttendance}</p>
+                    <span className="text-sm font-bold text-blue-600">{lastMeetingPercent}%</span>
                  </div>
-              ) : (
-                 <p className="text-sm text-gray-400 italic text-center py-2">{labels.noData}</p>
+                 <div className="w-full bg-gray-100 rounded-full h-1.5">
+                    <div className="bg-blue-600 h-1.5 rounded-full" style={{ width: `${lastMeetingPercent}%` }}></div>
+                 </div>
+                 <p className="text-xs text-gray-400 mt-1 text-right">{latestDate ? new Date(latestDate).toLocaleDateString() : 'No Data'}</p>
+              </div>
+
+              {/* Warnings */}
+              {repeatedAbsenceCount > 0 && (
+                 <div className="p-4 bg-red-50 flex items-center justify-between cursor-pointer hover:bg-red-100 transition-colors" onClick={() => navigate('/attendance')}>
+                    <div className="flex items-center text-red-700">
+                       <AlertTriangle size={16} className="mr-2" />
+                       <span className="text-sm font-bold">{repeatedAbsenceCount} Members</span>
+                    </div>
+                    <span className="text-xs text-red-600 font-medium">Chronic Absence</span>
+                 </div>
               )}
            </div>
-
-           {/* Asset Allocation Mini-Chart */}
-           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-4">{labels.assetAllocation}</h3>
-              <div className="h-32 flex items-center">
-                 <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={chartData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={30}
-                      outerRadius={50}
-                      paddingAngle={5}
-                      dataKey="value"
-                      stroke="none"
-                    >
-                      {chartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      formatter={(value: number) => `${value.toLocaleString()} RWF`}
-                      contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="ml-4 space-y-2 text-xs">
-                   <div className="flex items-center"><div className="w-2 h-2 rounded-full bg-emerald-500 mr-2"></div>Savings</div>
-                   <div className="flex items-center"><div className="w-2 h-2 rounded-full bg-blue-500 mr-2"></div>Loans</div>
-                   <div className="flex items-center"><div className="w-2 h-2 rounded-full bg-indigo-500 mr-2"></div>Cash</div>
-                </div>
-              </div>
-           </div>
-
         </div>
       </div>
 
-      {/* 8. FOOTER */}
-      <div className="border-t border-gray-200 pt-8 mt-8 flex flex-col md:flex-row justify-between items-center text-xs text-gray-400 font-medium">
-        <p>VJN GSLA Management System v1.2.0</p>
+      {/* Footer */}
+      <div className="border-t border-gray-200 pt-8 mt-4 flex flex-col md:flex-row justify-between items-center text-xs text-gray-400 font-medium">
+        <p>VJN GSLA Management System v1.3.0</p>
         <div className="flex items-center mt-2 md:mt-0 gap-4">
-           <span>Support Contact: 0788-000-000</span>
-           <span className="flex items-center"><Clock size={12} className="mr-1" /> {new Date().toLocaleString()}</span>
-           <span>Powered by Vision Jeunesse Nouvelle</span>
+           <span className="flex items-center"><Sparkles size={12} className="mr-1 text-yellow-500" /> Powered by Vision Jeunesse Nouvelle</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- SUB COMPONENTS ---
+
+interface StatCardProps {
+  title: string;
+  value: string;
+  subValue: string;
+  icon: React.ReactNode;
+  color: 'green' | 'blue' | 'indigo' | 'slate' | 'teal';
+  onClick: () => void;
+}
+
+function StatCard({ title, value, subValue, icon, color, onClick }: StatCardProps) {
+  const colorStyles = {
+    green: 'bg-green-50 text-green-600 group-hover:bg-green-600 group-hover:text-white',
+    blue: 'bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white',
+    indigo: 'bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white',
+    slate: 'bg-slate-100 text-slate-600 group-hover:bg-slate-700 group-hover:text-white',
+    teal: 'bg-teal-50 text-teal-600 group-hover:bg-teal-600 group-hover:text-white',
+  };
+
+  return (
+    <div 
+      onClick={onClick}
+      className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 cursor-pointer transition-all hover:shadow-md hover:-translate-y-1 group"
+    >
+      <div className="flex justify-between items-start">
+        <div>
+          <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">{title}</p>
+          <h3 className="text-2xl font-extrabold text-gray-900">{value}</h3>
+          <p className="text-xs text-gray-400 mt-1 font-medium">{subValue}</p>
+        </div>
+        <div className={`p-3 rounded-xl transition-colors duration-300 ${colorStyles[color]}`}>
+          {icon}
         </div>
       </div>
     </div>

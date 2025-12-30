@@ -59,11 +59,14 @@ export const LABELS = {
     close: "Close",
     
     // Dashboard
+    totalGroups: "Total Groups",
     totalSavings: "Total Savings",
     loansActive: "Active Loans",
+    outstandingLoans: "Outstanding Balance",
     members: "Members",
     cashBalance: "Cash Balance",
-    overdue: "Overdue",
+    overdue: "Overdue Loans",
+    unpaidFinesTotal: "Unpaid Fines",
     lateLoans: "Late Loans",
     quickActions: "Quick Actions",
     financialTrends: "Financial Trends",
@@ -82,6 +85,14 @@ export const LABELS = {
     recordNewFine: "Record New Fine",
     attendance: "Attendance",
     expenses: "Expenses",
+    lastAttendance: "Last Meeting Attendance",
+    repeatedAbsence: "Repeated Absence",
+    contributionsSeason: "Contributions (Season)",
+    contributionsMonth: "Contributions (Month)",
+    expensesSeason: "Expenses (Season)",
+    mySavings: "My Total Savings",
+    myLoans: "My Loan Balance",
+    myAttendance: "My Attendance",
 
     // Groups
     groupsManagement: "Groups Management",
@@ -267,11 +278,14 @@ export const LABELS = {
     close: "Funga",
 
     // Dashboard
+    totalGroups: "Amatsinda Yose",
     totalSavings: "Ubwizigame Bwose",
     loansActive: "Inguzanyo Zatanzwe",
+    outstandingLoans: "Ideni Risigaye",
     members: "Abanyamuryango",
     cashBalance: "Amafaranga Ariho",
     overdue: "Ibirarane",
+    unpaidFinesTotal: "Amande Atarishyuwe",
     lateLoans: "Inguzanyo Zakererewe",
     quickActions: "Ibikorwa Byihuse",
     financialTrends: "Imigendekere y'Imari",
@@ -290,6 +304,14 @@ export const LABELS = {
     recordNewFine: "Andika Amande Mashya",
     attendance: "Ubwitabire",
     expenses: "Amafaranga Yasohotse",
+    lastAttendance: "Ubwitabire bw'Inama Iheruka",
+    repeatedAbsence: "Abasiba Kenshi",
+    contributionsSeason: "Ubwizigame (Igihembwe)",
+    contributionsMonth: "Ubwizigame (Ukwezi)",
+    expensesSeason: "Ayasohotse (Igihembwe)",
+    mySavings: "Ubwizigame Bwanjye",
+    myLoans: "Ideni Nsigaje",
+    myAttendance: "Ubwitabire Bwanjye",
 
     // Groups
     groupsManagement: "Gucunga Amatsinda",

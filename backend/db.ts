@@ -21,6 +21,62 @@ const STATIC_BRANCHES: Branch[] = [
   { id: 'b_rubavu', name: 'Rubavu Branch', district: 'Rubavu' },
 ];
 
+const NEW_GROUPS_LIST = [
+  "HOPE HEROES", "ABAKATAJE MU ITERAMBERE", "YOUTH NETWORK",
+  "IBANGA RY'UBUKIRE", "MORNING STARS", "URUMURI NYAMYUMBA", 
+  "TWITEZIMBERE RUBYIRUKO", "TWUZUZANYE RUBYIRUKO", "IMBONI", 
+  "TWITEZIMBERE KANAMA A", "TWITEZIMBERE KANAMA B",
+  "TUZAMURANE MUHIRA", "IGIRANEZA", "TURIHIRANE RUBYIRUKO",
+  "ICYIZERE CYEJO HAZAZA", "IMBERE NI HEZA", "ABAHUJUMUGAMBI",
+  "TWITEZIMBERE NYUNDO2", "EJO HEZA", "ICYIZERE",
+  "TWIYUBAKE", "TWUBAKANE", "DUFATANYE",
+  "TWITEZIMBERE RUBYIRUKO RUBONA", "TWITEZIMBERE RUBYIRUKO KIRAGA", 
+  "TUZAMURANE", "ABISHYIZEHAMWE", "AKARUSHO", "EJO HEZA HAWE",
+  "ABADAHEMUKA", "UBUMWE", "ICYEREKEZO TERIMBERE", 
+  "URUMURI YOUTH", "UMUCYO YOUTH", "VAMUBUKENE", "UBUFATANYE YOUTH"
+];
+
+const GENERATED_ADDED_GROUPS: GSLAGroup[] = NEW_GROUPS_LIST.map((name, i) => {
+  // Heuristic location mapping
+  let district = 'Musanze';
+  let branchId = 'b1';
+  let sector = 'Muhoza';
+  
+  const n = name.toUpperCase();
+  if (n.includes('NYAMYUMBA')) { district = 'Rubavu'; branchId = 'b_rubavu'; sector = 'Nyamyumba'; }
+  else if (n.includes('KANAMA')) { district = 'Rubavu'; branchId = 'b_rubavu'; sector = 'Kanama'; }
+  else if (n.includes('NYUNDO')) { district = 'Rubavu'; branchId = 'b_rubavu'; sector = 'Nyundo'; }
+  else if (n.includes('RUBONA')) { district = 'Rubavu'; branchId = 'b_rubavu'; sector = 'Rubona'; }
+  else if (n.includes('KIRAGA')) { district = 'Rubavu'; branchId = 'b_rubavu'; sector = 'Kanama'; }
+  else if (n.includes('MORNING STARS')) { district = 'Rubavu'; branchId = 'b_rubavu'; sector = 'Gisenyi'; }
+  else if (n.includes('IGIRANEZA') || n.includes('TURIHIRANE')) { district = 'Nyabihu'; branchId = 'b_nyabihu'; sector = 'Mukamira'; }
+  else if (n.includes('KIGALI') || n.includes('NETWORK')) { district = 'Kigali'; branchId = 'b2'; sector = 'Nyarugenge'; }
+
+  return {
+    id: `g_add_${i}`,
+    name: name,
+    branchId: branchId,
+    district: district,
+    sector: sector,
+    cell: '',
+    village: '',
+    location: `${sector}, ${district}`,
+    meetingDay: ['Tuesday', 'Friday', 'Sunday'][i % 3],
+    meetingFrequency: MeetingFrequency.WEEKLY,
+    shareValue: 200,
+    minShares: 1,
+    maxShares: 10,
+    maxLoanMultiplier: 3,
+    currentCycleId: '', // Initially inactive
+    status: GroupStatus.ACTIVE,
+    totalSavings: 0,
+    totalLoansOutstanding: 0,
+    totalSolidarity: 0,
+    createdAt: '2024-03-01',
+    auditHistory: []
+  };
+});
+
 const STATIC_GROUPS: GSLAGroup[] = [
     {
       id: 'g1',
@@ -71,6 +127,7 @@ const STATIC_GROUPS: GSLAGroup[] = [
     },
     // --- Nyabihu District Groups ---
     { id: 'g_n1', name: 'Tuzamurane-Twitezimbere (Youth)', branchId: 'b_nyabihu', district: 'Nyabihu', sector: 'Shyira', cell: 'Kanyamitana', village: '', location: 'Shyira, Nyabihu', meetingDay: 'Friday', meetingFrequency: MeetingFrequency.WEEKLY, shareValue: 300, minShares: 1, maxShares: 5, maxLoanMultiplier: 3, currentCycleId: '', status: GroupStatus.ACTIVE, totalSavings: 0, totalLoansOutstanding: 0, totalSolidarity: 0, createdAt: '2024-01-01', auditHistory: [], presidentId: 'm_n1' },
+    ...GENERATED_ADDED_GROUPS
 ];
 
 const STATIC_MEMBERS: Member[] = [
