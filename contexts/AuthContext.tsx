@@ -3,11 +3,18 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserRole } from '../types';
 import { api } from '../api/client';
 
+interface LoginResponse {
+  needs2FA: boolean;
+  userId?: string;
+  email?: string;
+}
+
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, pass: string) => Promise<void>;
+  login: (email: string, pass: string) => Promise<LoginResponse>;
+  verifyOtp: (userId: string, code: string) => Promise<void>;
   logout: () => void;
   checkPermission: (allowedRoles: UserRole[]) => boolean;
 }
@@ -22,30 +29,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Check local storage for session (Mock session persistence)
     const storedUser = localStorage.getItem('vjn_session');
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (e) {
+        console.error("Failed to parse user session", e);
+        localStorage.removeItem('vjn_session'); // Clear corrupt data
+      }
     }
     setIsLoading(false);
   }, []);
 
-  const login = async (email: string, pass: string) => {
-    // In real app, this calls api.login which calls service.login
-    // We will assume api.client has a login method added or use direct service logic for simplicity in this demo context if allowed, 
-    // but better to stick to architectural pattern:
-    
-    // Simulate API call delay
-    await new Promise(r => setTimeout(r, 500));
-    
-    // Logic moved to Service/DB, but accessed here via simple mocked logic or extending API client. 
-    // For this implementation, we will use a direct import of service in API client to handle this securely.
-    // Let's assume api.login exists. If not, we'll implement it.
-    
+  const login = async (email: string, pass: string): Promise<LoginResponse> => {
     try {
         // @ts-ignore
-        const authenticatedUser = await api.login(email, pass);
-        setUser(authenticatedUser);
-        localStorage.setItem('vjn_session', JSON.stringify(authenticatedUser));
+        const response = await api.login(email, pass);
+        
+        if (response.status === '2FA_REQUIRED') {
+            return { needs2FA: true, userId: response.userId, email: response.email };
+        } else if (response.status === 'SUCCESS' && response.user) {
+            setUser(response.user);
+            localStorage.setItem('vjn_session', JSON.stringify(response.user));
+            return { needs2FA: false };
+        }
+        
+        throw new Error("Unexpected login response");
     } catch (e) {
         throw e;
+    }
+  };
+
+  const verifyOtp = async (userId: string, code: string) => {
+    try {
+      // @ts-ignore
+      const response = await api.verifyTwoFactor(userId, code);
+      if (response.status === 'SUCCESS' && response.user) {
+        setUser(response.user);
+        localStorage.setItem('vjn_session', JSON.stringify(response.user));
+      }
+    } catch (e) {
+      throw e;
     }
   };
 
@@ -60,7 +82,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, logout, checkPermission }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, verifyOtp, logout, checkPermission }}>
       {children}
     </AuthContext.Provider>
   );

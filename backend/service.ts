@@ -12,7 +12,9 @@ const handleResponse = async (query: any) => {
     const { data, error } = await query;
     if (error) {
         console.error("Supabase Error:", error);
-        throw new Error(error.message);
+        // Safely extract error message or stringify the object
+        const msg = error.message || error.details || error.hint || (typeof error === 'object' ? JSON.stringify(error) : String(error));
+        throw new Error(msg);
     }
     return data;
 };
@@ -27,11 +29,16 @@ export const createUser = async (userData: Partial<User>, creatorId: string) => 
         id: `u_${Date.now()}`,
         ...userData,
         status: UserStatus.ACTIVE,
+        twoFactorEnabled: false,
         failedLoginAttempts: 0,
         createdAt: new Date().toISOString(),
         createdBy: creatorId
     };
     return handleResponse(supabase.from('users').insert(newUser).select().single());
+};
+
+export const updateUser = async (id: string, updates: Partial<User>) => {
+    return handleResponse(supabase.from('users').update(updates).eq('id', id).select().single());
 };
 
 export const login = async (email: string, pass: string) => {
@@ -47,7 +54,7 @@ export const login = async (email: string, pass: string) => {
 
     if (error) {
         console.error("Login DB Error:", error);
-        throw new Error(`Database connection error: ${error.message}`);
+        throw new Error(`Database connection error: ${error.message || JSON.stringify(error)}`);
     }
 
     if (!user) {
@@ -63,9 +70,35 @@ export const login = async (email: string, pass: string) => {
         throw new Error("Account is locked or disabled");
     }
 
+    // 2FA Check
+    if (user.twoFactorEnabled) {
+        // In a real app, we would send the email/SMS here.
+        // For simulation, we assume a static code '123456'.
+        // We return a specific status that the frontend can interpret.
+        return { 
+            status: '2FA_REQUIRED', 
+            userId: user.id,
+            email: user.email 
+        };
+    }
+
     // Update login time
     await supabase.from('users').update({ lastLogin: new Date().toISOString() }).eq('id', user.id);
-    return user;
+    return { status: 'SUCCESS', user };
+};
+
+export const verifyTwoFactor = async (userId: string, code: string) => {
+    // Mock Verification Logic
+    // In production, verify against TOTP secret or DB stored otp with expiry
+    if (code === '123456') {
+        const { data: user } = await supabase.from('users').select('*').eq('id', userId).single();
+        if (!user) throw new Error("User context lost");
+        
+        await supabase.from('users').update({ lastLogin: new Date().toISOString() }).eq('id', user.id);
+        return { status: 'SUCCESS', user };
+    } else {
+        throw new Error("Invalid verification code");
+    }
 };
 
 export const seedSuperAdmin = async () => {
@@ -84,6 +117,7 @@ export const restoreDefaultAdmin = async () => {
         passwordHash: 'admin123',
         role: UserRole.SUPER_ADMIN,
         status: UserStatus.ACTIVE,
+        twoFactorEnabled: false,
         createdAt: new Date().toISOString(),
         createdBy: 'system'
     };
@@ -93,7 +127,7 @@ export const restoreDefaultAdmin = async () => {
     
     if (error) {
         if (error.code === '42501') throw new Error("Permission Denied: Please run the RLS SQL in Settings.");
-        throw new Error(error.message);
+        throw new Error(error.message || JSON.stringify(error));
     }
     return { success: true, message: 'Super Admin (admin@vjn.rw) restored successfully.' };
 };
@@ -207,11 +241,15 @@ export const getLoans = async (groupId: string) => {
 };
 
 export const applyForLoan = async (groupId: string, data: any) => {
+    // Fetch member to get role
+    const { data: member } = await supabase.from('members').select('role').eq('id', data.memberId).single();
+
     const totalRepayable = data.amount + (data.amount * (data.interestRate / 100) * data.duration);
     const newLoan = {
         id: `l_${Date.now()}`,
         groupId,
         memberId: data.memberId,
+        memberRole: member?.role,
         principal: data.amount,
         interestRate: data.interestRate,
         totalRepayable: totalRepayable,
@@ -246,7 +284,28 @@ export const updateLoanStatus = async (loanId: string, status: LoanStatus) => {
         });
     }
 
-    return handleResponse(supabase.from('loans').update({ status }).eq('id', loanId));
+    const result = await handleResponse(supabase.from('loans').update({ status }).eq('id', loanId));
+
+    // --- SYSTEM NOTIFICATION LOGIC ---
+    if (status === LoanStatus.APPROVED || status === LoanStatus.ACTIVE || status === LoanStatus.REJECTED) {
+        // Fetch Member details for the message
+        const { data: member } = await supabase.from('members').select('fullName').eq('id', loan.memberId).single();
+        const memberName = member?.fullName || 'Unknown Member';
+        
+        const isApproved = status === LoanStatus.APPROVED || status === LoanStatus.ACTIVE;
+        const type = isApproved ? 'SUCCESS' : 'WARNING';
+        
+        await supabase.from('notifications').insert({
+            id: `n_${Date.now()}`,
+            title: isApproved ? 'Loan Approved' : 'Loan Rejected',
+            message: `Loan application for ${memberName} (${Number(loan.principal).toLocaleString()} RWF) has been ${isApproved ? 'approved' : 'rejected'}.`,
+            date: new Date().toISOString(),
+            read: false,
+            type: type
+        });
+    }
+
+    return result;
 };
 
 export const repayLoan = async (loanId: string, amount: number) => {
@@ -607,6 +666,14 @@ export const getNotifications = async () => handleResponse(supabase.from('notifi
 export const markNotificationRead = async (id: string) => handleResponse(supabase.from('notifications').update({ read: true }).eq('id', id));
 export const markAllNotificationsRead = async () => handleResponse(supabase.from('notifications').update({ read: true }).neq('read', true));
 export const getCycle = async (id: string) => handleResponse(supabase.from('cycles').select('*').eq('id', id).single());
+export const createNotification = async (notification: Partial<Notification>) => {
+    return handleResponse(supabase.from('notifications').insert({
+        id: `n_${Date.now()}`,
+        date: new Date().toISOString(),
+        read: false,
+        ...notification
+    }));
+};
 
 // Reports
 export const generateReport = async (groupId: string, type: string, filters: any) => {
@@ -680,7 +747,8 @@ export const importDatabase = async (json: string) => {
                     
                     if (error) {
                         if (error.code === '42501') throw new Error(`PERMISSION DENIED importing ${table}. Check RLS.`);
-                        throw new Error(`Error importing ${table}: ${error.message}`);
+                        // Fix
+                        throw new Error(`Error importing ${table}: ${error.message || JSON.stringify(error)}`);
                     }
                 }
             }
@@ -703,7 +771,7 @@ export const wipeRemoteDatabase = async () => {
         for (const table of tableOrder) {
             // Delete all records (needs a condition in Supabase)
             const { error } = await supabase.from(table).delete().neq('id', '000000'); 
-            if (error) throw error;
+            if (error) throw new Error(error.message || JSON.stringify(error));
         }
         return { success: true };
     } catch (error: any) {

@@ -4,7 +4,7 @@ import { AppContext } from '../App';
 import { api } from '../api/client';
 import { LABELS } from '../constants';
 import { Fine, FineCategory, Member, FineStatus, UserRole } from '../types';
-import { Gavel, Search, Plus, Loader2, CheckCircle, AlertTriangle, X, DollarSign, Edit, Archive, History, Shield, Tag } from 'lucide-react';
+import { Gavel, Search, Plus, Loader2, CheckCircle, AlertTriangle, X, DollarSign, Edit, Archive, History, Shield, Tag, Download } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Skeleton, TableRowSkeleton } from '../components/Skeleton';
 
@@ -136,6 +136,33 @@ export default function Fines() {
     return getMemberName(f.memberId).toLowerCase().includes(searchTerm.toLowerCase());
   });
 
+  const exportCSV = () => {
+    if (filtered.length === 0) return;
+
+    const headers = ['Date', 'Member Name', 'Category', 'Amount', 'Paid Amount', 'Balance', 'Status'];
+    const rows = filtered.map(f => [
+      f.date,
+      `"${getMemberName(f.memberId)}"`,
+      `"${getCategoryName(f.categoryId)}"`,
+      f.amount,
+      f.paidAmount,
+      f.amount - f.paidAmount,
+      f.status
+    ].join(','));
+
+    const csvContent = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `fines_report_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const totalUnpaid = fines.filter(f => f.status !== 'VOID').reduce((acc, f) => acc + (f.amount - f.paidAmount), 0);
   const totalCollected = fines.reduce((acc, f) => acc + f.paidAmount, 0);
 
@@ -213,16 +240,26 @@ export default function Fines() {
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
                 />
              </div>
-             <div className="flex bg-gray-100 p-1 rounded-lg">
-                {(['ALL', 'UNPAID', 'PAID', 'VOID'] as const).map(t => (
-                  <button
-                    key={t}
-                    onClick={() => setFilter(t)}
-                    className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${filter === t ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                  >
-                    {t.charAt(0) + t.slice(1).toLowerCase()}
-                  </button>
-                ))}
+             <div className="flex gap-2 items-center">
+                <button 
+                  onClick={exportCSV}
+                  disabled={filtered.length === 0}
+                  className="flex items-center justify-center px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-colors"
+                  title="Export to CSV"
+                >
+                  <Download size={18} />
+                </button>
+                <div className="flex bg-gray-100 p-1 rounded-lg">
+                    {(['ALL', 'UNPAID', 'PAID', 'VOID'] as const).map(t => (
+                      <button
+                        key={t}
+                        onClick={() => setFilter(t)}
+                        className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${filter === t ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                      >
+                        {t.charAt(0) + t.slice(1).toLowerCase()}
+                      </button>
+                    ))}
+                </div>
              </div>
           </div>
 

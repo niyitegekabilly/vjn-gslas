@@ -1,8 +1,8 @@
 
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Mail, Loader2, AlertCircle, Database, Check, X, ShieldAlert, RefreshCw, FileCode, Copy } from 'lucide-react';
+import { Lock, Mail, Loader2, AlertCircle, Database, Check, X, ShieldAlert, RefreshCw, FileCode, Copy, ShieldCheck, ArrowRight, ArrowLeft } from 'lucide-react';
 import { AppContext } from '../App';
 import { LABELS } from '../constants';
 import { api } from '../api/client';
@@ -13,16 +13,31 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // 2FA State
+  const [step, setStep] = useState<'CREDENTIALS' | '2FA'>('CREDENTIALS');
+  const [otpCode, setOtpCode] = useState(['', '', '', '', '', '']);
+  const [tempUserId, setTempUserId] = useState<string | null>(null);
+  const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Helpers
   const [seedMessage, setSeedMessage] = useState('');
   const [showSeedConfirm, setShowSeedConfirm] = useState(false);
   const [showTroubleshoot, setShowTroubleshoot] = useState(false);
   const [showSql, setShowSql] = useState(false);
   const [copied, setCopied] = useState(false);
   
-  const { login } = useAuth();
+  const { login, verifyOtp } = useAuth();
   const navigate = useNavigate();
   const { lang, setLang } = useContext(AppContext);
   const labels = LABELS[lang];
+
+  // Focus first input on 2FA step
+  useEffect(() => {
+    if (step === '2FA') {
+        otpInputRefs.current[0]?.focus();
+    }
+  }, [step]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,12 +45,59 @@ export default function Login() {
     setIsSubmitting(true);
     
     try {
-      await login(email, password);
-      navigate('/');
+      const response = await login(email, password);
+      if (response.needs2FA && response.userId) {
+        setTempUserId(response.userId);
+        setStep('2FA');
+        // Simulate sending code visually
+        alert(`DEMO: Your 2FA code is 123456`);
+      } else {
+        navigate('/');
+      }
     } catch (err: any) {
       setError(err.message || 'Login failed');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleOtpChange = (index: number, value: string) => {
+    if (isNaN(Number(value))) return;
+    const newOtp = [...otpCode];
+    newOtp[index] = value;
+    setOtpCode(newOtp);
+
+    // Auto-focus next input
+    if (value && index < 5) {
+        otpInputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === 'Backspace' && !otpCode[index] && index > 0) {
+        otpInputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tempUserId) return;
+    
+    const code = otpCode.join('');
+    if (code.length !== 6) {
+        setError("Please enter a 6-digit code.");
+        return;
+    }
+
+    setError('');
+    setIsSubmitting(true);
+    try {
+        await verifyOtp(tempUserId, code);
+        navigate('/');
+    } catch (err: any) {
+        setError(err.message || 'Invalid code');
+    } finally {
+        setIsSubmitting(false);
     }
   };
 
@@ -82,62 +144,102 @@ export default function Login() {
          <button onClick={() => setLang('rw')} className={`px-3 py-1 rounded text-xs font-bold ${lang === 'rw' ? 'bg-slate-800 text-white' : 'bg-white text-gray-600'}`}>RW</button>
       </div>
 
-      <div className="max-w-md w-full bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+      <div className="max-w-md w-full bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden relative">
         <div className="p-8">
           <div className="flex justify-center mb-6">
-            <div className="w-12 h-12 bg-green-600 rounded-xl flex items-center justify-center text-white font-bold text-2xl shadow-md">
-              V
+            <div className="w-12 h-12 bg-green-600 rounded-xl flex items-center justify-center text-white font-bold text-2xl shadow-md transition-all">
+              {step === '2FA' ? <ShieldCheck size={28} /> : 'V'}
             </div>
           </div>
-          <h2 className="text-2xl font-bold text-center text-gray-900 mb-2">{labels.appName}</h2>
-          <p className="text-center text-gray-500 text-sm mb-8">{labels.securePortal}</p>
+          <h2 className="text-2xl font-bold text-center text-gray-900 mb-2">
+            {step === '2FA' ? 'Two-Factor Authentication' : labels.appName}
+          </h2>
+          <p className="text-center text-gray-500 text-sm mb-8">
+            {step === '2FA' ? `Enter the code sent to your email` : labels.securePortal}
+          </p>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center text-red-700 text-sm">
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center text-red-700 text-sm animate-in slide-in-from-top-2">
               <AlertCircle size={16} className="mr-2 flex-shrink-0" />
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{labels.emailAddr}</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-2.5 text-gray-400" size={18} />
-                <input 
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
-                  placeholder="name@vjn.rw"
-                  required
-                />
-              </div>
-            </div>
+          {step === 'CREDENTIALS' ? (
+            <form onSubmit={handleSubmit} className="space-y-5 animate-in fade-in slide-in-from-left-4 duration-300">
+                <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{labels.emailAddr}</label>
+                <div className="relative">
+                    <Mail className="absolute left-3 top-2.5 text-gray-400" size={18} />
+                    <input 
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+                    placeholder="name@vjn.rw"
+                    required
+                    />
+                </div>
+                </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{labels.password}</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-2.5 text-gray-400" size={18} />
-                <input 
-                  type="password"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
-                  placeholder="••••••••"
-                  required
-                />
-              </div>
-            </div>
+                <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{labels.password}</label>
+                <div className="relative">
+                    <Lock className="absolute left-3 top-2.5 text-gray-400" size={18} />
+                    <input 
+                    type="password"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+                    placeholder="••••••••"
+                    required
+                    />
+                </div>
+                </div>
 
-            <button 
-              type="submit" 
-              disabled={isSubmitting}
-              className="w-full py-2 bg-slate-900 text-white rounded-lg font-medium hover:bg-slate-800 transition-colors flex justify-center items-center"
-            >
-              {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : labels.signIn}
-            </button>
-          </form>
+                <button 
+                type="submit" 
+                disabled={isSubmitting}
+                className="w-full py-2 bg-slate-900 text-white rounded-lg font-medium hover:bg-slate-800 transition-colors flex justify-center items-center"
+                >
+                {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : <span className="flex items-center">{labels.signIn} <ArrowRight size={16} className="ml-2"/></span>}
+                </button>
+            </form>
+          ) : (
+            <form onSubmit={handleVerifyOtp} className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                <div className="flex justify-center gap-2">
+                    {otpCode.map((digit, idx) => (
+                        <input
+                            key={idx}
+                            ref={(el) => { otpInputRefs.current[idx] = el; }}
+                            type="text"
+                            maxLength={1}
+                            value={digit}
+                            onChange={(e) => handleOtpChange(idx, e.target.value)}
+                            onKeyDown={(e) => handleOtpKeyDown(idx, e)}
+                            className="w-12 h-14 border-2 border-gray-300 rounded-lg text-center text-2xl font-bold focus:border-green-500 focus:ring-2 focus:ring-green-200 outline-none transition-all"
+                        />
+                    ))}
+                </div>
+                
+                <div className="flex gap-3">
+                    <button 
+                        type="button"
+                        onClick={() => setStep('CREDENTIALS')}
+                        className="flex-1 py-2 border border-gray-300 text-gray-600 rounded-lg font-medium hover:bg-gray-50 transition-colors flex justify-center items-center"
+                    >
+                        <ArrowLeft size={16} className="mr-2"/> Back
+                    </button>
+                    <button 
+                        type="submit" 
+                        disabled={isSubmitting}
+                        className="flex-1 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors flex justify-center items-center"
+                    >
+                        {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : 'Verify'}
+                    </button>
+                </div>
+            </form>
+          )}
         </div>
         <div className="bg-gray-50 px-8 py-4 border-t border-gray-100 text-center">
           <p className="text-xs text-gray-500">

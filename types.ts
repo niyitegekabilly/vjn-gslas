@@ -23,6 +23,9 @@ export interface User {
   role: UserRole;
   status: UserStatus;
   
+  // Security
+  twoFactorEnabled?: boolean;
+
   // Scoping
   branchId?: string; // If Admin
   linkedMemberId?: string; // If Group Leader or Member
@@ -188,6 +191,7 @@ export interface Loan {
   startDate: string;
   dueDate: string;
   purpose: string;
+  memberRole?: string;
 }
 
 export interface FineCategory {

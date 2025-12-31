@@ -3,22 +3,107 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <base href="./" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#16a34a" />
+    
+    <!-- Prevent caching -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+
     <title>VJN GSLA Management System</title>
     <link rel="manifest" href="./manifest.json" />
-    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Tailwind CSS v2 -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+      // 1. Critical Polyfills
+      try {
+        window.process = window.process || {};
+        window.process.env = window.process.env || {};
+        if (!window.process.env.NODE_ENV) {
+          window.process.env.NODE_ENV = 'production';
+        }
+      } catch (e) { console.warn(e); }
+
+      // 2. Nuke Service Workers & Caches
+      (async function() {
+        try {
+          // Unregister SW
+          if (navigator.serviceWorker) {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            for(let registration of registrations) {
+              await registration.unregister();
+            }
+          }
+          // Clear Caches
+          if (window.caches) {
+            const keys = await caches.keys();
+            await Promise.all(keys.map(key => caches.delete(key)));
+          }
+        } catch (e) {
+          console.warn('Cleanup warning:', e);
+        }
+      })();
+    </script>
+
     <style>
       body {
         font-family: 'Inter', sans-serif;
         background-color: #f3f4f6;
       }
-      @media print {
-        body {
-          background-color: white !important;
-        }
-      }
+      /* Tailwind v3 Color Polyfills for v2 */
+      .bg-slate-50 { background-color: #f8fafc; }
+      .bg-slate-100 { background-color: #f1f5f9; }
+      .bg-slate-200 { background-color: #e2e8f0; }
+      .bg-slate-700 { background-color: #334155; }
+      .bg-slate-800 { background-color: #1e293b; }
+      .bg-slate-900 { background-color: #0f172a; }
+      .bg-slate-950 { background-color: #020617; }
+      
+      .text-slate-200 { color: #e2e8f0; }
+      .text-slate-300 { color: #cbd5e1; }
+      .text-slate-400 { color: #94a3b8; }
+      .text-slate-500 { color: #64748b; }
+      .text-slate-600 { color: #475569; }
+      .text-slate-700 { color: #334155; }
+      .text-slate-800 { color: #1e293b; }
+      .text-slate-900 { color: #0f172a; }
+
+      .border-slate-200 { border-color: #e2e8f0; }
+      .border-slate-700 { border-color: #334155; }
+      .border-slate-800 { border-color: #1e293b; }
+
+      .bg-emerald-50 { background-color: #ecfdf5; }
+      .bg-emerald-100 { background-color: #d1fae5; }
+      .bg-emerald-500 { background-color: #10b981; }
+      .bg-emerald-600 { background-color: #059669; }
+      .text-emerald-600 { color: #059669; }
+      .text-emerald-700 { color: #047857; }
+      .text-emerald-800 { color: #065f46; }
+      .border-emerald-100 { border-color: #d1fae5; }
+      .border-emerald-200 { border-color: #a7f3d0; }
+
+      .bg-orange-50 { background-color: #fff7ed; }
+      .bg-orange-100 { background-color: #ffedd5; }
+      .bg-orange-500 { background-color: #f97316; }
+      .text-orange-600 { color: #ea580c; }
+      .text-orange-700 { color: #c2410c; }
+      .text-orange-800 { color: #9a3412; }
+      .border-orange-100 { border-color: #ffedd5; }
+      .border-orange-200 { border-color: #fed7aa; }
+
+      /* Animation Polyfills */
+      .animate-in { animation: fade-in 0.2s ease-out; }
+      @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+      .fade-in { animation-name: fade-in; }
+      .zoom-in-95 { transform: scale(0.95); }
+      
+      /* Ensure full height */
+      html, body, #root { height: 100%; }
     </style>
   <script type="importmap">
 {
@@ -30,6 +115,7 @@
     "react/": "https://esm.sh/react@18.2.0/",
     "react-dom": "https://esm.sh/react-dom@18.2.0",
     "react-dom/": "https://esm.sh/react-dom@18.2.0/",
+    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
     "@google/genai": "https://esm.sh/@google/genai",
     "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.39.0"
   }
@@ -38,6 +124,6 @@
 </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="./index.tsx"></script>
+    <script type="module" src="./entry.tsx"></script>
   </body>
 </html>

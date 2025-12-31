@@ -1,6 +1,6 @@
 
 import React, { createContext, useState, useEffect } from 'react';
-import { HashRouter as Router, Routes, Route, Navigate, useLocation, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, Link } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { GSLAGroup, UserRole } from './types';
 import { api } from './api/client';
@@ -87,42 +87,6 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
     return false;
   };
 
-  // Safe Breadcrumb Logic
-  const getBreadcrumbs = () => {
-    try {
-        const pathnames = location.pathname.split('/').filter((x) => x);
-        const crumbs = [
-            { name: labels.dashboard || 'Dashboard', path: '/', isLast: pathnames.length === 0 }
-        ];
-
-        pathnames.forEach((name, index) => {
-            const routeTo = `/${pathnames.slice(0, index + 1).join('/')}`;
-            const isLast = index === pathnames.length - 1;
-            
-            let label = name.charAt(0).toUpperCase() + name.slice(1);
-            
-            // Try matching menu items
-            if (MENU_ITEMS) {
-                const menuItem = MENU_ITEMS.find(item => item.path === routeTo);
-                if (menuItem && menuItem.label && menuItem.label[lang]) {
-                    label = menuItem.label[lang];
-                }
-            }
-            
-            // Manual overrides
-            if (name === 'profile') label = labels.profile || 'Profile';
-
-            crumbs.push({ name: label, path: routeTo, isLast });
-        });
-        return crumbs;
-    } catch (e) {
-        return [{ name: labels.dashboard || 'Dashboard', path: '/', isLast: true }];
-    }
-  };
-
-  const breadcrumbs = getBreadcrumbs();
-  const canSeeAllGroups = user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.ADMIN || user?.role === UserRole.AUDITOR;
-
   if (!user) return <Navigate to="/login" />;
 
   return (
@@ -179,14 +143,13 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
           
           <div className="flex items-center gap-4 flex-1 justify-end lg:justify-between">
              {/* Context Selector */}
-             <div className="hidden lg:flex items-center bg-gray-100 rounded-lg px-3 py-1.5 border border-gray-200">
+             <div className="hidden lg:flex items-center bg-gray-100 rounded-lg px-3 py-1.5">
                 <span className="text-xs font-bold text-gray-500 mr-2 uppercase tracking-wide">{labels.groupSelector}</span>
                 <select 
                   value={activeGroupId} 
                   onChange={(e) => setActiveGroupId(e.target.value)}
                   className="bg-transparent text-sm font-semibold text-gray-800 outline-none cursor-pointer w-48"
                 >
-                   {canSeeAllGroups && <option value="ALL">All Groups (Aggregate)</option>}
                    {groups.map(g => (
                      <option key={g.id} value={g.id}>{g.name}</option>
                    ))}
@@ -214,22 +177,6 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
         </header>
 
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-6">
-           {/* Simple Text Breadcrumbs */}
-           <div className="flex items-center text-sm text-gray-500 mb-6">
-              {breadcrumbs.map((crumb, index) => (
-                  <React.Fragment key={crumb.path}>
-                      {index > 0 && <span className="mx-2 text-gray-400">/</span>}
-                      {crumb.isLast ? (
-                          <span className="font-semibold text-gray-700">{crumb.name}</span>
-                      ) : (
-                          <Link to={crumb.path} className="hover:text-blue-600 transition-colors">
-                              {crumb.name}
-                          </Link>
-                      )}
-                  </React.Fragment>
-              ))}
-           </div>
-
            {children}
         </main>
         

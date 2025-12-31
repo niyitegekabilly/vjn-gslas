@@ -23,7 +23,9 @@ const insertChunked = async (table: string, data: any[]) => {
                 throw new Error(`MISSING TABLE '${table}'. \nPlease run the 'Table Schema SQL' in your Supabase Dashboard.`);
             }
 
-            throw new Error(`Failed to seed ${table}: ${error.message} (Code: ${error.code})`);
+            // Fallback for missing message
+            const errMsg = error.message || JSON.stringify(error);
+            throw new Error(`Failed to seed ${table}: ${errMsg} (Code: ${error.code})`);
         }
     }
     console.log(`Seeded ${table}: ${data.length} records processed.`);

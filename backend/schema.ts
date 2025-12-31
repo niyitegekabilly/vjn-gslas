@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS "users" (
   "passwordHash" text,
   "role" text,
   "status" text,
+  "twoFactorEnabled" boolean DEFAULT false,
   "branchId" text,
   "linkedMemberId" text,
   "managedGroupId" text,
@@ -76,7 +77,8 @@ CREATE TABLE IF NOT EXISTS "loans" (
   "status" text,
   "startDate" text,
   "dueDate" text,
-  "purpose" text
+  "purpose" text,
+  "memberRole" text
 );
 
 CREATE TABLE IF NOT EXISTS "transactions" (

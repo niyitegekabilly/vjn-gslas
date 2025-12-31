@@ -64,8 +64,7 @@ export const HelpAssistant: React.FC<HelpAssistantProps> = ({ lang, activeGroupI
 
     try {
       // Initialize Gemini
-      // Note: In a real app, API_KEY should be in process.env
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       
       // Context Construction
       const context = `

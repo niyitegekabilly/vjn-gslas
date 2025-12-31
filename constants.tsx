@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { 
   LayoutDashboard, Users, BookOpen, Banknote, CalendarCheck, Settings, 
@@ -68,6 +69,17 @@ export const LABELS = {
     securePortal: "Secure Access Portal",
     unauthMsg: "Unauthorized access is prohibited. All activities are logged.",
     
+    // Profile
+    profile: "User Profile",
+    personalInfo: "Personal Information",
+    security: "Security",
+    changePassword: "Change Password",
+    currentPassword: "Current Password",
+    newPassword: "New Password",
+    confirmPassword: "Confirm Password",
+    updateProfile: "Update Profile",
+    updateSuccess: "Profile updated successfully",
+    
     // Roles & Status
     superAdmin: "Super Admin",
     admin: "Admin",
@@ -87,6 +99,7 @@ export const LABELS = {
     stepSummary: "Summary",
 
     // Dashboard
+    dashboard: "Dashboard",
     totalGroups: "Total Groups",
     totalSavings: "Total Savings",
     loansActive: "Active Loans",
@@ -109,6 +122,9 @@ export const LABELS = {
     assetAllocation: "Asset Allocation",
     activeSeasons: "Active Season",
     shareValue: "Share Value",
+    currentShareValue: "Current Share Value",
+    initialValue: "Initial Value",
+    valueGrowth: "Growth",
     sharesCollected: "Shares Collected",
     recordContribution: "Record Contribution",
     recordRepayment: "Record Repayment",
@@ -401,6 +417,17 @@ export const LABELS = {
     securePortal: "Urubuga Rwizewe",
     unauthMsg: "Kwinjira utabifitiye uburenganzira birabujijwe.",
 
+    // Profile
+    profile: "Imyirondoro yanjye",
+    personalInfo: "Amakuru yanjye",
+    security: "Umutekano",
+    changePassword: "Hindura ijambo ry'ibanga",
+    currentPassword: "Ijambo ry'ibanga risanzwe",
+    newPassword: "Ijambo ry'ibanga rishya",
+    confirmPassword: "Emeza ijambo ry'ibanga",
+    updateProfile: "Vugurura Imyirondoro",
+    updateSuccess: "Imyirondoro yavuguruwe",
+
     // Roles & Status
     superAdmin: "Umuhuzabikorwa Mukuru",
     admin: "Ushinzwe Porogaramu",
@@ -420,6 +447,7 @@ export const LABELS = {
     stepSummary: "Incamake",
 
     // Dashboard
+    dashboard: "Incamake",
     totalGroups: "Amatsinda Yose",
     totalSavings: "Ubwizigame Bwose",
     loansActive: "Inguzanyo Zatanzwe",
@@ -442,6 +470,9 @@ export const LABELS = {
     assetAllocation: "Imiterere y'Umutungo",
     activeSeasons: "Igihembwe Gihari",
     shareValue: "Agaciro k'Umugabane",
+    currentShareValue: "Agaciro k'Umugabane (Ubu)",
+    initialValue: "Agaciro k'Itangiriro",
+    valueGrowth: "Inyongera",
     sharesCollected: "Imigabane Yakusanyijwe",
     recordContribution: "Andika Ubwizigame",
     recordRepayment: "Andika Ubwishyu",

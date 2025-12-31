@@ -4,7 +4,7 @@ import { AppContext } from '../App';
 import { api } from '../api/client';
 import { LABELS } from '../constants';
 import { LoanStatus, Loan, Member, UserRole } from '../types';
-import { Check, X, AlertTriangle, FileText, Calculator, Loader2, Coins, RefreshCw, Info, Plus, Banknote, Search, Filter, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Check, X, AlertTriangle, FileText, Calculator, Loader2, Coins, RefreshCw, Info, Plus, Banknote, Search, Filter, CheckCircle, ChevronDown, ChevronUp, Eye } from 'lucide-react';
 import { TableRowSkeleton } from '../components/Skeleton';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -28,6 +28,9 @@ export default function LoanManager() {
   const [repayLoanId, setRepayLoanId] = useState<string | null>(null);
   const [repayAmount, setRepayAmount] = useState<number | ''>('');
   const [repaySubmitting, setRepaySubmitting] = useState(false);
+
+  // View Details Modal State
+  const [viewingLoan, setViewingLoan] = useState<Loan | null>(null);
 
   // Calculator State
   const [calcAmount, setCalcAmount] = useState<number>(50000);
@@ -211,6 +214,32 @@ export default function LoanManager() {
   const totalRepayment = calcAmount + totalInterest;
   const monthlyPayment = calcDuration > 0 ? totalRepayment / calcDuration : 0;
 
+  // Breakdown Render Helper
+  const BreakdownView = ({ principal, totalRepayable, interestRate }: { principal: number, totalRepayable: number, interestRate: number }) => {
+    const interest = totalRepayable - principal;
+    const duration = interestRate > 0 && principal > 0 ? Math.round(interest / (principal * (interestRate / 100))) : 0;
+    
+    return (
+      <div className="bg-gray-50 p-3 rounded-lg text-sm border border-gray-100 mt-3">
+        <p className="text-xs font-bold text-gray-500 uppercase mb-2 border-b border-gray-200 pb-1">Interest Breakdown</p>
+        <div className="flex justify-between mb-1 text-gray-600">
+            <span>Principal</span>
+            <span className="font-mono">{principal.toLocaleString()} {labels.currency}</span>
+        </div>
+        <div className="flex justify-between mb-1 pb-1 border-b border-gray-200">
+            <span className="text-gray-600 flex items-center">
+                Interest <span className="text-xs text-gray-400 ml-1">({interestRate}% &times; ~{duration} mo)</span>
+            </span>
+            <span className="font-mono text-blue-600">+{interest.toLocaleString()} {labels.currency}</span>
+        </div>
+        <div className="flex justify-between font-bold pt-1">
+            <span className="text-gray-800">Total Repayable</span>
+            <span className="font-mono">{totalRepayable.toLocaleString()} {labels.currency}</span>
+        </div>
+      </div>
+    );
+  };
+
   if (loading) {
      return (
        <div className="space-y-6">
@@ -261,7 +290,6 @@ export default function LoanManager() {
         </div>
       </div>
 
-      {/* ... [Rest of modals same as before] ... */}
       {/* Repayment Modal */}
       {isRepayModalOpen && repayingLoan && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm animate-in fade-in duration-200">
@@ -307,6 +335,65 @@ export default function LoanManager() {
                    {repaySubmitting ? <Loader2 size={18} className="animate-spin" /> : labels.confirm}
                 </button>
              </form>
+          </div>
+        </div>
+      )}
+
+      {/* Loan Details Modal */}
+      {viewingLoan && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden">
+             <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                <h3 className="font-bold text-gray-800">Loan Details</h3>
+                <button onClick={() => setViewingLoan(null)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+             </div>
+             <div className="p-6 space-y-4">
+                <div className="flex justify-between items-start">
+                   <div>
+                      <p className="text-sm text-gray-500">Member</p>
+                      <p className="font-bold text-gray-900 text-lg">{getMemberName(viewingLoan.memberId)}</p>
+                   </div>
+                   <div className="text-right">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                        viewingLoan.status === LoanStatus.ACTIVE ? 'bg-blue-100 text-blue-800' :
+                        viewingLoan.status === LoanStatus.DEFAULTED ? 'bg-red-100 text-red-800' :
+                        viewingLoan.status === LoanStatus.CLEARED ? 'bg-green-100 text-green-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {viewingLoan.status}
+                      </span>
+                   </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                   <div>
+                      <p className="text-gray-500">Start Date</p>
+                      <p className="font-medium">{viewingLoan.startDate}</p>
+                   </div>
+                   <div>
+                      <p className="text-gray-500">Due Date</p>
+                      <p className={`font-medium ${new Date(viewingLoan.dueDate) < new Date() && viewingLoan.balance > 0 ? 'text-red-600 font-bold' : ''}`}>
+                         {viewingLoan.dueDate}
+                      </p>
+                   </div>
+                </div>
+
+                <div>
+                   <p className="text-sm text-gray-500 mb-1">Purpose</p>
+                   <p className="text-sm text-gray-800 bg-gray-50 p-2 rounded border border-gray-100">{viewingLoan.purpose}</p>
+                </div>
+
+                <BreakdownView 
+                    principal={viewingLoan.principal} 
+                    totalRepayable={viewingLoan.totalRepayable} 
+                    interestRate={viewingLoan.interestRate} 
+                />
+
+                <div className="mt-4 pt-4 border-t border-gray-100 flex justify-between items-center">
+                   <p className="text-gray-500 font-medium">Outstanding Balance</p>
+                   <p className="text-2xl font-bold text-blue-600">{viewingLoan.balance.toLocaleString()} {labels.currency}</p>
+                </div>
+             </div>
           </div>
         </div>
       )}
@@ -579,7 +666,8 @@ export default function LoanManager() {
                 </div>
               </div>
               <div className="mt-6 pt-4 border-t border-gray-100">
-                 <p className="text-xs text-center text-gray-400">
+                 <BreakdownView principal={calcAmount} totalRepayable={totalRepayment} interestRate={calcRate} />
+                 <p className="text-xs text-center text-gray-400 mt-2">
                     * {labels.formulaNote}
                 </p>
               </div>
@@ -749,6 +837,12 @@ export default function LoanManager() {
                                         <span className="text-gray-500">Start Date:</span>
                                         <span className="font-medium">{loan.startDate}</span>
                                     </div>
+                                    
+                                    <BreakdownView 
+                                        principal={loan.principal} 
+                                        totalRepayable={loan.totalRepayable} 
+                                        interestRate={loan.interestRate} 
+                                    />
                                 </div>
                             )}
 
@@ -830,7 +924,10 @@ export default function LoanManager() {
                             </>
                           )}
                         </td>
-                        <td className="p-4 text-right">
+                        <td className="p-4 text-right flex justify-end gap-1">
+                          <button onClick={() => setViewingLoan(loan)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded" title="View Details">
+                              <Eye size={16} />
+                          </button>
                           {loan.status !== LoanStatus.CLEARED && canEdit && (
                             <button 
                               onClick={() => openRepayModal(loan)}

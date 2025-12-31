@@ -216,8 +216,8 @@ const STATIC_CYCLES: Cycle[] = [
 ];
 
 const STATIC_LOANS: Loan[] = [
-  { id: 'l1', memberId: 'm2', groupId: 'g1', principal: 50000, interestRate: 5, totalRepayable: 52500, balance: 52500, status: LoanStatus.ACTIVE, startDate: '2024-03-01', dueDate: '2024-04-01', purpose: 'School fees' },
-  { id: 'l2', memberId: 'm3', groupId: 'g1', principal: 20000, interestRate: 5, totalRepayable: 21000, balance: 0, status: LoanStatus.CLEARED, startDate: '2024-01-15', dueDate: '2024-02-15', purpose: 'Agriculture' }
+  { id: 'l1', memberId: 'm2', groupId: 'g1', principal: 50000, interestRate: 5, totalRepayable: 52500, balance: 52500, status: LoanStatus.ACTIVE, startDate: '2024-03-01', dueDate: '2024-04-01', purpose: 'School fees', memberRole: UserRole.MEMBER_USER },
+  { id: 'l2', memberId: 'm3', groupId: 'g1', principal: 20000, interestRate: 5, totalRepayable: 21000, balance: 0, status: LoanStatus.CLEARED, startDate: '2024-01-15', dueDate: '2024-02-15', purpose: 'Agriculture', memberRole: UserRole.MEMBER_USER }
 ];
 
 const STATIC_TRANSACTIONS: Transaction[] = [

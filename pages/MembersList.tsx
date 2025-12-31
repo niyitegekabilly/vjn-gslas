@@ -7,6 +7,7 @@ import { Search, UserPlus, Phone, User as UserIcon, Loader2, Edit2, Trash2, X, S
 import { MemberStatus, Member, UserRole } from '../types';
 import { CardSkeleton } from '../components/Skeleton';
 import { useAuth } from '../contexts/AuthContext';
+import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog';
 
 const ITEMS_PER_PAGE = 24;
 
@@ -37,6 +38,11 @@ export default function MembersList() {
     photoUrl: ''
   });
   const [submitting, setSubmitting] = useState(false);
+
+  // Delete Dialog State
+  const [deleteMember, setDeleteMember] = useState<Member | null>(null);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   // Import Ref
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -127,11 +133,19 @@ export default function MembersList() {
     }
   };
 
-  const handleDelete = async (member: Member) => {
-    if (!window.confirm(`Are you sure you want to remove ${member.fullName}?`)) return;
+  const confirmDelete = (member: Member) => {
+    setDeleteMember(member);
+    setIsDeleteOpen(true);
+  };
 
+  const handleDelete = async () => {
+    if (!deleteMember) return;
+    setIsDeleting(true);
     try {
-      const result = await api.deleteMember(member.id);
+      const result = await api.deleteMember(deleteMember.id);
+      setIsDeleteOpen(false);
+      setDeleteMember(null);
+      
       // @ts-ignore
       if (result.mode === 'archived') {
         alert("Member has been marked as EXITED because they have financial history. Their records are preserved.");
@@ -139,6 +153,8 @@ export default function MembersList() {
       fetchMembers();
     } catch (error) {
       alert("Failed to delete member");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -347,7 +363,7 @@ export default function MembersList() {
                      </button>
                      {member.status !== MemberStatus.EXITED && (
                        <button 
-                        onClick={() => handleDelete(member)}
+                        onClick={() => confirmDelete(member)}
                         className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         title={labels.removeMember}
                        >
@@ -524,6 +540,23 @@ export default function MembersList() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmDialog 
+        isOpen={isDeleteOpen}
+        title="Remove Member?"
+        description={
+          <span>
+            Are you sure you want to remove <strong>{deleteMember?.fullName}</strong>?
+            <br/><br/>
+            Note: If they have any transaction history, they will be archived as 'Exited' instead of permanently deleted to preserve financial records.
+          </span>
+        }
+        onConfirm={handleDelete}
+        onCancel={() => setIsDeleteOpen(false)}
+        isDeleting={isDeleting}
+        confirmLabel="Remove Member"
+      />
     </div>
   );
 }

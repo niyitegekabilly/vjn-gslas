@@ -11,7 +11,7 @@ import {
   Sprout, Clock, ShieldAlert, Building, Sparkles, AlertCircle,
   PiggyBank, Receipt, UserX, Activity
 } from 'lucide-react';
-import { LoanStatus, Member, Loan, Transaction, Cycle, Attendance, Fine, UserRole } from '../types';
+import { LoanStatus, Member, Loan, Transaction, Cycle, Attendance, Fine, UserRole, GSLAGroup } from '../types';
 import { DashboardSkeleton } from '../components/Skeleton';
 import StatsCard from '../components/StatsCard';
 import { SyncStatus } from '../components/SyncStatus';
@@ -22,7 +22,17 @@ export default function Dashboard() {
   const labels = LABELS[lang];
   const navigate = useNavigate();
 
-  const group = groups.find(g => g.id === activeGroupId);
+  const isAllGroups = activeGroupId === 'ALL';
+  const selectedGroup = groups.find(g => g.id === activeGroupId);
+  
+  // Create a display group object. For ALL, we use dummy defaults for the UI.
+  const group = isAllGroups ? {
+      id: 'ALL',
+      name: 'All Groups Overview',
+      shareValue: 0, 
+      currentCycleId: '',
+      status: 'ACTIVE'
+  } as unknown as GSLAGroup : selectedGroup;
   
   const [members, setMembers] = useState<Member[]>([]);
   const [loans, setLoans] = useState<Loan[]>([]);
@@ -35,23 +45,57 @@ export default function Dashboard() {
   useEffect(() => {
     if (!activeGroupId) return;
     setLoading(true);
-    Promise.all([
-      api.getMembers(activeGroupId),
-      api.getLoans(activeGroupId),
-      api.getTransactions(activeGroupId),
-      api.getAttendance(activeGroupId),
-      api.getFines(activeGroupId),
-      group?.currentCycleId ? api.getCycle(group.currentCycleId) : Promise.resolve(null)
-    ]).then(([m, l, t, a, f, c]) => {
-      setMembers(m);
-      setLoans(l);
-      setTransactions(t);
-      setAttendance(a);
-      setFines(f);
-      setCycle(c || null);
-      setLoading(false);
-    });
-  }, [activeGroupId, group]);
+
+    const loadData = async () => {
+        // Determine which groups to fetch data for
+        const targetGroups = isAllGroups ? groups : (selectedGroup ? [selectedGroup] : []);
+        
+        if (targetGroups.length === 0) {
+            setLoading(false);
+            return;
+        }
+
+        try {
+            // Fetch data for all target groups in parallel
+            const promises = targetGroups.map(g => Promise.all([
+                api.getMembers(g.id),
+                api.getLoans(g.id),
+                api.getTransactions(g.id),
+                api.getAttendance(g.id),
+                api.getFines(g.id)
+            ]));
+
+            const results = await Promise.all(promises);
+
+            // Flatten the results into single arrays
+            const allMembers = results.flatMap(r => r[0]);
+            const allLoans = results.flatMap(r => r[1]);
+            const allTxs = results.flatMap(r => r[2]);
+            const allAtt = results.flatMap(r => r[3]);
+            const allFines = results.flatMap(r => r[4]);
+
+            setMembers(allMembers);
+            setLoans(allLoans);
+            setTransactions(allTxs);
+            setAttendance(allAtt);
+            setFines(allFines);
+
+            // Handle Cycle Display
+            if (!isAllGroups && selectedGroup?.currentCycleId) {
+                const c = await api.getCycle(selectedGroup.currentCycleId);
+                setCycle(c);
+            } else {
+                setCycle(null);
+            }
+        } catch (e) {
+            console.error("Dashboard data load error:", e);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    loadData();
+  }, [activeGroupId, groups, selectedGroup, isAllGroups]);
 
   if (loading || !group) {
     return <DashboardSkeleton />;
@@ -63,7 +107,11 @@ export default function Dashboard() {
   const totalMembers = members.length;
 
   // 2. Financials
-  const totalSharesValue = members.reduce((acc, m) => acc + (m.totalShares * (group?.shareValue || 0)), 0);
+  // Correctly calculate total shares value by looking up each member's group share value
+  const totalSharesValue = members.reduce((acc, m) => {
+      const mGroup = groups.find(g => g.id === m.groupId);
+      return acc + (m.totalShares * (mGroup?.shareValue || 0));
+  }, 0);
   
   const activeLoanList = loans.filter(l => l.status === LoanStatus.ACTIVE || l.status === LoanStatus.DEFAULTED);
   const overdueLoanList = loans.filter(l => new Date(l.dueDate) < new Date() && l.balance > 0);
@@ -88,8 +136,33 @@ export default function Dashboard() {
   const totalUnpaidFines = unpaidFinesList.reduce((acc, f) => acc + (f.amount - f.paidAmount), 0);
   const unpaidFineCount = unpaidFinesList.length;
 
+  // --- SHARE VALUE TRACKING ---
+  const totalSharesCount = members.reduce((acc, m) => acc + m.totalShares, 0);
+  // Social Fund (Liability/Separate Pot)
+  const totalSocialFund = transactions.filter(t => !t.isVoid).reduce((acc, t) => acc + (t.solidarityAmount || 0), 0);
+  // Net Assets = Cash + Outstanding Loans - Social Fund Liability
+  const netWorth = cashBalance + totalOutstandingLoans - totalSocialFund;
+  
+  // For 'All Groups', this represents the system-wide average unit value
+  const currentShareValue = totalSharesCount > 0 ? (netWorth / totalSharesCount) : (group.shareValue || 0);
+  
+  // For 'All Groups', we calculate a weighted average of initial values to show meaningful growth stats
+  const initialShareValue = isAllGroups 
+    ? (totalSharesCount > 0 ? members.reduce((acc, m) => {
+        const mGroup = groups.find(g => g.id === m.groupId);
+        return acc + (m.totalShares * (mGroup?.shareValue || 0));
+      }, 0) / totalSharesCount : 0)
+    : (group.shareValue || 0);
+
+  const shareGrowth = currentShareValue - initialShareValue;
+  const shareGrowthPct = initialShareValue > 0 ? (shareGrowth / initialShareValue) * 100 : 0;
+
   // 3. Activity & Flow
-  const currentSeasonTxs = validTx.filter(t => t.cycleId === group.currentCycleId);
+  // For All Groups, we consider all transactions valid for the period, assuming they fall into active cycles essentially
+  const currentSeasonTxs = isAllGroups 
+    ? validTx 
+    : validTx.filter(t => t.cycleId === group.currentCycleId);
+
   const contributionsSeason = currentSeasonTxs.filter(t => t.type === 'SHARE_DEPOSIT').reduce((acc, t) => acc + t.amount, 0);
   const expensesSeason = currentSeasonTxs.filter(t => t.type === 'EXPENSE').reduce((acc, t) => acc + t.amount, 0);
   
@@ -157,11 +230,11 @@ export default function Dashboard() {
                 </div>
                 <p className="text-gray-500 font-medium text-sm uppercase">{labels.mySavings}</p>
                 <p className="text-3xl font-bold text-gray-900 mt-2">
-                   {(myMember.totalShares * group.shareValue).toLocaleString()} <span className="text-sm font-medium text-gray-400">{labels.currency}</span>
+                   {(myMember.totalShares * currentShareValue).toLocaleString(undefined, { maximumFractionDigits: 0 })} <span className="text-sm font-medium text-gray-400">{labels.currency}</span>
                 </p>
              </div>
              <p className="text-sm text-green-600 flex items-center">
-                <CheckCircle size={14} className="mr-1" /> {myMember.totalShares} Shares Owned
+                <TrendingUp size={14} className="mr-1" /> Value: {Math.round(currentShareValue)} {labels.currency} / share
              </p>
           </div>
 
@@ -235,10 +308,14 @@ export default function Dashboard() {
               {greeting}, <span className="text-green-400">{user?.fullName.split(' ')[0]}</span>
             </h1>
             <p className="mt-2 text-slate-300 max-w-xl text-sm leading-relaxed">
-              System Status: <span className="text-green-400 font-medium">{labels.active}</span>. 
+              {isAllGroups ? (
+                  <>You are viewing the <strong>Aggregate Portfolio</strong> for all {groups.length} groups.</>
+              ) : (
+                  <>System Status: <span className="text-green-400 font-medium">{labels.active}</span>.</>
+              )}
               {overdueLoanList.length > 0 
                 ? <span className="text-orange-300 font-semibold ml-1">{labels.overdue}: {overdueLoanList.length}</span> 
-                : <span className="text-green-300 font-semibold ml-1">Financial health is good.</span>
+                : <span className="text-green-300 font-semibold ml-1"> Financial health is good.</span>
               }
             </p>
           </div>
@@ -247,10 +324,11 @@ export default function Dashboard() {
              <SyncStatus isOnline={isOnline} />
              <button 
                onClick={() => isOnline && navigate('/meeting')}
-               disabled={!isOnline}
+               disabled={!isOnline || isAllGroups}
                className={`flex items-center px-5 py-3 rounded-xl font-bold shadow-lg transition-all transform hover:scale-105 active:scale-95 ${
-                 isOnline ? 'bg-green-600 hover:bg-green-500 text-white' : 'bg-gray-500 text-gray-300 cursor-not-allowed'
+                 isOnline && !isAllGroups ? 'bg-green-600 hover:bg-green-500 text-white' : 'bg-gray-500 text-gray-300 cursor-not-allowed'
                }`}
+               title={isAllGroups ? "Select a specific group to start meeting" : "Start Meeting"}
              >
                <PlusCircle size={20} className="mr-2" /> {labels.startNewMeeting}
              </button>
@@ -265,12 +343,24 @@ export default function Dashboard() {
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatsCard 
+            title={labels.currentShareValue}
+            value={`${Math.round(currentShareValue).toLocaleString()}`}
+            // @ts-ignore
+            subValue={isAllGroups ? "Avg. Unit Value" : `${labels.initialValue}: ${initialShareValue}`}
+            icon={<TrendingUp size={24} />}
+            color="green"
+            trend={!isAllGroups || initialShareValue > 0 ? `+${Math.round(shareGrowthPct)}%` : undefined}
+            trendUp={true}
+            // @ts-ignore
+            onClick={() => navigate('/reports')}
+          />
+          <StatsCard 
             title={labels.totalSavings}
             value={`${totalSharesValue.toLocaleString()}`}
             // @ts-ignore
             subValue={labels.currency}
             icon={<Wallet size={24} />}
-            color="green"
+            color="blue"
             // @ts-ignore
             onClick={() => navigate('/contributions')}
           />
@@ -279,19 +369,9 @@ export default function Dashboard() {
             value={`${cashBalance.toLocaleString()}`}
             subValue="Available"
             icon={<Banknote size={24} />}
-            color="blue"
-            // @ts-ignore
-            onClick={() => navigate('/expenses')}
-          />
-          <StatsCard 
-            title={labels.revenue}
-            value={`${totalRevenue.toLocaleString()}`}
-            // @ts-ignore
-            subValue={labels.currency}
-            icon={<TrendingUp size={24} />}
             color="teal"
             // @ts-ignore
-            onClick={() => navigate('/reports')}
+            onClick={() => navigate('/expenses')}
           />
           <StatsCard 
             title={labels.expensesSeason}
@@ -418,38 +498,38 @@ export default function Dashboard() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                  <button 
                     onClick={() => isOnline && navigate('/contributions')}
-                    disabled={!isOnline} 
+                    disabled={!isOnline || isAllGroups} 
                     className={`p-4 rounded-xl flex flex-col items-center justify-center transition-colors border group ${
-                      isOnline 
+                      isOnline && !isAllGroups
                         ? 'bg-gray-50 hover:bg-green-50 text-gray-700 hover:text-green-700 border-gray-100 hover:border-green-200' 
                         : 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'
                     }`}
                  >
-                    <Wallet size={24} className={`mb-2 ${isOnline ? 'text-gray-400 group-hover:text-green-600' : 'text-gray-400'}`} />
+                    <Wallet size={24} className={`mb-2 ${isOnline && !isAllGroups ? 'text-gray-400 group-hover:text-green-600' : 'text-gray-400'}`} />
                     <span className="text-xs font-medium text-center">{labels.recordContribution}</span>
                  </button>
                  <button 
                     onClick={() => isOnline && navigate('/loans')}
-                    disabled={!isOnline}
+                    disabled={!isOnline || isAllGroups}
                     className={`p-4 rounded-xl flex flex-col items-center justify-center transition-colors border group ${
-                      isOnline
+                      isOnline && !isAllGroups
                         ? 'bg-gray-50 hover:bg-blue-50 text-gray-700 hover:text-blue-700 border-gray-100 hover:border-blue-200'
                         : 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'
                     }`}
                  >
-                    <Banknote size={24} className={`mb-2 ${isOnline ? 'text-gray-400 group-hover:text-blue-600' : 'text-gray-400'}`} />
+                    <Banknote size={24} className={`mb-2 ${isOnline && !isAllGroups ? 'text-gray-400 group-hover:text-blue-600' : 'text-gray-400'}`} />
                     <span className="text-xs font-medium text-center">{labels.recordRepayment}</span>
                  </button>
                  <button 
                     onClick={() => isOnline && navigate('/fines')}
-                    disabled={!isOnline}
+                    disabled={!isOnline || isAllGroups}
                     className={`p-4 rounded-xl flex flex-col items-center justify-center transition-colors border group ${
-                      isOnline
+                      isOnline && !isAllGroups
                         ? 'bg-gray-50 hover:bg-orange-50 text-gray-700 hover:text-orange-700 border-gray-100 hover:border-orange-200'
                         : 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'
                     }`}
                  >
-                    <AlertCircle size={24} className={`mb-2 ${isOnline ? 'text-gray-400 group-hover:text-orange-600' : 'text-gray-400'}`} />
+                    <AlertCircle size={24} className={`mb-2 ${isOnline && !isAllGroups ? 'text-gray-400 group-hover:text-orange-600' : 'text-gray-400'}`} />
                     <span className="text-xs font-medium text-center">{labels.recordNewFine}</span>
                  </button>
                  <button onClick={() => navigate('/reports')} className="p-4 bg-gray-50 hover:bg-purple-50 text-gray-700 hover:text-purple-700 rounded-xl flex flex-col items-center justify-center transition-colors border border-gray-100 hover:border-purple-200 group">

@@ -2,7 +2,7 @@
 import * as service from '../backend/service';
 import { seedDatabase } from '../backend/seeder';
 import { resetDatabase } from '../backend/db';
-import { GSLAGroup, Member, Loan, Transaction, Meeting, Attendance, Fine, FineCategory, User } from '../types';
+import { GSLAGroup, Member, Loan, Transaction, Meeting, Attendance, Fine, FineCategory, User, Notification } from '../types';
 
 const delay = (ms = 500) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -10,7 +10,9 @@ export const api = {
   // Users
   getUsers: async () => { await delay(); return service.getUsers(); },
   createUser: async (user: Partial<User>, creatorId: string) => { await delay(); return service.createUser(user, creatorId); },
+  updateUser: async (id: string, data: Partial<User>) => { await delay(); return service.updateUser(id, data); },
   login: async (email: string, pass: string) => { await delay(); return service.login(email, pass); },
+  verifyTwoFactor: async (userId: string, code: string) => { await delay(); return service.verifyTwoFactor(userId, code); },
   seedSuperAdmin: async () => { return service.seedSuperAdmin(); },
   restoreDefaultAdmin: async () => { return service.restoreDefaultAdmin(); },
   seedDatabase: async () => { return seedDatabase(); },
@@ -70,6 +72,7 @@ export const api = {
 
   // System
   getNotifications: async () => { await delay(); return service.getNotifications(); },
+  createNotification: async (n: Partial<Notification>) => { await delay(); return service.createNotification(n); },
   markNotificationRead: async (id: string) => { await delay(); return service.markNotificationRead(id); },
   markAllNotificationsRead: async () => { await delay(); return service.markAllNotificationsRead(); },
   getCycle: async (id: string) => { await delay(); return service.getCycle(id); },
