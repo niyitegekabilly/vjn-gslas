@@ -12,6 +12,7 @@ export const api = {
   createUser: async (user: Partial<User>, creatorId: string) => { await delay(); return service.createUser(user, creatorId); },
   login: async (email: string, pass: string) => { await delay(); return service.login(email, pass); },
   seedSuperAdmin: async () => { return service.seedSuperAdmin(); },
+  restoreDefaultAdmin: async () => { return service.restoreDefaultAdmin(); },
   seedDatabase: async () => { return seedDatabase(); },
 
   // Groups
@@ -78,7 +79,8 @@ export const api = {
   sendSMS: async (phoneNumber: string, message: string) => { await delay(800); return service.sendSMS(phoneNumber, message); },
 
   // Backup/Restore
-  getFullDatabaseBackup: async () => { await delay(); return service.getFullDatabaseBackup(); },
-  importDatabase: async (json: string) => { await delay(2000); return service.importDatabase(json); },
+  getFullDatabaseBackup: async () => { return service.getFullDatabaseBackup(); },
+  importDatabase: async (json: string) => { return service.importDatabase(json); },
+  wipeRemoteDatabase: async () => { return service.wipeRemoteDatabase(); },
   resetDatabase: async () => { resetDatabase(); }
 };

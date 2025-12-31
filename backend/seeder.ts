@@ -10,11 +10,20 @@ const insertChunked = async (table: string, data: any[]) => {
     for (let i = 0; i < data.length; i += CHUNK_SIZE) {
         const chunk = data.slice(i, i + CHUNK_SIZE);
         const { error } = await supabase.from(table).upsert(chunk);
+        
         if (error) {
+            // Log full object for debugging
             console.error(`Error inserting into ${table}:`, error);
-            // Don't throw, just log so other chunks might proceed. 
-            // In dev, you might want to throw.
-            console.warn(`Partial failure in ${table} seeding.`);
+
+            // Handle specific Supabase error codes for better user feedback
+            if (error.code === '42501') {
+                throw new Error(`PERMISSION DENIED (RLS) on table '${table}'. \nPlease go to Settings > Database & Security and run the 'RLS Policies SQL' in your Supabase Dashboard.`);
+            }
+            if (error.code === '42P01') {
+                throw new Error(`MISSING TABLE '${table}'. \nPlease run the 'Table Schema SQL' in your Supabase Dashboard.`);
+            }
+
+            throw new Error(`Failed to seed ${table}: ${error.message} (Code: ${error.code})`);
         }
     }
     console.log(`Seeded ${table}: ${data.length} records processed.`);
@@ -51,6 +60,6 @@ export const seedDatabase = async () => {
         return { success: true, message: 'Database populated successfully with demo data.' };
     } catch (error: any) {
         console.error("Seeding error:", error);
-        return { success: false, message: error.message };
+        return { success: false, message: error.message || "Unknown error during seeding" };
     }
 };

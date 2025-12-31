@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect, Suspense } from 'react';
-import { HashRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate, useLocation, useNavigate, NavLink } from 'react-router-dom';
 import { 
   Menu, Globe, Bell, LogOut, Loader2, ChevronDown, User, Check, X
 } from 'lucide-react';
@@ -159,25 +159,21 @@ const Layout: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
           {MENU_ITEMS.map((item) => {
             if (!isMenuVisible(item.id)) return null;
             
-            const isActive = location.pathname === item.path;
-            
             return (
-              <button
+              <NavLink
                 key={item.id}
-                onClick={() => {
-                  navigate(item.path);
-                  setSidebarOpen(false);
-                }}
-                className={`
+                to={item.path}
+                onClick={() => setSidebarOpen(false)}
+                className={({ isActive }) => `
                   w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200
                   ${isActive 
                     ? 'bg-green-600 text-white shadow-md' 
                     : 'text-slate-400 hover:bg-slate-800 hover:text-white'}
                 `}
               >
-                <span className={`mr-3 ${isActive ? 'text-white' : 'text-slate-500'}`}>{item.icon}</span>
+                <span className="mr-3">{item.icon}</span>
                 {item.label[lang]}
-              </button>
+              </NavLink>
             );
           })}
         </nav>

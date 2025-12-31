@@ -37,15 +37,31 @@ export const createUser = async (userData: Partial<User>, creatorId: string) => 
 export const login = async (email: string, pass: string) => {
     // Note: In production, use supabase.auth.signInWithPassword. 
     // This maintains the existing "custom user table" logic requested.
+    
+    // Use maybeSingle() instead of single() to avoid 406/JSON errors if no user exists
     const { data: user, error } = await supabase
         .from('users')
         .select('*')
         .eq('email', email)
-        .single();
+        .maybeSingle();
 
-    if (error || !user) throw new Error("User not found");
-    if (user.passwordHash !== pass) throw new Error("Invalid password");
-    if (user.status !== UserStatus.ACTIVE) throw new Error("Account is locked");
+    if (error) {
+        console.error("Login DB Error:", error);
+        throw new Error(`Database connection error: ${error.message}`);
+    }
+
+    if (!user) {
+        throw new Error("User not found. Please click 'Initialize Database' or 'Restore Admin' below.");
+    }
+
+    // In a real app, use bcrypt.compare here
+    if (user.passwordHash !== pass) {
+        throw new Error("Invalid password");
+    }
+    
+    if (user.status !== UserStatus.ACTIVE) {
+        throw new Error("Account is locked or disabled");
+    }
 
     // Update login time
     await supabase.from('users').update({ lastLogin: new Date().toISOString() }).eq('id', user.id);
@@ -53,9 +69,13 @@ export const login = async (email: string, pass: string) => {
 };
 
 export const seedSuperAdmin = async () => {
-    const { data } = await supabase.from('users').select('*').eq('email', 'admin@vjn.rw').single();
+    const { data } = await supabase.from('users').select('*').eq('email', 'admin@vjn.rw').maybeSingle();
     if (data) return { success: false, message: 'Super Admin already exists.' };
 
+    return restoreDefaultAdmin();
+};
+
+export const restoreDefaultAdmin = async () => {
     const superAdmin = {
         id: 'u_super',
         fullName: 'Super Admin',
@@ -68,9 +88,14 @@ export const seedSuperAdmin = async () => {
         createdBy: 'system'
     };
 
-    const { error } = await supabase.from('users').insert(superAdmin);
-    if (error) throw new Error(error.message);
-    return { success: true, message: 'Super Admin created successfully.' };
+    // Use upsert to overwrite if exists but broken
+    const { error } = await supabase.from('users').upsert(superAdmin);
+    
+    if (error) {
+        if (error.code === '42501') throw new Error("Permission Denied: Please run the RLS SQL in Settings.");
+        throw new Error(error.message);
+    }
+    return { success: true, message: 'Super Admin (admin@vjn.rw) restored successfully.' };
 };
 
 // Groups
@@ -445,11 +470,6 @@ export const submitMeeting = async (groupId: string, date: string, entries: any[
         if (entry.present) {
             // Shares
             if (entry.shares > 0) {
-                // Fetch group share value? Assume caller logic or fetch once.
-                // Optimizing: We rely on `addContribution` logic? No, too slow. Batch here.
-                // Hard assumption: shareValue fetched previously. 
-                // We'll create TX here directly but totals update is tricky in batch.
-                // Simple approach: Use loop.
                 await addContribution(groupId, {
                     memberId: entry.memberId,
                     shareCount: entry.shares,
@@ -545,16 +565,10 @@ export const createMeeting = async (groupId: string, data: any) => {
 };
 export const getAttendance = async (groupId: string) => handleResponse(supabase.from('attendance').select('*').eq('groupId', groupId));
 export const saveAttendanceBatch = async (meetingId: string, records: any[], userId: string) => {
-    // Delete existing for this meeting (simplest strategy for batch save)
-    // Real prod might assume upsert
-    // We'll stick to insert loop or upsert if IDs are stable.
-    // Given the UI sends all, upsert is best.
     const upserts = records.map(r => ({
-        id: `att_${meetingId}_${r.memberId}`, // Stable ID based on meeting+member
+        id: `att_${meetingId}_${r.memberId}`,
         meetingId,
-        groupId: '', // Need to fetch meeting group ID or pass it. 
-                     // IMPORTANT: Service signature is (meetingId, records, userId).
-                     // We'll look up the meeting first.
+        groupId: '', 
         memberId: r.memberId,
         status: r.status,
         notes: r.notes
@@ -609,8 +623,6 @@ export const generateReport = async (groupId: string, type: string, filters: any
             "Status": m.status
         }));
     }
-    // Implement other reports similarly by fetching required tables
-    // For MVP migration, we'll return empty array for complex ones not yet mapped
     return [];
 };
 
@@ -619,16 +631,82 @@ export const sendSMS = async (phone: string, msg: string) => {
     return { success: true };
 };
 
-// Backup
+// Backup & Restore
 export const getFullDatabaseBackup = async () => {
-    // Return structured dump
-    const { data: users } = await supabase.from('users').select('*');
-    const { data: groups } = await supabase.from('groups').select('*');
-    // ... fetch all
-    return { users, groups }; 
+    const tables = [
+        'users', 'groups', 'members', 'cycles', 
+        'fine_categories', 'expense_categories', 
+        'meetings', 'loans', 'fines', 'transactions', 'attendance', 'notifications'
+    ];
+    
+    const backup: any = {};
+    
+    for (const table of tables) {
+        const { data, error } = await supabase.from(table).select('*');
+        if (!error && data) {
+            backup[table] = data;
+        }
+    }
+    
+    return backup;
 };
+
 export const importDatabase = async (json: string) => {
-    // Complex to implement full restore via client without admin key
-    console.warn("Import not fully supported in client-side migration");
-    return { success: false, error: "Not supported" };
+    let data;
+    try {
+        data = JSON.parse(json);
+    } catch (e) {
+        return { success: false, error: "Invalid JSON format" };
+    }
+
+    // Order matters for FK constraints
+    const tableOrder = [
+        'users', 'groups', 'members', 'cycles', 
+        'fine_categories', 'expense_categories', 
+        'meetings', 'loans', 'fines', 'transactions', 'attendance', 'notifications'
+    ];
+
+    try {
+        for (const table of tableOrder) {
+            if (data[table] && Array.isArray(data[table])) {
+                const records = data[table];
+                if (records.length === 0) continue;
+                
+                // Chunking to avoid payload limits
+                const chunkSize = 100;
+                for (let i = 0; i < records.length; i += chunkSize) {
+                    const chunk = records.slice(i, i + chunkSize);
+                    const { error } = await supabase.from(table).upsert(chunk);
+                    
+                    if (error) {
+                        if (error.code === '42501') throw new Error(`PERMISSION DENIED importing ${table}. Check RLS.`);
+                        throw new Error(`Error importing ${table}: ${error.message}`);
+                    }
+                }
+            }
+        }
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+};
+
+export const wipeRemoteDatabase = async () => {
+    // Delete in reverse order of dependencies
+    const tableOrder = [
+        'notifications', 'attendance', 'transactions', 'fines', 'loans', 'meetings',
+        'expense_categories', 'fine_categories', 'cycles', 'members', 'groups',
+        // 'users' -- Keep users for login unless specific requirement
+    ];
+
+    try {
+        for (const table of tableOrder) {
+            // Delete all records (needs a condition in Supabase)
+            const { error } = await supabase.from(table).delete().neq('id', '000000'); 
+            if (error) throw error;
+        }
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
 };

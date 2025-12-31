@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { 
   LayoutDashboard, Users, BookOpen, Banknote, CalendarCheck, Settings, 
@@ -240,6 +239,7 @@ export const LABELS = {
     voidConfirm: "Are you sure you want to void this contribution?",
     
     // Fines
+    fines: "Fines",
     outstandingFines: "Outstanding Fines",
     collectedSeason: "Collected (Season)",
     manageCategories: "Manage Categories",
@@ -287,7 +287,7 @@ export const LABELS = {
     reportTypes: "Report Types",
     financial: "Financial",
     operational: "Operational",
-    endOfCycle: "End-of-Cycle",
+    endOfCycle: "End-ofCycle",
     exportCsv: "Export CSV",
     printPdf: "Print PDF",
     generated: "Generated",
@@ -572,6 +572,7 @@ export const LABELS = {
     voidConfirm: "Ese uremera gutesha agaciro ubu bwizigame?",
 
     // Fines
+    fines: "Amande",
     outstandingFines: "Amande Atarishyuwe",
     collectedSeason: "Ayakusanyijwe (Igihembwe)",
     manageCategories: "Gucunga Ibyiciro",
