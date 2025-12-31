@@ -2,18 +2,22 @@
 import React, { useState, useContext } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Mail, Loader2, AlertCircle } from 'lucide-react';
+import { Lock, Mail, Loader2, AlertCircle, Database, Check, X } from 'lucide-react';
 import { AppContext } from '../App';
 import { LABELS } from '../constants';
+import { api } from '../api/client';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [seedMessage, setSeedMessage] = useState('');
+  const [showSeedConfirm, setShowSeedConfirm] = useState(false);
+  
   const { login } = useAuth();
   const navigate = useNavigate();
-  const { lang, setLang } = useContext(AppContext); // Access language context even in Login
+  const { lang, setLang } = useContext(AppContext);
   const labels = LABELS[lang];
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -28,6 +32,21 @@ export default function Login() {
       setError(err.message || 'Login failed');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleSeed = async () => {
+    setShowSeedConfirm(false);
+    try {
+      setSeedMessage("Seeding database (this may take 10s)...");
+      const res = await api.seedDatabase();
+      setSeedMessage(res.message || "Done");
+      if (res.success) {
+        setEmail("admin@vjn.rw");
+        setPassword("admin123");
+      }
+    } catch (e: any) {
+      setSeedMessage("Error: " + e.message);
     }
   };
 
@@ -104,6 +123,35 @@ export default function Login() {
       </div>
       <div className="mt-8 text-center text-gray-400 text-xs">
         <p>Use <strong>admin@vjn.rw</strong> / <strong>admin123</strong></p>
+        
+        {!showSeedConfirm ? (
+          <button 
+            onClick={() => setShowSeedConfirm(true)} 
+            className="mt-4 text-blue-500 hover:underline flex items-center justify-center mx-auto transition-colors"
+          >
+             <Database size={12} className="mr-1" /> Initialize Database (Groups, Members, Loans)
+          </button>
+        ) : (
+          <div className="mt-4 bg-white p-3 rounded-lg shadow-sm border border-gray-200 inline-block animate-in fade-in slide-in-from-bottom-2">
+             <p className="text-gray-700 font-semibold mb-2">Seed Database with Demo Data?</p>
+             <div className="flex justify-center gap-2">
+                <button 
+                  onClick={handleSeed}
+                  className="px-3 py-1 bg-green-600 text-white rounded text-xs font-bold flex items-center hover:bg-green-700"
+                >
+                  <Check size={12} className="mr-1" /> Confirm
+                </button>
+                <button 
+                  onClick={() => setShowSeedConfirm(false)}
+                  className="px-3 py-1 bg-gray-200 text-gray-600 rounded text-xs font-bold flex items-center hover:bg-gray-300"
+                >
+                  <X size={12} className="mr-1" /> Cancel
+                </button>
+             </div>
+          </div>
+        )}
+
+        {seedMessage && <p className="text-green-600 mt-3 font-medium animate-pulse">{seedMessage}</p>}
       </div>
     </div>
   );

@@ -76,7 +76,6 @@ const GENERATED_ADDED_GROUPS: GSLAGroup[] = NEW_GROUPS_LIST.map((name, i) => {
     totalSolidarity: 0,
     createdAt: '2024-03-01',
     auditHistory: [],
-    // Add some random coords around Musanze for visualization
     coordinates: {
         lat: -1.5 + (Math.random() * 0.1 - 0.05),
         lng: 29.6 + (Math.random() * 0.1 - 0.05)
@@ -138,16 +137,15 @@ const STATIC_GROUPS: GSLAGroup[] = [
       auditHistory: [],
       coordinates: { lat: -1.442, lng: 29.585 }
     },
-    // --- Nyabihu District Groups ---
     { id: 'g_n1', name: 'Tuzamurane-Twitezimbere (Youth)', branchId: 'b_nyabihu', district: 'Nyabihu', sector: 'Shyira', cell: 'Kanyamitana', village: '', location: 'Shyira, Nyabihu', meetingDay: 'Friday', meetingFrequency: MeetingFrequency.WEEKLY, shareValue: 300, minShares: 1, maxShares: 5, maxLoanMultiplier: 3, lateFeeAmount: 5, lateFeeType: 'PERCENTAGE', currentCycleId: '', status: GroupStatus.ACTIVE, totalSavings: 0, totalLoansOutstanding: 0, totalSolidarity: 0, createdAt: '2024-01-01', auditHistory: [], presidentId: 'm_n1', coordinates: { lat: -1.63, lng: 29.52 } },
     ...GENERATED_ADDED_GROUPS
 ];
 
 const STATIC_MEMBERS: Member[] = [
-  { id: 'm1', groupId: 'g1', fullName: 'Jean Pierre N.', nationalId: '11990800...', phone: '0788123456', role: UserRole.GROUP_LEADER, status: MemberStatus.ACTIVE, joinDate: '2023-01-01', totalShares: 100, totalLoans: 0 },
-  { id: 'm2', groupId: 'g1', fullName: 'Marie Claire M.', nationalId: '11992700...', phone: '0788654321', role: UserRole.MEMBER_USER, status: MemberStatus.ACTIVE, joinDate: '2023-01-01', totalShares: 80, totalLoans: 50000 },
-  { id: 'm3', groupId: 'g1', fullName: 'Emmanuel K.', nationalId: '11985600...', phone: '0722123123', role: UserRole.MEMBER_USER, status: MemberStatus.ACTIVE, joinDate: '2023-02-10', totalShares: 60, totalLoans: 0 },
-  { id: 'm4', groupId: 'g1', fullName: 'Grace U.', nationalId: '11995400...', phone: '0733456456', role: UserRole.MEMBER_USER, status: MemberStatus.SUSPENDED, joinDate: '2023-03-05', totalShares: 20, totalLoans: 0 },
+  { id: 'm1', groupId: 'g1', fullName: 'Jean Pierre N.', nationalId: '1199080012345678', phone: '0788123456', role: UserRole.GROUP_LEADER, status: MemberStatus.ACTIVE, joinDate: '2023-01-01', totalShares: 100, totalLoans: 0 },
+  { id: 'm2', groupId: 'g1', fullName: 'Marie Claire M.', nationalId: '1199270012345678', phone: '0788654321', role: UserRole.MEMBER_USER, status: MemberStatus.ACTIVE, joinDate: '2023-01-01', totalShares: 80, totalLoans: 50000 },
+  { id: 'm3', groupId: 'g1', fullName: 'Emmanuel K.', nationalId: '1198560012345678', phone: '0722123123', role: UserRole.MEMBER_USER, status: MemberStatus.ACTIVE, joinDate: '2023-02-10', totalShares: 60, totalLoans: 0 },
+  { id: 'm4', groupId: 'g1', fullName: 'Grace U.', nationalId: '1199540012345678', phone: '0733456456', role: UserRole.MEMBER_USER, status: MemberStatus.SUSPENDED, joinDate: '2023-03-05', totalShares: 20, totalLoans: 0 },
 ];
 
 const STATIC_USERS: User[] = [
@@ -156,7 +154,7 @@ const STATIC_USERS: User[] = [
     fullName: 'System Super Admin',
     email: 'admin@vjn.rw',
     phone: '0788000000',
-    passwordHash: 'admin123', // In real app, this is bcrypt hash
+    passwordHash: 'admin123',
     role: UserRole.SUPER_ADMIN,
     status: UserStatus.ACTIVE,
     failedLoginAttempts: 0,
@@ -199,7 +197,7 @@ const generateMockMembers = (groups: GSLAGroup[]) => {
         fullName: `${fn} ${ln}`,
         nationalId: `1${1950 + Math.floor(Math.random() * 50)}${Math.floor(Math.random() * 10000000000)}`,
         phone: `07${8 + Math.floor(Math.random() * 2)}${Math.floor(Math.random() * 10000000)}`,
-        role: UserRole.MEMBER_USER, // Standardized Role
+        role: UserRole.MEMBER_USER,
         status: MemberStatus.ACTIVE,
         joinDate: '2024-01-15',
         totalShares: Math.floor(Math.random() * 50),
@@ -210,155 +208,76 @@ const generateMockMembers = (groups: GSLAGroup[]) => {
   return members;
 };
 
-// Generate the dynamic members
 const DYNAMIC_MEMBERS = generateMockMembers(STATIC_GROUPS);
+
+const STATIC_CYCLES: Cycle[] = [
+  { id: 'c1', groupId: 'g1', startDate: '2024-01-01', status: 'OPEN', interestRate: 5 },
+  { id: 'c2', groupId: 'g2', startDate: '2024-02-15', status: 'OPEN', interestRate: 3 }
+];
+
+const STATIC_LOANS: Loan[] = [
+  { id: 'l1', memberId: 'm2', groupId: 'g1', principal: 50000, interestRate: 5, totalRepayable: 52500, balance: 52500, status: LoanStatus.ACTIVE, startDate: '2024-03-01', dueDate: '2024-04-01', purpose: 'School fees' },
+  { id: 'l2', memberId: 'm3', groupId: 'g1', principal: 20000, interestRate: 5, totalRepayable: 21000, balance: 0, status: LoanStatus.CLEARED, startDate: '2024-01-15', dueDate: '2024-02-15', purpose: 'Agriculture' }
+];
+
+const STATIC_TRANSACTIONS: Transaction[] = [
+  { id: 't1', groupId: 'g1', memberId: 'm1', cycleId: 'c1', type: TransactionType.SHARE_DEPOSIT, amount: 5000, shareCount: 10, date: '2024-03-05' },
+  { id: 't2', groupId: 'g1', memberId: 'm2', cycleId: 'c1', type: TransactionType.SHARE_DEPOSIT, amount: 2500, shareCount: 5, date: '2024-03-05' },
+];
+
+const STATIC_FINE_CATS: FineCategory[] = [
+  { id: 'fc1', groupId: 'g1', name: 'Late Arrival', defaultAmount: 200, isSystem: true, active: true },
+  { id: 'fc2', groupId: 'g1', name: 'Absent', defaultAmount: 500, isSystem: true, active: true },
+  { id: 'fc3', groupId: 'g1', name: 'Disturbance', defaultAmount: 1000, isSystem: false, active: true },
+  { id: 'fc4', groupId: 'g1', name: 'Lost Book', defaultAmount: 2000, isSystem: false, active: true },
+];
+
+const STATIC_EXPENSE_CATS: ExpenseCategory[] = [
+  { id: 'ec1', groupId: 'g1', name: 'Stationery', active: true },
+  { id: 'ec2', groupId: 'g1', name: 'Transport', active: true },
+  { id: 'ec3', groupId: 'g1', name: 'Refreshments', active: true },
+  { id: 'ec4', groupId: 'g1', name: 'Emergency Support', active: true },
+];
+
+const STATIC_FINES: Fine[] = [
+  { id: 'f1', groupId: 'g1', memberId: 'm2', cycleId: 'c1', date: '2024-03-01', categoryId: 'fc1', amount: 200, paidAmount: 0, status: FineStatus.UNPAID, recordedBy: 'm1', auditHistory: [] }
+];
+
+const STATIC_NOTIFICATIONS: Notification[] = [
+  { id: 'n1', title: 'Season Started', message: 'The 2024 Cycle has officially begun.', date: '2024-01-01', read: false, type: 'INFO' },
+  { id: 'n2', title: 'Meeting Reminder', message: 'Weekly meeting scheduled for Friday.', date: '2024-03-10', read: false, type: 'WARNING' },
+  { id: 'n3', title: 'Loan Approved', message: 'Your loan application was approved.', date: '2024-03-08', read: true, type: 'SUCCESS' },
+];
 
 // --- Final Seed Data Assembly ---
 
-const SEED_DATA = {
+export const SEED_DATA = {
   users: STATIC_USERS,
   branches: STATIC_BRANCHES,
   groups: STATIC_GROUPS,
-  cycles: [
-    {
-      id: 'c1',
-      groupId: 'g1',
-      startDate: '2024-01-01',
-      status: 'OPEN',
-      interestRate: 5,
-    },
-    {
-      id: 'c2',
-      groupId: 'g2',
-      startDate: '2024-02-15',
-      status: 'OPEN',
-      interestRate: 3,
-    }
-  ] as Cycle[],
-
+  cycles: STATIC_CYCLES,
   members: [...STATIC_MEMBERS, ...DYNAMIC_MEMBERS],
-
-  loans: [
-    {
-      id: 'l1',
-      memberId: 'm2',
-      groupId: 'g1',
-      principal: 50000,
-      interestRate: 5,
-      totalRepayable: 52500,
-      balance: 52500,
-      status: LoanStatus.ACTIVE,
-      startDate: '2024-03-01',
-      dueDate: '2024-04-01',
-      purpose: 'School fees'
-    },
-    {
-      id: 'l2',
-      memberId: 'm3',
-      groupId: 'g1',
-      principal: 20000,
-      interestRate: 5,
-      totalRepayable: 21000,
-      balance: 0,
-      status: LoanStatus.CLEARED,
-      startDate: '2024-01-15',
-      dueDate: '2024-02-15',
-      purpose: 'Agriculture'
-    }
-  ] as Loan[],
-
-  fineCategories: [
-    { id: 'fc1', groupId: 'g1', name: 'Late Arrival', defaultAmount: 200, isSystem: true, active: true },
-    { id: 'fc2', groupId: 'g1', name: 'Absent', defaultAmount: 500, isSystem: true, active: true },
-    { id: 'fc3', groupId: 'g1', name: 'Disturbance', defaultAmount: 1000, isSystem: false, active: true },
-    { id: 'fc4', groupId: 'g1', name: 'Lost Book', defaultAmount: 2000, isSystem: false, active: true },
-  ] as FineCategory[],
-
-  expenseCategories: [
-    { id: 'ec1', groupId: 'g1', name: 'Stationery', active: true },
-    { id: 'ec2', groupId: 'g1', name: 'Transport', active: true },
-    { id: 'ec3', groupId: 'g1', name: 'Refreshments', active: true },
-    { id: 'ec4', groupId: 'g1', name: 'Emergency Support', active: true },
-  ] as ExpenseCategory[],
-
-  fines: [
-    { 
-      id: 'f1', groupId: 'g1', memberId: 'm2', cycleId: 'c1', date: '2024-03-01', categoryId: 'fc1', 
-      amount: 200, paidAmount: 0, status: FineStatus.UNPAID, recordedBy: 'm1', auditHistory: []
-    }
-  ] as Fine[],
-
-  transactions: [
-    { id: 't1', groupId: 'g1', memberId: 'm1', cycleId: 'c1', type: TransactionType.SHARE_DEPOSIT, amount: 5000, shareCount: 10, date: '2024-03-05' },
-    { id: 't2', groupId: 'g1', memberId: 'm2', cycleId: 'c1', type: TransactionType.SHARE_DEPOSIT, amount: 2500, shareCount: 5, date: '2024-03-05' },
-  ] as Transaction[],
-
+  loans: STATIC_LOANS,
+  fineCategories: STATIC_FINE_CATS,
+  expenseCategories: STATIC_EXPENSE_CATS,
+  fines: STATIC_FINES,
+  transactions: STATIC_TRANSACTIONS,
   meetings: [] as Meeting[],
   attendance: [] as Attendance[],
-  
-  notifications: [
-    { id: 'n1', title: 'Season Started', message: 'The 2024 Cycle has officially begun.', date: '2024-01-01', read: false, type: 'INFO' },
-    { id: 'n2', title: 'Meeting Reminder', message: 'Weekly meeting scheduled for Friday.', date: '2024-03-10', read: false, type: 'WARNING' },
-    { id: 'n3', title: 'Loan Approved', message: 'Your loan application was approved.', date: '2024-03-08', read: true, type: 'SUCCESS' },
-  ] as Notification[],
+  notifications: STATIC_NOTIFICATIONS,
 };
 
 // --- Persistence Layer ---
 
-const loadDatabase = () => {
-  try {
-    const stored = localStorage.getItem(DB_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      // SCHEMA MIGRATION: Ensure collections exist
-      if (!parsed.users) parsed.users = JSON.parse(JSON.stringify(STATIC_USERS));
-      if (!parsed.expenseCategories) parsed.expenseCategories = [];
-      return parsed;
-    }
-  } catch (error) {
-    console.error('Failed to load database:', error);
-  }
-  return JSON.parse(JSON.stringify(SEED_DATA)); // Deep copy to avoid reference issues
-};
-
-export const db = loadDatabase();
-
-export const saveDatabase = () => {
-  try {
-    localStorage.setItem(DB_KEY, JSON.stringify(db));
-    console.log('Database saved');
-  } catch (error) {
-    console.error('Failed to save database:', error);
-  }
-};
+// MOCK LOCAL STORE (For client-side non-supabase testing if needed)
+export const db = JSON.parse(JSON.stringify(SEED_DATA)); 
 
 export const resetDatabase = () => {
   try {
     localStorage.removeItem(DB_KEY);
-    localStorage.removeItem('vjn_session'); // Also clear session
+    localStorage.removeItem('vjn_session'); 
     window.location.reload();
   } catch (error) {
     console.error('Failed to reset database:', error);
-  }
-};
-
-export const importDatabase = (jsonData: string) => {
-  try {
-    const parsed = JSON.parse(jsonData);
-    // Basic validation
-    if (!parsed.groups || !parsed.members) throw new Error("Invalid backup file format: Missing core collections");
-    
-    // Ensure migrated fields exist on import too
-    if (!parsed.users) parsed.users = STATIC_USERS;
-    if (!parsed.expenseCategories) parsed.expenseCategories = [];
-
-    localStorage.setItem(DB_KEY, JSON.stringify(parsed));
-    // Update memory
-    Object.assign(db, parsed); 
-    window.location.reload();
-    return { success: true };
-  } catch (error: any) {
-    console.error('Failed to import database:', error);
-    return { success: false, error: error.message };
   }
 };

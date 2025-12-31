@@ -1,5 +1,6 @@
 
 import * as service from '../backend/service';
+import { seedDatabase } from '../backend/seeder';
 import { resetDatabase } from '../backend/db';
 import { GSLAGroup, Member, Loan, Transaction, Meeting, Attendance, Fine, FineCategory, User } from '../types';
 
@@ -10,6 +11,8 @@ export const api = {
   getUsers: async () => { await delay(); return service.getUsers(); },
   createUser: async (user: Partial<User>, creatorId: string) => { await delay(); return service.createUser(user, creatorId); },
   login: async (email: string, pass: string) => { await delay(); return service.login(email, pass); },
+  seedSuperAdmin: async () => { return service.seedSuperAdmin(); },
+  seedDatabase: async () => { return seedDatabase(); },
 
   // Groups
   getGroups: async () => { await delay(); return service.getGroups(); },
@@ -52,7 +55,7 @@ export const api = {
   getFines: async (groupId: string) => { await delay(); return service.getFines(groupId); },
   getFineCategories: async (groupId: string) => { await delay(); return service.getFineCategories(groupId); },
   createFine: async (groupId: string, data: any) => { await delay(); return service.createFine(groupId, data); },
-  payFine: async (fineId: string, amount: number, method: string, userId: string) => { await delay(); return service.payFine(fineId, amount); },
+  payFine: async (fineId: string, amount: number, method: string, userId: string) => { await delay(); return service.payFine(fineId, amount, method, userId); },
   updateFine: async (id: string, data: any, userId: string, reason: string) => { await delay(); return service.updateFine(id, data, userId, reason); },
   voidFine: async (id: string, reason: string, userId: string) => { await delay(); return service.voidFine(id, reason, userId); },
   addFineCategory: async (groupId: string, name: string, amount: number) => { await delay(); return service.addFineCategory(groupId, name, amount); },
