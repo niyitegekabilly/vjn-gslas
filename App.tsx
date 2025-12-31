@@ -129,8 +129,17 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
     <div className="flex h-screen bg-gray-100 overflow-hidden font-sans">
       {/* Sidebar */}
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-white transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="flex items-center justify-between h-16 px-6 bg-slate-950">
-          <span className="text-xl font-bold tracking-wider">VJN GSLA</span>
+        <div className="flex items-center justify-between h-16 px-6 bg-slate-950 border-b border-slate-800">
+          <div className="flex items-center gap-3">
+             <div className="bg-white p-1 rounded-md shadow-sm">
+                <img 
+                  src="https://cdn-icons-png.flaticon.com/512/2750/2750657.png" 
+                  alt="VJN Logo" 
+                  className="w-6 h-6 object-contain" 
+                />
+             </div>
+             <span className="text-lg font-bold tracking-wider">VJN GSLA</span>
+          </div>
           <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-gray-400 hover:text-white">
             <X size={24} />
           </button>
@@ -173,9 +182,19 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="h-16 bg-white shadow-sm flex items-center justify-between px-6 z-10">
-          <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-gray-500 hover:text-gray-700">
-            <Menu size={24} />
-          </button>
+          <div className="flex items-center gap-3">
+            <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-gray-500 hover:text-gray-700">
+              <Menu size={24} />
+            </button>
+            <div className="lg:hidden flex items-center gap-2">
+               <img 
+                  src="https://cdn-icons-png.flaticon.com/512/2750/2750657.png" 
+                  alt="VJN Logo" 
+                  className="w-6 h-6 object-contain" 
+               />
+               <span className="font-bold text-gray-700">VJN GSLA</span>
+            </div>
+          </div>
           
           <div className="flex items-center gap-4 flex-1 justify-end lg:justify-between">
              {/* Context Selector */}
