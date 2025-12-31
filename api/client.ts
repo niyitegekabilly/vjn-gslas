@@ -1,3 +1,4 @@
+
 import * as service from '../backend/service';
 import { resetDatabase } from '../backend/db';
 import { GSLAGroup, Member, Loan, Transaction, Meeting, Attendance, Fine, FineCategory, User } from '../types';
@@ -13,7 +14,7 @@ export const api = {
   // Groups
   getGroups: async () => { await delay(); return service.getGroups(); },
   getGroup: async (id: string) => { await delay(); return service.getGroup(id); },
-  createGroup: async (data: any) => { await delay(); return service.createGroup(data); },
+  createGroup: async (data: any, creatorId: string) => { await delay(); return service.createGroup(data, creatorId); },
   updateGroup: async (id: string, data: any, reason: string, editorId: string) => { await delay(); return service.updateGroup(id, data, reason, editorId); },
 
   // Members
@@ -36,8 +37,16 @@ export const api = {
   addContribution: async (groupId: string, data: any) => { await delay(); return service.addContribution(groupId, data); },
   updateContribution: async (id: string, data: any, userId: string, reason: string) => { await delay(); return service.updateContribution(id, data, userId, reason); },
   voidContribution: async (id: string, reason: string, userId: string) => { await delay(); return service.voidContribution(id, reason, userId); },
-  getExpenses: async (groupId: string) => { await delay(); return service.getExpenses(groupId); },
   submitMeeting: async (groupId: string, date: string, entries: any[]) => { await delay(1500); return service.submitMeeting(groupId, date, entries); },
+
+  // Expenses
+  getExpenses: async (groupId: string) => { await delay(); return service.getExpenses(groupId); },
+  createExpense: async (groupId: string, data: any) => { await delay(); return service.createExpense(groupId, data); },
+  updateExpense: async (id: string, data: any, userId: string, reason: string) => { await delay(); return service.updateExpense(id, data, userId, reason); },
+  voidExpense: async (id: string, reason: string, userId: string) => { await delay(); return service.voidExpense(id, reason, userId); },
+  getExpenseCategories: async (groupId: string) => { await delay(); return service.getExpenseCategories(groupId); },
+  addExpenseCategory: async (groupId: string, name: string) => { await delay(); return service.addExpenseCategory(groupId, name); },
+  getCashBalance: async (groupId: string) => { await delay(); return service.getCashBalance(groupId); },
 
   // Fines
   getFines: async (groupId: string) => { await delay(); return service.getFines(groupId); },
@@ -62,6 +71,9 @@ export const api = {
   getCycle: async (id: string) => { await delay(); return service.getCycle(id); },
   generateReport: async (groupId: string, type: string, filters: any) => { await delay(1000); return service.generateReport(groupId, type, filters); },
   
+  // Communication
+  sendSMS: async (phoneNumber: string, message: string) => { await delay(800); return service.sendSMS(phoneNumber, message); },
+
   // Backup/Restore
   getFullDatabaseBackup: async () => { await delay(); return service.getFullDatabaseBackup(); },
   importDatabase: async (json: string) => { await delay(2000); return service.importDatabase(json); },

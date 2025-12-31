@@ -39,6 +39,7 @@ interface AppContextType {
   setActiveGroupId: (id: string) => void;
   groups: GSLAGroup[];
   refreshApp: () => void;
+  isOnline: boolean;
 }
 
 export const AppContext = React.createContext<AppContextType>({
@@ -48,6 +49,7 @@ export const AppContext = React.createContext<AppContextType>({
   setActiveGroupId: () => {},
   groups: [],
   refreshApp: () => {},
+  isOnline: true,
 });
 
 const ProtectedRoute = ({ children, allowedRoles }: { children?: React.ReactNode, allowedRoles?: UserRole[] }) => {
@@ -346,8 +348,22 @@ const AppContent = () => {
   const [groups, setGroups] = useState<GSLAGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  
+  // Network Status
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   const refreshApp = () => setRefreshTrigger(t => t + 1);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   useEffect(() => {
     // Only fetch when auth is ready
@@ -378,8 +394,8 @@ const AppContent = () => {
   }, [user, authLoading, refreshTrigger]);
 
   const contextValue = useMemo(() => ({
-    lang, setLang, activeGroupId, setActiveGroupId, groups, refreshApp
-  }), [lang, activeGroupId, groups, refreshTrigger]);
+    lang, setLang, activeGroupId, setActiveGroupId, groups, refreshApp, isOnline
+  }), [lang, activeGroupId, groups, refreshTrigger, isOnline]);
 
   if (loading || authLoading) {
     return (

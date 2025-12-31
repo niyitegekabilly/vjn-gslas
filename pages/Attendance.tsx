@@ -5,6 +5,7 @@ import { api } from '../api/client';
 import { LABELS } from '../constants';
 import { Attendance as AttendanceType, Member, Meeting, AttendanceStatus, MemberStatus, FineCategory } from '../types';
 import { ClipboardCheck, Calendar, Loader2, Plus, Users, CheckCircle, XCircle, Clock, AlertTriangle, ChevronRight, Edit, Save, ArrowLeft, History, X, Filter } from 'lucide-react';
+import { CardSkeleton, Skeleton } from '../components/Skeleton';
 
 export default function Attendance() {
   const { activeGroupId, lang } = useContext(AppContext);
@@ -126,7 +127,22 @@ export default function Attendance() {
     typeFilter === 'ALL' || m.type === typeFilter
   );
 
-  if (loading) return <div className="p-12 flex justify-center"><Loader2 className="animate-spin text-gray-400" /></div>;
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <Skeleton className="h-8 w-48" />
+          <div className="flex gap-3">
+             <Skeleton className="h-10 w-40 rounded-lg" />
+             <Skeleton className="h-10 w-32 rounded-lg" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, i) => <CardSkeleton key={i} />)}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

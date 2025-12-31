@@ -3,7 +3,7 @@ import {
   Branch, GSLAGroup, Cycle, Member, Loan, Transaction, 
   UserRole, MemberStatus, LoanStatus, TransactionType, Attendance,
   GroupStatus, MeetingFrequency, Fine, FineCategory, FineStatus, Meeting, AttendanceStatus, Notification,
-  User, UserStatus
+  User, UserStatus, ExpenseCategory
 } from '../types';
 
 const DB_KEY = 'VJN_GSLA_DB_V1';
@@ -274,6 +274,13 @@ const SEED_DATA = {
     { id: 'fc4', groupId: 'g1', name: 'Lost Book', defaultAmount: 2000, isSystem: false, active: true },
   ] as FineCategory[],
 
+  expenseCategories: [
+    { id: 'ec1', groupId: 'g1', name: 'Stationery', active: true },
+    { id: 'ec2', groupId: 'g1', name: 'Transport', active: true },
+    { id: 'ec3', groupId: 'g1', name: 'Refreshments', active: true },
+    { id: 'ec4', groupId: 'g1', name: 'Emergency Support', active: true },
+  ] as ExpenseCategory[],
+
   fines: [
     { 
       id: 'f1', groupId: 'g1', memberId: 'm2', cycleId: 'c1', date: '2024-03-01', categoryId: 'fc1', 
@@ -303,11 +310,9 @@ const loadDatabase = () => {
     const stored = localStorage.getItem(DB_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
-      // SCHEMA MIGRATION: Ensure users collection exists for legacy data
-      if (!parsed.users) {
-        console.log('Migrating database: Adding users collection');
-        parsed.users = JSON.parse(JSON.stringify(STATIC_USERS));
-      }
+      // SCHEMA MIGRATION: Ensure collections exist
+      if (!parsed.users) parsed.users = JSON.parse(JSON.stringify(STATIC_USERS));
+      if (!parsed.expenseCategories) parsed.expenseCategories = [];
       return parsed;
     }
   } catch (error) {
@@ -345,6 +350,7 @@ export const importDatabase = (jsonData: string) => {
     
     // Ensure migrated fields exist on import too
     if (!parsed.users) parsed.users = STATIC_USERS;
+    if (!parsed.expenseCategories) parsed.expenseCategories = [];
 
     localStorage.setItem(DB_KEY, JSON.stringify(parsed));
     // Update memory

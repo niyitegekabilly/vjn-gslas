@@ -1,9 +1,10 @@
+
 import { db, saveDatabase, importDatabase as dbImport } from './db';
 import { 
   GSLAGroup, Member, Loan, Transaction, 
   UserRole, MemberStatus, LoanStatus, TransactionType, Attendance,
   GroupStatus, MeetingFrequency, Fine, FineCategory, FineStatus, Meeting, AttendanceStatus, Notification,
-  User, UserStatus, AuditRecord, Cycle
+  User, UserStatus, AuditRecord, Cycle, ExpenseCategory
 } from '../types';
 
 // Users
@@ -46,12 +47,18 @@ export const login = (email: string, pass: string) => {
 export const getGroups = () => db.groups;
 export const getGroup = (id: string) => db.groups.find((g: GSLAGroup) => g.id === id);
 
-export const createGroup = (data: any) => {
+export const createGroup = (data: any, creatorId: string) => {
     const newGroup: GSLAGroup = {
         ...data,
         id: `g_${Date.now()}`,
         createdAt: new Date().toISOString(),
-        auditHistory: [],
+        auditHistory: [{
+            id: `aud_${Date.now()}`,
+            date: new Date().toISOString(),
+            editorId: creatorId,
+            reason: 'Group Created',
+            changes: []
+        }],
         totalSavings: 0,
         totalLoansOutstanding: 0,
         totalSolidarity: 0,
@@ -281,6 +288,20 @@ export const applyLateFees = (groupId: string, config: { amount: number, isPerce
 export const getTransactions = (groupId: string) => db.transactions.filter((t: Transaction) => t.groupId === groupId);
 export const getContributions = (groupId: string) => db.transactions.filter((t: Transaction) => t.groupId === groupId && t.type === TransactionType.SHARE_DEPOSIT);
 
+// HELPER: Get Current Cash Balance
+export const getCashBalance = (groupId: string) => {
+    const validTx = db.transactions.filter((t: Transaction) => t.groupId === groupId && !t.isVoid);
+    const inflows = validTx.filter((t: Transaction) => 
+        [TransactionType.SHARE_DEPOSIT, TransactionType.LOAN_REPAYMENT, TransactionType.FINE_PAYMENT].includes(t.type)
+    ).reduce((acc: number, t: Transaction) => acc + t.amount + (t.solidarityAmount || 0), 0);
+    
+    const outflows = validTx.filter((t: Transaction) => 
+        [TransactionType.EXPENSE, TransactionType.LOAN_DISBURSEMENT].includes(t.type)
+    ).reduce((acc: number, t: Transaction) => acc + t.amount, 0);
+    
+    return inflows - outflows;
+};
+
 export const addContribution = (groupId: string, data: any) => {
     const group = db.groups.find((g: GSLAGroup) => g.id === groupId);
     const amount = (data.shareCount || 0) * (group?.shareValue || 0);
@@ -389,7 +410,96 @@ export const voidContribution = (id: string, reason: string, userId: string) => 
     return tx;
 };
 
+// Expenses Logic
 export const getExpenses = (groupId: string) => db.transactions.filter((t: Transaction) => t.groupId === groupId && t.type === TransactionType.EXPENSE);
+export const getExpenseCategories = (groupId: string) => db.expenseCategories.filter((c: ExpenseCategory) => c.groupId === groupId);
+
+export const addExpenseCategory = (groupId: string, name: string) => {
+    if (!db.expenseCategories) db.expenseCategories = [];
+    const newCat: ExpenseCategory = {
+        id: `ec_${Date.now()}`,
+        groupId,
+        name,
+        active: true
+    };
+    db.expenseCategories.push(newCat);
+    saveDatabase();
+    return newCat;
+};
+
+export const createExpense = (groupId: string, data: any) => {
+    const group = db.groups.find((g: GSLAGroup) => g.id === groupId);
+    if (!group) throw new Error("Group not found");
+
+    // Check Balance
+    const currentBalance = getCashBalance(groupId);
+    if (data.amount > currentBalance) {
+        throw new Error("Insufficient funds. Available: " + currentBalance);
+    }
+
+    const newTx: Transaction = {
+        id: `tx_exp_${Date.now()}`,
+        groupId,
+        cycleId: group.currentCycleId || 'unknown',
+        type: TransactionType.EXPENSE,
+        amount: data.amount,
+        date: data.date,
+        description: data.description,
+        categoryId: data.categoryId,
+        recordedBy: data.recordedBy,
+        approvedBy: data.approvedBy
+    };
+    db.transactions.push(newTx);
+    saveDatabase();
+    return newTx;
+};
+
+export const updateExpense = (id: string, data: any, userId: string, reason: string) => {
+    const tx = db.transactions.find((t: Transaction) => t.id === id);
+    if (!tx || tx.type !== TransactionType.EXPENSE) throw new Error("Expense not found");
+
+    // Recalculate Balance Effect: Add back old amount, subtract new amount
+    // But since this is just an update to a record, we check if the difference is affordable if increasing amount
+    if (data.amount > tx.amount) {
+        const diff = data.amount - tx.amount;
+        const currentBalance = getCashBalance(tx.groupId);
+        if (diff > currentBalance) {
+             throw new Error("Insufficient funds for this increase.");
+        }
+    }
+
+    if (!tx.editHistory) tx.editHistory = [];
+    tx.editHistory.push({
+        id: `aud_${Date.now()}`,
+        date: new Date().toISOString(),
+        editorId: userId,
+        reason,
+        changes: [
+            { field: 'amount', oldValue: tx.amount, newValue: data.amount },
+            { field: 'description', oldValue: tx.description, newValue: data.description },
+            { field: 'categoryId', oldValue: tx.categoryId, newValue: data.categoryId }
+        ]
+    });
+
+    tx.amount = data.amount;
+    tx.description = data.description;
+    tx.categoryId = data.categoryId;
+    
+    saveDatabase();
+    return tx;
+};
+
+export const voidExpense = (id: string, reason: string, userId: string) => {
+    const tx = db.transactions.find((t: Transaction) => t.id === id);
+    if (!tx || tx.type !== TransactionType.EXPENSE) throw new Error("Expense not found");
+
+    tx.isVoid = true;
+    tx.voidReason = reason;
+    
+    // No balance check needed, voiding increases balance
+    saveDatabase();
+    return tx;
+};
 
 export const submitMeeting = (groupId: string, date: string, entries: any[]) => {
     const group = db.groups.find((g: GSLAGroup) => g.id === groupId);
@@ -657,97 +767,219 @@ export const getCycle = (id: string) => db.cycles.find((c: Cycle) => c.id === id
 
 // Reports
 export const generateReport = (groupId: string, type: string, filters: any) => {
-    // Basic Mock Implementation for data structure required by UI
-    const groupTransactions = db.transactions.filter((t: Transaction) => t.groupId === groupId && !t.isVoid);
+    const { startDate, endDate, memberId, status } = filters;
+    const group = db.groups.find((g: GSLAGroup) => g.id === groupId);
     const groupMembers = db.members.filter((m: Member) => m.groupId === groupId);
+    
+    // Helper: Date Range Filter
+    const inDateRange = (dateStr: string) => {
+        if (!dateStr) return true;
+        if (startDate && dateStr < startDate) return false;
+        if (endDate && dateStr > endDate) return false;
+        return true;
+    };
+
+    // Helper: Member Filter
+    const matchMember = (mId?: string) => {
+        if (!memberId) return true;
+        return mId === memberId;
+    };
+
+    // Helper: Status Match (Generic)
+    const matchStatus = (itemStatus: string) => {
+        if (!status || status === 'ALL') return true;
+        return itemStatus === status;
+    };
 
     switch(type) {
         case 'SAVINGS_SUMMARY':
-            return groupMembers.map((m: Member) => ({
-                id: m.id,
-                name: m.fullName,
-                totalShares: m.totalShares,
-                savingsValue: m.totalShares * (db.groups.find((g:GSLAGroup)=>g.id===groupId)?.shareValue || 0)
-            }));
+            // Filter members by status if provided, memberId if provided
+            return groupMembers
+                .filter(m => matchMember(m.id) && matchStatus(m.status))
+                .map((m: Member) => ({
+                    id: m.id,
+                    "Member Name": m.fullName,
+                    "National ID": m.nationalId,
+                    "Total Shares": m.totalShares,
+                    "Share Value (RWF)": (group?.shareValue || 0),
+                    "Total Savings (RWF)": m.totalShares * (group?.shareValue || 0),
+                    "Status": m.status
+                }));
+
         case 'LOAN_PORTFOLIO':
-            return db.loans.filter((l: Loan) => l.groupId === groupId).map((l: Loan) => ({
-                id: l.id,
-                member: groupMembers.find((m: Member) => m.id === l.memberId)?.fullName,
-                principal: l.principal,
-                balance: l.balance,
-                status: l.status,
-                dueDate: l.dueDate
-            }));
+            return db.loans
+                .filter((l: Loan) => 
+                    l.groupId === groupId && 
+                    matchMember(l.memberId) && 
+                    inDateRange(l.startDate) &&
+                    matchStatus(l.status)
+                )
+                .map((l: Loan) => ({
+                    id: l.id,
+                    "Member": groupMembers.find((m: Member) => m.id === l.memberId)?.fullName,
+                    "Principal": l.principal,
+                    "Interest Rate (%)": l.interestRate,
+                    "Total Repayable": l.totalRepayable,
+                    "Paid Amount": l.totalRepayable - l.balance,
+                    "Outstanding Balance": l.balance,
+                    "Start Date": l.startDate,
+                    "Due Date": l.dueDate,
+                    "Status": l.status
+                }));
+
         case 'CASH_FLOW':
+             // Transaction-based cash flow within date range
+             const txs = db.transactions.filter((t: Transaction) => 
+                 t.groupId === groupId && !t.isVoid && inDateRange(t.date)
+             );
+             
              const inflows: any = {};
              const outflows: any = {};
              let net = 0;
-             groupTransactions.forEach((t: Transaction) => {
+             
+             txs.forEach((t: Transaction) => {
                  if ([TransactionType.SHARE_DEPOSIT, TransactionType.LOAN_REPAYMENT, TransactionType.FINE_PAYMENT].includes(t.type)) {
                      const val = t.amount + (t.solidarityAmount || 0);
                      inflows[t.type] = (inflows[t.type] || 0) + val;
                      net += val;
-                 } else {
+                 } else if ([TransactionType.EXPENSE, TransactionType.LOAN_DISBURSEMENT].includes(t.type)) {
                      outflows[t.type] = (outflows[t.type] || 0) + t.amount;
                      net -= t.amount;
                  }
              });
              return { inflows, outflows, netCash: net };
+
+        case 'FINE_REPORT':
+            return db.fines
+                .filter((f: Fine) => 
+                    f.groupId === groupId && 
+                    matchMember(f.memberId) && 
+                    inDateRange(f.date) &&
+                    matchStatus(f.status)
+                )
+                .map((f: Fine) => ({
+                    id: f.id,
+                    "Date": f.date,
+                    "Member": groupMembers.find((m: Member) => m.id === f.memberId)?.fullName,
+                    "Category": db.fineCategories.find((c: FineCategory) => c.id === f.categoryId)?.name || 'Unknown',
+                    "Amount": f.amount,
+                    "Paid": f.paidAmount,
+                    "Balance": f.amount - f.paidAmount,
+                    "Status": f.status
+                }));
+
+        case 'EXPENSE_REPORT':
+            return db.transactions
+                .filter((t: Transaction) => 
+                    t.groupId === groupId && 
+                    t.type === TransactionType.EXPENSE && 
+                    inDateRange(t.date)
+                )
+                .map((t: Transaction) => ({
+                    "Date": t.date,
+                    "Description": t.description || 'Expense',
+                    "Category": db.expenseCategories?.find((c: ExpenseCategory) => c.id === t.categoryId)?.name || 'General',
+                    "Amount": t.amount,
+                    "Approved By": t.approvedBy || 'System',
+                    "Status": t.isVoid ? 'VOID' : 'APPROVED'
+                }));
+
+        case 'ATTENDANCE_REGISTER':
+            const meetings = db.meetings.filter((m: Meeting) => m.groupId === groupId && inDateRange(m.date));
+            const attendanceRecords = db.attendance.filter((a: Attendance) => a.groupId === groupId);
+            
+            return meetings.map((mtg: Meeting) => {
+                const presence = attendanceRecords.filter((a: Attendance) => a.meetingId === mtg.id);
+                const presentCount = presence.filter((p: Attendance) => p.status === AttendanceStatus.PRESENT).length;
+                const absentCount = presence.filter((p: Attendance) => p.status === AttendanceStatus.ABSENT).length;
+                const lateCount = presence.filter((p: Attendance) => p.status === AttendanceStatus.LATE).length;
+                
+                return {
+                    "Date": mtg.date,
+                    "Type": mtg.type,
+                    "Present": presentCount,
+                    "Absent": absentCount,
+                    "Late": lateCount,
+                    "Total Recorded": presence.length
+                };
+            });
+
         case 'SHARE_OUT':
-             // Simulation
-             const group = db.groups.find((g: GSLAGroup) => g.id === groupId);
+             // Share-out is a simulation at end of season. Filters don't heavily apply, but we use them if passed.
              const shareValue = group?.shareValue || 0;
+             // Calculate totals based on *current* standing (Share Out implies accumulated value)
              const totalShares = groupMembers.reduce((acc: number, m: Member) => acc + m.totalShares, 0);
-             // Profit simulation (e.g. 10% of savings)
-             const estimatedProfit = (totalShares * shareValue) * 0.10;
+             
+             // Net Worth = Cash Balance + Outstanding Loans (Assets)
+             // Note: In real GSLA, Net Worth = Assets - Liabilities. 
+             // Here simpler: Cash + Loans + Fines (paid) are assets.
+             // We use the computed cash balance + outstanding loans as approximate Net Worth available for distribution.
+             
+             const currentCash = getCashBalance(groupId);
+             const outstandingLoans = db.loans
+                .filter((l: Loan) => l.groupId === groupId && (l.status === LoanStatus.ACTIVE || l.status === LoanStatus.DEFAULTED))
+                .reduce((acc: number, l: Loan) => acc + l.balance, 0);
+                
+             const netWorth = currentCash + outstandingLoans;
+             
+             // Basic Dividend calc: Profit = Net Worth - Total Share Capital
+             const totalShareCapital = totalShares * shareValue;
+             const profit = Math.max(0, netWorth - totalShareCapital); 
              
              return {
                  summary: {
-                     cashOnHand: group?.totalSavings || 0,
+                     cashOnHand: currentCash,
                      socialFund: group?.totalSolidarity || 0,
-                     outstandingLoans: group?.totalLoansOutstanding || 0,
-                     netWorth: (group?.totalSavings || 0) + estimatedProfit,
-                     valuePerShare: shareValue + (estimatedProfit / (totalShares || 1))
+                     outstandingLoans: outstandingLoans,
+                     netWorth: netWorth,
+                     valuePerShare: totalShares > 0 ? (netWorth / totalShares) : shareValue
                  },
                  members: groupMembers.map((m: Member) => ({
                      name: m.fullName,
                      shares: m.totalShares,
                      invested: m.totalShares * shareValue,
-                     profit: (m.totalShares / (totalShares || 1)) * estimatedProfit,
-                     currentValue: (m.totalShares * shareValue) + ((m.totalShares / (totalShares || 1)) * estimatedProfit)
+                     profit: (m.totalShares / (totalShares || 1)) * profit,
+                     currentValue: (m.totalShares / (totalShares || 1)) * netWorth
                  }))
              };
-        case 'FINE_REPORT':
-            return db.fines.filter((f: Fine) => f.groupId === groupId).map((f: Fine) => ({
-                id: f.id,
-                member: groupMembers.find((m: Member) => m.id === f.memberId)?.fullName,
-                amount: f.amount,
-                paid: f.paidAmount,
-                status: f.status,
-                date: f.date
-            }));
-        case 'ATTENDANCE_REGISTER':
-            // Simple dump for now
-            const groupMeetings = db.meetings.filter((m:Meeting) => m.groupId === groupId);
-            const attendanceRecs = db.attendance.filter((a:Attendance) => a.groupId === groupId);
-            return groupMeetings.map((mtg: Meeting) => {
-                const presence = attendanceRecs.filter((a:Attendance) => a.meetingId === mtg.id);
-                return {
-                    date: mtg.date,
-                    type: mtg.type,
-                    present: presence.filter((p:Attendance) => p.status === AttendanceStatus.PRESENT).length,
-                    absent: presence.filter((p:Attendance) => p.status === AttendanceStatus.ABSENT).length
-                };
-            });
-        case 'EXPENSE_REPORT':
-            return db.transactions.filter((t:Transaction) => t.groupId === groupId && t.type === TransactionType.EXPENSE).map((t:Transaction) => ({
-                date: t.date,
-                description: t.description || 'Expense',
-                amount: t.amount
-            }));
+
+        case 'MEMBER_FINANCIAL_SUMMARY':
+            return groupMembers
+                .filter(m => matchMember(m.id) && matchStatus(m.status))
+                .map((m: Member) => {
+                    const activeLoan = db.loans.find((l: Loan) => 
+                        l.groupId === groupId && 
+                        l.memberId === m.id && 
+                        (l.status === LoanStatus.ACTIVE || l.status === LoanStatus.DEFAULTED)
+                    );
+                    return {
+                        id: m.id,
+                        "Member Name": m.fullName,
+                        "Total Shares": m.totalShares,
+                        "Total Savings": m.totalShares * (group?.shareValue || 0),
+                        "Active Loan Balance": activeLoan ? activeLoan.balance : 0,
+                        "Status": m.status
+                    };
+                });
+
         default:
             return [];
     }
+};
+
+// SMS Service
+export const sendSMS = (phoneNumber: string, message: string) => {
+    // Simulate API delay and processing
+    console.log(`[SMS SERVICE] Sending to ${phoneNumber}: "${message}"`);
+    
+    // In a real app, this would call Twilio, Africa's Talking, or a local gateway
+    const success = true; 
+    
+    return { 
+        success, 
+        messageId: `sms_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        status: 'SENT' 
+    };
 };
 
 // Backup

@@ -7,13 +7,15 @@ import { LoanStatus } from '../types';
 import { 
   Save, AlertCircle, CheckCircle, Loader2, 
   ChevronRight, ChevronLeft, Users, PiggyBank, 
-  Banknote, ClipboardCheck, Calendar
+  Banknote, ClipboardCheck, Calendar, MessageSquare
 } from 'lucide-react';
 import { TableRowSkeleton } from '../components/Skeleton';
+import { SyncStatus } from '../components/SyncStatus';
 
 interface MeetingEntry {
   memberId: string;
   fullName: string;
+  phone?: string;
   present: boolean;
   shares: number;
   loanRepayment: number;
@@ -22,7 +24,7 @@ interface MeetingEntry {
 }
 
 export default function MeetingMode() {
-  const { lang, activeGroupId, groups, refreshApp } = useContext(AppContext);
+  const { lang, activeGroupId, groups, refreshApp, isOnline } = useContext(AppContext);
   const labels = LABELS[lang];
   
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -30,6 +32,7 @@ export default function MeetingMode() {
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [sendingSMS, setSendingSMS] = useState(false);
   
   // Wizard State
   const [step, setStep] = useState(1);
@@ -41,6 +44,7 @@ export default function MeetingMode() {
     if (!activeGroupId) return;
     setLoading(true);
     setSaved(false);
+    setSendingSMS(false);
     
     Promise.all([
       api.getMembers(activeGroupId),
@@ -51,6 +55,7 @@ export default function MeetingMode() {
         return {
           memberId: m.id,
           fullName: m.fullName,
+          phone: m.phone,
           present: true,
           shares: currentGroup?.minShares || 1, 
           loanRepayment: 0,
@@ -90,6 +95,10 @@ export default function MeetingMode() {
   };
 
   const handleSubmit = () => {
+    if (!isOnline) {
+      alert("Cannot save meeting while offline. Please connect to the internet.");
+      return;
+    }
     setSubmitting(true);
     // Filter out transactions for absent members just in case, though UI hides them
     const finalEntries = entries.map(e => e.present ? e : { ...e, shares: 0, loanRepayment: 0, fines: 0 });
@@ -100,6 +109,31 @@ export default function MeetingMode() {
       refreshApp(); // Update global context data
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
+  };
+
+  const handleBulkSMS = async () => {
+    if (!isOnline) {
+      alert("Cannot send SMS while offline.");
+      return;
+    }
+    setSendingSMS(true);
+    const recipients = entries.filter(e => e.present && e.phone && (e.shares > 0 || e.loanRepayment > 0 || e.fines > 0));
+    
+    let sentCount = 0;
+    for (const r of recipients) {
+        if (!r.phone) continue;
+        const shareAmount = r.shares * (currentGroup?.shareValue || 0);
+        const total = shareAmount + r.loanRepayment + r.fines;
+        const msg = `VJN Receipt: Paid ${total.toLocaleString()} RWF on ${date}. (Shares: ${shareAmount}, Loan: ${r.loanRepayment}, Fine: ${r.fines})`;
+        try {
+            await api.sendSMS(r.phone, msg);
+            sentCount++;
+        } catch (e) {
+            console.error("SMS Failed", e);
+        }
+    }
+    alert(`Sent ${sentCount} SMS receipts successfully.`);
+    setSendingSMS(false);
   };
 
   const handleStartNew = () => {
@@ -134,12 +168,27 @@ export default function MeetingMode() {
         </div>
         <h2 className="text-3xl font-bold text-gray-900 mb-2">{labels.meetingSaved}</h2>
         <p className="text-gray-500 mb-8 text-center max-w-md">{labels.meetingSavedDesc}</p>
-        <button 
-          onClick={handleStartNew}
-          className="px-8 py-3 bg-slate-900 text-white rounded-xl hover:bg-slate-800 font-medium transition-transform hover:scale-105"
-        >
-          {labels.startNewMeeting}
-        </button>
+        
+        <div className="flex gap-4">
+            <button
+                onClick={handleBulkSMS}
+                disabled={sendingSMS || !isOnline}
+                className={`px-6 py-3 rounded-xl font-medium transition-transform hover:scale-105 flex items-center shadow-lg ${
+                  isOnline 
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-100' 
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+            >
+                {sendingSMS ? <Loader2 className="animate-spin mr-2" size={20}/> : <MessageSquare className="mr-2" size={20}/>}
+                Send SMS Receipts
+            </button>
+            <button 
+            onClick={handleStartNew}
+            className="px-8 py-3 bg-slate-900 text-white rounded-xl hover:bg-slate-800 font-medium transition-transform hover:scale-105"
+            >
+            {labels.startNewMeeting}
+            </button>
+        </div>
       </div>
     );
   }
@@ -149,7 +198,10 @@ export default function MeetingMode() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">{labels.startMeeting}</h2>
+          <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
+            {labels.startMeeting}
+            <SyncStatus isOnline={isOnline} isSyncing={submitting} />
+          </h2>
           <div className="flex items-center text-gray-500 text-sm mt-1">
              <Calendar size={14} className="mr-1" />
              <span>{new Date(date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
@@ -175,10 +227,10 @@ export default function MeetingMode() {
           ></div>
           
           {[
-            { id: 1, label: labels.attendance, icon: Users },
-            { id: 2, label: 'Savings', icon: PiggyBank },
-            { id: 3, label: 'Loans', icon: Banknote },
-            { id: 4, label: 'Summary', icon: ClipboardCheck },
+            { id: 1, label: labels.stepAttendance, icon: Users },
+            { id: 2, label: labels.stepSavings, icon: PiggyBank },
+            { id: 3, label: labels.stepLoans, icon: Banknote },
+            { id: 4, label: labels.stepSummary, icon: ClipboardCheck },
           ].map((s) => (
             <div key={s.id} className="flex flex-col items-center">
               <div 
@@ -366,6 +418,12 @@ export default function MeetingMode() {
                 <p className="text-sm text-gray-500">
                    {labels.saveDesc}
                 </p>
+                {!isOnline && (
+                  <div className="mt-3 p-3 bg-red-50 text-red-700 text-sm font-bold rounded-lg flex items-center">
+                    <AlertCircle size={16} className="mr-2" />
+                    You are offline. Reconnect to save data.
+                  </div>
+                )}
              </div>
           </div>
         )}
@@ -396,8 +454,12 @@ export default function MeetingMode() {
          ) : (
            <button 
              onClick={handleSubmit}
-             disabled={submitting}
-             className="px-8 py-3 bg-green-600 text-white rounded-xl font-bold shadow-lg hover:bg-green-700 flex items-center transition-transform active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
+             disabled={submitting || !isOnline}
+             className={`px-8 py-3 rounded-xl font-bold shadow-lg flex items-center transition-transform active:scale-95 ${
+               isOnline 
+                 ? 'bg-green-600 text-white hover:bg-green-700' 
+                 : 'bg-gray-400 text-gray-100 cursor-not-allowed'
+             }`}
            >
              {submitting ? <Loader2 className="animate-spin mr-2" size={20} /> : <Save size={20} className="mr-2" />}
              {labels.saveMeeting}

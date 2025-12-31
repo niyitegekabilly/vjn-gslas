@@ -6,6 +6,7 @@ import { LABELS } from '../constants';
 import { Fine, FineCategory, Member, FineStatus, UserRole } from '../types';
 import { Gavel, Search, Plus, Loader2, CheckCircle, AlertTriangle, X, DollarSign, Edit, Archive, History, Shield, Tag } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { Skeleton, TableRowSkeleton } from '../components/Skeleton';
 
 export default function Fines() {
   const { activeGroupId, lang, groups } = useContext(AppContext);
@@ -138,7 +139,27 @@ export default function Fines() {
   const totalUnpaid = fines.filter(f => f.status !== 'VOID').reduce((acc, f) => acc + (f.amount - f.paidAmount), 0);
   const totalCollected = fines.reduce((acc, f) => acc + f.paidAmount, 0);
 
-  if (loading) return <div className="p-12 flex justify-center"><Loader2 className="animate-spin text-gray-400" /></div>;
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+           {[...Array(3)].map((_, i) => (
+             <div key={i} className="p-6 bg-white rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+                <div className="space-y-2">
+                   <Skeleton className="h-4 w-24" />
+                   <Skeleton className="h-8 w-32" />
+                </div>
+                <Skeleton className="h-12 w-12 rounded-lg" />
+             </div>
+           ))}
+        </div>
+        <Skeleton className="h-16 w-full rounded-xl" />
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+           {[...Array(5)].map((_, i) => <TableRowSkeleton key={i} />)}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

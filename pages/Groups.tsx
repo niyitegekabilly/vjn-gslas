@@ -3,7 +3,7 @@ import React, { useContext, useState, useEffect } from 'react';
 import { AppContext } from '../App';
 import { api } from '../api/client';
 import { LABELS } from '../constants';
-import { Building, MapPin, Plus, User, Info, Settings, History, Shield, Users, ArrowRight, Loader2, Save, X, Search, Filter, Edit2, CheckCircle, Globe, DollarSign, Upload, FileText, ExternalLink, Map } from 'lucide-react';
+import { Building, MapPin, Plus, User, Info, Settings, History, Shield, Users, ArrowRight, Loader2, Save, X, Search, Filter, Edit2, CheckCircle, Globe, DollarSign, Upload, FileText, ExternalLink, Map, MoreVertical, Eye, Trash2 } from 'lucide-react';
 import { GSLAGroup, GroupStatus, MeetingFrequency, Member, AuditRecord, UserRole, MemberStatus } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -15,6 +15,7 @@ export default function Groups() {
   const { groups: allGroups, lang, setActiveGroupId, refreshApp } = useContext(AppContext);
   const labels = LABELS[lang];
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [view, setView] = useState<ViewMode>('LIST');
   const [selectedGroup, setSelectedGroup] = useState<GSLAGroup | null>(null);
 
@@ -39,6 +40,26 @@ export default function Groups() {
     refreshApp();
   };
 
+  const handleManageMembers = (group: GSLAGroup) => {
+    setActiveGroupId(group.id);
+    navigate('/members');
+  };
+
+  const handleDeleteGroup = async (group: GSLAGroup) => {
+    const confirmMsg = lang === 'rw' 
+        ? `Uragirango ufunge itsinda "${group.name}"? Ibi bizashyira itsinda muri 'CLOSED'.`
+        : `Are you sure you want to close the group "${group.name}"? This will mark it as CLOSED (Soft Delete).`;
+        
+    if (window.confirm(confirmMsg)) {
+       try {
+         await api.updateGroup(group.id, { status: GroupStatus.CLOSED }, "Group Closed via List Action", user?.fullName || 'Admin');
+         refreshApp();
+       } catch (e: any) {
+         alert(e.message);
+       }
+    }
+  };
+
   const filteredGroups = allGroups.filter(group => {
     const matchesSearch = group.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           group.location.toLowerCase().includes(searchTerm.toLowerCase());
@@ -55,6 +76,9 @@ export default function Groups() {
           groups={filteredGroups} 
           onCreate={() => setView('CREATE')} 
           onSelect={handleGroupClick}
+          onEdit={(g: GSLAGroup) => { setSelectedGroup(g); setView('EDIT'); }}
+          onManageMembers={handleManageMembers}
+          onDelete={handleDeleteGroup}
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
           statusFilter={statusFilter}
@@ -99,8 +123,22 @@ export default function Groups() {
 // ... existing SUB-COMPONENTS code ...
 
 function GroupList({ 
-  groups, onCreate, onSelect, searchTerm, setSearchTerm, statusFilter, setStatusFilter, labels, canCreate
+  groups, onCreate, onSelect, onEdit, onManageMembers, onDelete,
+  searchTerm, setSearchTerm, statusFilter, setStatusFilter, labels, canCreate
 }: any) {
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+
+  // Click outside handler to close menu
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (openMenuId && !(event.target as Element).closest('.group-menu-container')) {
+        setOpenMenuId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openMenuId]);
+
   return (
     <>
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -138,10 +176,10 @@ function GroupList({
             onChange={(e) => setStatusFilter(e.target.value as any)}
             className="bg-transparent text-sm font-medium text-gray-700 outline-none cursor-pointer"
           >
-            <option value="ALL">All Status</option>
-            <option value={GroupStatus.ACTIVE}>Active</option>
-            <option value={GroupStatus.SUSPENDED}>Suspended</option>
-            <option value={GroupStatus.CLOSED}>Closed</option>
+            <option value="ALL">{labels.allStatus}</option>
+            <option value={GroupStatus.ACTIVE}>{labels.active}</option>
+            <option value={GroupStatus.SUSPENDED}>{labels.suspended}</option>
+            <option value={GroupStatus.CLOSED}>{labels.closed}</option>
           </select>
         </div>
       </div>
@@ -156,24 +194,73 @@ function GroupList({
           {groups.map((group: GSLAGroup) => (
             <div key={group.id} className={`bg-white p-6 rounded-xl shadow-sm border transition-all hover:shadow-md ${group.status === GroupStatus.ACTIVE ? 'border-gray-100 hover:border-blue-200' : 'border-red-100 bg-red-50/20'}`}>
               <div className="flex justify-between items-start mb-4">
-                 <div className="flex items-center overflow-hidden">
+                 <div className="flex items-center overflow-hidden flex-1">
                   <div className={`p-3 rounded-lg mr-4 flex-shrink-0 ${group.status === GroupStatus.ACTIVE ? 'bg-blue-50 text-blue-600' : 'bg-gray-200 text-gray-500'}`}>
                     <Building size={24} />
                   </div>
                   <div className="min-w-0">
-                    <h3 className="font-bold text-gray-900 truncate text-lg">{group.name}</h3>
+                    <h3 className="font-bold text-gray-900 truncate text-lg cursor-pointer hover:text-blue-600 transition-colors" onClick={() => onSelect(group)}>{group.name}</h3>
                     <div className="flex items-center text-sm text-gray-500 truncate mt-1">
                       <MapPin size={14} className="mr-1 flex-shrink-0" />
                       <span className="truncate">{group.location}</span>
                     </div>
                   </div>
                 </div>
-                <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase flex-shrink-0 tracking-wide ${
-                  group.status === GroupStatus.ACTIVE ? 'bg-green-100 text-green-800' : 
-                  group.status === GroupStatus.SUSPENDED ? 'bg-orange-100 text-orange-800' : 'bg-red-100 text-red-800'
-                }`}>
-                  {group.status}
-                </span>
+                
+                <div className="flex items-start gap-2 pl-2">
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase flex-shrink-0 tracking-wide ${
+                    group.status === GroupStatus.ACTIVE ? 'bg-green-100 text-green-800' : 
+                    group.status === GroupStatus.SUSPENDED ? 'bg-orange-100 text-orange-800' : 'bg-red-100 text-red-800'
+                    }`}>
+                    {group.status === GroupStatus.ACTIVE ? labels.active : group.status === GroupStatus.SUSPENDED ? labels.suspended : labels.closed}
+                    </span>
+                    
+                    <div className="relative group-menu-container">
+                        <button 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenMenuId(openMenuId === group.id ? null : group.id);
+                            }}
+                            className="p-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
+                        >
+                            <MoreVertical size={20} />
+                        </button>
+                        
+                        {openMenuId === group.id && (
+                            <div className="absolute right-0 top-8 w-48 bg-white rounded-lg shadow-xl border border-gray-100 z-20 py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-100 origin-top-right">
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); onSelect(group); setOpenMenuId(null); }}
+                                    className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center transition-colors"
+                                >
+                                    <Eye size={16} className="mr-2 text-gray-400" /> View Profile
+                                </button>
+                                {canCreate && (
+                                    <>
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); onEdit(group); setOpenMenuId(null); }}
+                                            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center transition-colors"
+                                        >
+                                            <Edit2 size={16} className="mr-2 text-blue-500" /> Edit Group
+                                        </button>
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); onManageMembers(group); setOpenMenuId(null); }}
+                                            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center transition-colors"
+                                        >
+                                            <Users size={16} className="mr-2 text-green-500" /> Manage Members
+                                        </button>
+                                        <div className="h-px bg-gray-100 my-1"></div>
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); onDelete(group); setOpenMenuId(null); }}
+                                            className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center transition-colors"
+                                        >
+                                            <Trash2 size={16} className="mr-2" /> Delete / Close
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
               </div>
               
               <div className="grid grid-cols-3 gap-2 border-t border-gray-100 pt-4 mt-2">
@@ -207,11 +294,12 @@ function GroupList({
 
 function CreateGroupForm({ onCancel, onSuccess, labels }: any) {
   const [submitting, setSubmitting] = useState(false);
+  const { user } = useAuth();
 
   const handleSubmit = async (formData: any) => {
     setSubmitting(true);
     try {
-      const newGroup = await api.createGroup(formData);
+      const newGroup = await api.createGroup(formData, user?.fullName || 'System Admin');
       onSuccess(newGroup);
     } catch (error: any) {
       alert(error.message);
@@ -453,15 +541,22 @@ function EditGroupForm({ group, onCancel, onSuccess, labels }: { group: GSLAGrou
              <FileText size={16} className="mr-2" /> Documents
            </h3>
            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Constitution / Bylaws</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{labels.constitution} (PDF/Image)</label>
               <div className="flex items-center gap-3">
-                 <label className="cursor-pointer bg-white border border-gray-300 px-4 py-2 rounded-lg text-sm hover:bg-gray-50">
-                    <Upload size={14} className="inline mr-2" />
+                 <label className="cursor-pointer bg-white border border-gray-300 px-4 py-2 rounded-lg text-sm hover:bg-gray-50 flex items-center shadow-sm">
+                    <Upload size={16} className="mr-2 text-gray-500" />
                     {formData.constitutionUrl ? 'Replace File' : 'Upload File'}
                     <input type="file" className="hidden" accept="image/*,application/pdf" onChange={handleFileChange} />
                  </label>
-                 {formData.constitutionUrl && <span className="text-xs text-green-600 font-medium flex items-center"><CheckCircle size={12} className="mr-1"/> File Present</span>}
+                 {formData.constitutionUrl ? (
+                    <span className="text-xs text-green-600 font-medium flex items-center bg-green-50 px-3 py-1.5 rounded-full border border-green-100">
+                        <CheckCircle size={12} className="mr-1"/> {labels.fileAttached}
+                    </span>
+                 ) : (
+                    <span className="text-xs text-gray-400">{labels.noFileSelected}</span>
+                 )}
               </div>
+              <p className="text-xs text-gray-500 mt-2">{labels.uploadInstruction}</p>
            </div>
         </div>
 
@@ -563,7 +658,7 @@ function EditGroupForm({ group, onCancel, onSuccess, labels }: { group: GSLAGrou
              <div className="col-span-2 md:col-span-1">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Max Loan Multiplier</label>
                 <div className="relative">
-                    <span className="absolute left-3 top-2 text-gray-400 text-sm">x</span>
+                    <span className="absolute left-3 top-2.5 text-gray-400 text-sm font-bold">x</span>
                     <input 
                         type="number"
                         min="1"
@@ -748,6 +843,9 @@ function GroupProfile({ group, onBack, onEdit, onChangeGroup, labels }: { group:
                             by <span className="font-medium text-gray-700">{audit.editorId}</span>
                          </div>
                          <div className="bg-gray-50 rounded-lg p-3 border border-gray-100 space-y-2">
+                            {audit.changes.length === 0 && (
+                                <div className="text-xs text-gray-500 italic">No specific field changes recorded.</div>
+                            )}
                             {audit.changes.map((c, idx) => (
                                <div key={idx} className="flex flex-col sm:flex-row sm:items-center text-xs">
                                   <span className="font-mono text-gray-500 uppercase w-32 shrink-0">{c.field}</span>

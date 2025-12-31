@@ -4,8 +4,9 @@ import { AppContext } from '../App';
 import { api } from '../api/client';
 import { LABELS } from '../constants';
 import { Transaction, Member, MemberStatus, AuditRecord, UserRole } from '../types';
-import { PiggyBank, Search, Loader2, Plus, Filter, MoreVertical, AlertTriangle, History, XCircle, Edit, Save, X, Ban, TrendingUp, ShieldCheck } from 'lucide-react';
+import { PiggyBank, Search, Loader2, Plus, Filter, MoreVertical, AlertTriangle, History, XCircle, Edit, Save, X, Ban, TrendingUp, ShieldCheck, MessageSquare } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { Skeleton, TableRowSkeleton } from '../components/Skeleton';
 
 export default function Contributions() {
   const { activeGroupId, lang, groups } = useContext(AppContext);
@@ -29,6 +30,7 @@ export default function Contributions() {
 
   // Active Item State
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
+  const [sendingSmsId, setSendingSmsId] = useState<string | null>(null);
 
   // Forms Data
   const [formData, setFormData] = useState({
@@ -146,6 +148,28 @@ export default function Contributions() {
     }
   };
 
+  const handleSendSMS = async (tx: Transaction) => {
+    if (sendingSmsId) return;
+    const member = members.find(m => m.id === tx.memberId);
+    if (!member || !member.phone) {
+        alert("Member phone number not available.");
+        return;
+    }
+    
+    setSendingSmsId(tx.id);
+    const amount = (tx.amount || 0) + (tx.solidarityAmount || 0);
+    const message = `VJN Receipt: Received ${amount.toLocaleString()} RWF on ${tx.date} for Savings. Balance: ${(member.totalShares * (group?.shareValue || 0)).toLocaleString()} RWF. Thank you!`;
+    
+    try {
+        await api.sendSMS(member.phone, message);
+        alert(`Receipt sent to ${member.phone}`);
+    } catch (e) {
+        alert("Failed to send SMS.");
+    } finally {
+        setSendingSmsId(null);
+    }
+  };
+
   const resetForms = () => {
     setFormData({
       memberId: '',
@@ -178,7 +202,44 @@ export default function Contributions() {
   const totalShareCapital = validTransactions.reduce((acc, t) => acc + (t.amount || 0), 0);
   const totalSocialFund = validTransactions.reduce((acc, t) => acc + (t.solidarityAmount || 0), 0);
 
-  if (loading) return <div className="p-12 flex justify-center"><Loader2 className="animate-spin text-gray-400" /></div>;
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-32" />
+          </div>
+          <Skeleton className="h-10 w-40 rounded-lg" />
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-emerald-100 flex items-center justify-between">
+             <div className="space-y-2">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-8 w-40" />
+                <Skeleton className="h-3 w-24" />
+             </div>
+             <Skeleton className="h-12 w-12 rounded-full" />
+          </div>
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-orange-100 flex items-center justify-between">
+             <div className="space-y-2">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-8 w-40" />
+                <Skeleton className="h-3 w-24" />
+             </div>
+             <Skeleton className="h-12 w-12 rounded-full" />
+          </div>
+        </div>
+
+        <Skeleton className="h-16 w-full rounded-xl" />
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          {[...Array(5)].map((_, i) => <TableRowSkeleton key={i} />)}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -309,6 +370,14 @@ export default function Contributions() {
                     <td className="p-4 text-right">
                       {!t.isVoid && canEdit && (
                         <div className="flex justify-end gap-2">
+                          <button
+                            onClick={() => handleSendSMS(t)}
+                            disabled={sendingSmsId === t.id}
+                            className="p-1.5 text-gray-400 hover:text-green-600 rounded-md hover:bg-green-50"
+                            title="Send SMS Receipt"
+                          >
+                            {sendingSmsId === t.id ? <Loader2 size={16} className="animate-spin" /> : <MessageSquare size={16} />}
+                          </button>
                           <button 
                             onClick={() => handleEditInit(t)}
                             className="p-1.5 text-gray-400 hover:text-blue-600 rounded-md hover:bg-blue-50"

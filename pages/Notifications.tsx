@@ -5,6 +5,7 @@ import { api } from '../api/client';
 import { LABELS } from '../constants';
 import { Notification } from '../types';
 import { Bell, Check, Loader2, Info, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Skeleton } from '../components/Skeleton';
 
 export default function Notifications() {
   const { lang } = useContext(AppContext);
@@ -33,7 +34,32 @@ export default function Notifications() {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   };
 
-  if (loading) return <div className="p-12 flex justify-center"><Loader2 className="animate-spin text-gray-400" /></div>;
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <Skeleton className="h-8 w-32" />
+          <Skeleton className="h-6 w-24" />
+        </div>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden divide-y divide-gray-100">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="p-6">
+              <div className="flex items-start gap-4">
+                <Skeleton className="h-10 w-10 rounded-full flex-shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="flex justify-between">
+                    <Skeleton className="h-4 w-1/3" />
+                    <Skeleton className="h-3 w-20" />
+                  </div>
+                  <Skeleton className="h-3 w-2/3" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

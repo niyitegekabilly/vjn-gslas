@@ -59,6 +59,34 @@ export const LABELS = {
     step: "Step",
     of: "of",
     
+    // Auth & Greetings
+    goodMorning: "Good Morning",
+    goodAfternoon: "Good Afternoon",
+    goodEvening: "Good Evening",
+    signIn: "Sign In",
+    emailAddr: "Email Address",
+    password: "Password",
+    securePortal: "Secure Access Portal",
+    unauthMsg: "Unauthorized access is prohibited. All activities are logged.",
+    
+    // Roles & Status
+    superAdmin: "Super Admin",
+    admin: "Admin",
+    groupLeader: "Group Leader",
+    memberUser: "Member",
+    active: "Active",
+    suspended: "Suspended",
+    closed: "Closed",
+    exited: "Exited",
+    all: "All",
+    allStatus: "All Status",
+    
+    // Stepper
+    stepAttendance: "Attendance",
+    stepSavings: "Savings",
+    stepLoans: "Loans",
+    stepSummary: "Summary",
+
     // Dashboard
     totalGroups: "Total Groups",
     totalSavings: "Total Savings",
@@ -224,6 +252,12 @@ export const LABELS = {
     // Expenses
     totalExpenses: "Total Expenses (Season)",
     addExpense: "Add Expense",
+    expenseManagement: "Expense Management",
+    availableCash: "Available Cash",
+    insufficientFunds: "Insufficient funds in cash balance.",
+    expenseCategory: "Expense Category",
+    approvedBy: "Approved By",
+    recordedBy: "Recorded By",
     
     // Attendance
     attendanceManagement: "Attendance Management",
@@ -273,6 +307,7 @@ export const LABELS = {
     confidential: "Confidential Financial Report",
     totalInflow: "Total Inflow",
     totalOutflow: "Total Outflow",
+    memberFinancialSummary: "Member Financial Summary",
     
     // Settings & Users
     settingsTitle: "Configuration",
@@ -355,6 +390,34 @@ export const LABELS = {
     next: "Komeza",
     step: "Intambwe",
     of: "ya",
+
+    // Auth & Greetings
+    goodMorning: "Mwaramutse",
+    goodAfternoon: "Mwiriwe",
+    goodEvening: "Mwiriwe neza",
+    signIn: "Injira",
+    emailAddr: "Imeyili / Izina",
+    password: "Ijambo ry'ibanga",
+    securePortal: "Urubuga Rwizewe",
+    unauthMsg: "Kwinjira utabifitiye uburenganzira birabujijwe.",
+
+    // Roles & Status
+    superAdmin: "Umuhuzabikorwa Mukuru",
+    admin: "Ushinzwe Porogaramu",
+    groupLeader: "Ubuyobozi bw'Itsinda",
+    memberUser: "Umunyamuryango",
+    active: "Gikora",
+    suspended: "Hagaritswe",
+    closed: "Funze",
+    exited: "Sezeye",
+    all: "Byose",
+    allStatus: "Imiterere Yose",
+
+    // Stepper
+    stepAttendance: "Ubwitabire",
+    stepSavings: "Ubwizigame",
+    stepLoans: "Inguzanyo",
+    stepSummary: "Incamake",
 
     // Dashboard
     totalGroups: "Amatsinda Yose",
@@ -521,6 +584,12 @@ export const LABELS = {
     // Expenses
     totalExpenses: "Amafaranga yose yasohotse (Igihembwe)",
     addExpense: "Ongeramo Ayasohotse",
+    expenseManagement: "Gucunga Ayasohotse",
+    availableCash: "Amafaranga Ariho",
+    insufficientFunds: "Amafaranga ntabwo ahagije.",
+    expenseCategory: "Icyiciro cy'Isoko",
+    approvedBy: "Yemejwe na",
+    recordedBy: "Yanditswe na",
 
     // Attendance
     attendanceManagement: "Gucunga Ubwitabire",
@@ -570,6 +639,7 @@ export const LABELS = {
     confidential: "Raporo y'Ibanga - Ntigasakazwe",
     totalInflow: "Ayinjiye Yose",
     totalOutflow: "Ayasohotse Yose",
+    memberFinancialSummary: "Incamake y'Imari y'Abanyamuryango",
 
     // Settings & Users
     settingsTitle: "Igenamiterere",
@@ -652,6 +722,11 @@ export const HELP_CONTENT = {
       id: 'fines',
       title: 'Fines',
       content: 'Record fines for rule violations (e.g., Late arrival, Phone usage). You can create custom Fine Categories in the Fines module. Attendance fines (Absent/Late) can be automated in the Attendance settings.'
+    },
+    {
+      id: 'expenses',
+      title: 'Expense Management',
+      content: 'Track all money leaving the group (e.g., Stationery, Transport). The system validates that you have enough Cash on Hand before saving an expense. All edits require a reason and are logged in the audit trail.'
     }
   ],
   rw: [
@@ -684,6 +759,11 @@ export const HELP_CONTENT = {
       id: 'fines',
       title: 'Amande',
       content: 'Andika amande y\'abishe amategeko (urugero: Gukererwa, Kuvugira kuri telefoni). Ushobora kurema ibyiciro by\'amande ahanditse Amande. Amande y\'ubwitabire (Gusiba/Gukererwa) ashobora kwikora.'
+    },
+    {
+      id: 'expenses',
+      title: 'Gucunga Ayasohotse',
+      content: 'Andika amafaranga yose asohoka mu itsinda (urugero: Ibitabo, Tike). Sisitemu ireba niba hari amafaranga ahagije mbere yo kubika. Guhindura bisaba kwerekana impamvu kandi bijya mu bugenzuzi.'
     }
   ]
 };

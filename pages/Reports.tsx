@@ -7,14 +7,15 @@ import { LABELS } from '../constants';
 import { Member, Cycle } from '../types';
 import { 
   FileText, Download, Printer, Filter, Calendar, Users, 
-  BarChart2, PieChart, TrendingUp, AlertCircle, Loader2, ChevronRight, Lock, AlertTriangle
+  BarChart2, PieChart, TrendingUp, AlertCircle, Loader2, ChevronRight, Lock, AlertTriangle, CheckCircle, Wallet
 } from 'lucide-react';
+import { Skeleton, TableRowSkeleton } from '../components/Skeleton';
 
-type ReportType = 'SAVINGS_SUMMARY' | 'LOAN_PORTFOLIO' | 'CASH_FLOW' | 'ATTENDANCE_REGISTER' | 'EXPENSE_REPORT' | 'SHARE_OUT' | 'FINE_REPORT';
+type ReportType = 'SAVINGS_SUMMARY' | 'LOAN_PORTFOLIO' | 'CASH_FLOW' | 'ATTENDANCE_REGISTER' | 'EXPENSE_REPORT' | 'SHARE_OUT' | 'FINE_REPORT' | 'MEMBER_FINANCIAL_SUMMARY';
 
 interface ReportConfig {
   id: ReportType;
-  titleKey: keyof typeof LABELS.en | 'reports'; // Simplifying type check
+  titleKey: keyof typeof LABELS.en | 'reports'; 
   categoryKey: 'financial' | 'operational' | 'endOfCycle';
   icon: any;
 }
@@ -23,6 +24,7 @@ const REPORT_CONFIGS: ReportConfig[] = [
   { id: 'SAVINGS_SUMMARY', titleKey: 'totalSavings', categoryKey: 'financial', icon: PiggyBankIcon },
   { id: 'LOAN_PORTFOLIO', titleKey: 'portfolio', categoryKey: 'financial', icon: BarChart2 },
   { id: 'CASH_FLOW', titleKey: 'financialTrends', categoryKey: 'financial', icon: TrendingUp },
+  { id: 'MEMBER_FINANCIAL_SUMMARY', titleKey: 'memberFinancialSummary', categoryKey: 'financial', icon: Wallet },
   { id: 'FINE_REPORT', titleKey: 'outstandingFines', categoryKey: 'operational', icon: AlertCircle },
   { id: 'EXPENSE_REPORT', titleKey: 'expenses', categoryKey: 'operational', icon: FileText },
   { id: 'ATTENDANCE_REGISTER', titleKey: 'attendance', categoryKey: 'operational', icon: Users },
@@ -49,14 +51,14 @@ export default function Reports() {
   const [filters, setFilters] = useState({
     startDate: '',
     endDate: new Date().toISOString().split('T')[0],
-    memberId: ''
+    memberId: '',
+    status: 'ALL'
   });
 
-  // Handle Navigation State (Redirect from other pages)
+  // Handle Navigation State
   useEffect(() => {
     if (location.state && location.state.reportId) {
       setActiveReport(location.state.reportId);
-      // Clear state history to prevent stuck state (optional but good practice, though React Router handles it well)
       window.history.replaceState({}, document.title);
     }
   }, [location]);
@@ -72,7 +74,7 @@ export default function Reports() {
   useEffect(() => {
     if (!activeGroupId) return;
     setLoading(true);
-    setData(null); // Clear data to prevent rendering with mismatched template
+    setData(null);
     api.generateReport(activeGroupId, activeReport, filters)
       .then(res => {
         setData(res);
@@ -85,13 +87,17 @@ export default function Reports() {
   }, [activeGroupId, activeReport, filters]);
 
   const handlePrint = () => {
-    window.print();
+    try {
+      window.print();
+    } catch (e) {
+      console.error("Print error:", e);
+      alert("Unable to trigger print. Please use your browser's print function.");
+    }
   };
 
   const exportCSV = () => {
     if (!data || (Array.isArray(data) && data.length === 0)) return;
     
-    // Handle different data structures
     let headers = '';
     let rows = '';
 
@@ -99,7 +105,6 @@ export default function Reports() {
        headers = Object.keys(data.members[0]).join(',');
        rows = data.members.map((row: any) => Object.values(row).join(',')).join('\n');
     } else if (activeReport === 'CASH_FLOW' && data.inflows) {
-       // Custom export for cashflow
        headers = 'Category,Amount,Type';
        rows = [
          ...Object.entries(data.inflows).map(([k,v]) => `${k},${v},Inflow`),
@@ -113,14 +118,30 @@ export default function Reports() {
       return;
     }
 
-    const csvContent = "data:text/csv;charset=utf-8," + headers + "\n" + rows;
-    const encodedUri = encodeURI(csvContent);
+    const csvContent = headers + "\n" + rows;
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    
     const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `${activeReport}_${new Date().toISOString()}.csv`);
+    link.href = url;
+    link.setAttribute("download", `${activeReport}_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
+
+  // Determine status options based on report type
+  const getStatusOptions = () => {
+      switch(activeReport) {
+          case 'SAVINGS_SUMMARY': return ['ACTIVE', 'EXITED', 'SUSPENDED'];
+          case 'LOAN_PORTFOLIO': return ['ACTIVE', 'PENDING', 'CLEARED', 'DEFAULTED'];
+          case 'FINE_REPORT': return ['PAID', 'UNPAID', 'PARTIALLY_PAID'];
+          case 'MEMBER_FINANCIAL_SUMMARY': return ['ACTIVE', 'EXITED', 'SUSPENDED'];
+          default: return [];
+      }
+  };
+  const statusOptions = getStatusOptions();
 
   return (
     <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-100px)] print:h-auto print:block">
@@ -161,7 +182,7 @@ export default function Reports() {
         
         {/* Toolbar */}
         <div className="p-4 border-b border-gray-200 bg-gray-50 flex flex-wrap gap-4 items-center justify-between print:hidden">
-           <div className="flex items-center gap-4">
+           <div className="flex items-center gap-2 flex-wrap">
               {/* Date Filters */}
               <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm">
                  <Calendar size={16} className="text-gray-400" />
@@ -185,7 +206,7 @@ export default function Reports() {
                 <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm">
                    <Users size={16} className="text-gray-400" />
                    <select 
-                     className="text-sm outline-none text-gray-600 bg-transparent w-40"
+                     className="text-sm outline-none text-gray-600 bg-transparent w-32"
                      value={filters.memberId}
                      onChange={e => setFilters({...filters, memberId: e.target.value})}
                    >
@@ -193,6 +214,21 @@ export default function Reports() {
                       {members.map(m => <option key={m.id} value={m.id}>{m.fullName}</option>)}
                    </select>
                 </div>
+              )}
+
+              {/* Status Filter */}
+              {statusOptions.length > 0 && (
+                  <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm">
+                    <Filter size={16} className="text-gray-400" />
+                    <select 
+                        className="text-sm outline-none text-gray-600 bg-transparent w-24"
+                        value={filters.status}
+                        onChange={e => setFilters({...filters, status: e.target.value})}
+                    >
+                        <option value="ALL">All Status</option>
+                        {statusOptions.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
               )}
            </div>
 
@@ -225,7 +261,16 @@ export default function Reports() {
               </div>
 
               {loading ? (
-                 <div className="py-20 flex justify-center"><Loader2 className="animate-spin text-gray-300" size={48} /></div>
+                 <div className="space-y-8">
+                    <div className="grid grid-cols-3 gap-6">
+                        <Skeleton className="h-24 rounded-lg" />
+                        <Skeleton className="h-24 rounded-lg" />
+                        <Skeleton className="h-24 rounded-lg" />
+                    </div>
+                    <div className="space-y-4">
+                        {[...Array(5)].map((_, i) => <TableRowSkeleton key={i} />)}
+                    </div>
+                 </div>
               ) : (
                  <>
                     {/* SPECIFIC REPORT LAYOUTS */}
@@ -351,7 +396,7 @@ export default function Reports() {
                     )}
 
                     {/* GENERIC TABLE FOR LIST REPORTS */}
-                    {['SAVINGS_SUMMARY', 'LOAN_PORTFOLIO', 'FINE_REPORT', 'ATTENDANCE_REGISTER', 'EXPENSE_REPORT'].includes(activeReport) && data && Array.isArray(data) && (
+                    {['SAVINGS_SUMMARY', 'LOAN_PORTFOLIO', 'FINE_REPORT', 'ATTENDANCE_REGISTER', 'EXPENSE_REPORT', 'MEMBER_FINANCIAL_SUMMARY'].includes(activeReport) && data && Array.isArray(data) && (
                        <div className="overflow-x-auto print:overflow-visible">
                           <table className="w-full text-sm text-left border-collapse">
                              <thead className="bg-gray-100 text-gray-600 font-bold uppercase text-xs print:bg-gray-200 print:text-black">
@@ -368,8 +413,7 @@ export default function Reports() {
                                    <tr key={row.id || idx} className="hover:bg-gray-50">
                                       {Object.entries(row).filter(([k]) => k !== 'id').map(([k, v]: any) => (
                                          <td key={k} className="p-3 text-gray-700">
-                                            {typeof v === 'number' && k !== 'rate' ? v.toLocaleString() : v}
-                                            {k === 'rate' ? '%' : ''}
+                                            {typeof v === 'number' && k !== 'Interest Rate (%)' ? v.toLocaleString() : v}
                                          </td>
                                       ))}
                                    </tr>

@@ -1,8 +1,10 @@
 
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Lock, Mail, Loader2, AlertCircle } from 'lucide-react';
+import { AppContext } from '../App';
+import { LABELS } from '../constants';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -11,6 +13,8 @@ export default function Login() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const { lang, setLang } = useContext(AppContext); // Access language context even in Login
+  const labels = LABELS[lang];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,6 +33,12 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col justify-center items-center p-4">
+      {/* Language Switcher for Login */}
+      <div className="absolute top-4 right-4 flex gap-2">
+         <button onClick={() => setLang('en')} className={`px-3 py-1 rounded text-xs font-bold ${lang === 'en' ? 'bg-slate-800 text-white' : 'bg-white text-gray-600'}`}>EN</button>
+         <button onClick={() => setLang('rw')} className={`px-3 py-1 rounded text-xs font-bold ${lang === 'rw' ? 'bg-slate-800 text-white' : 'bg-white text-gray-600'}`}>RW</button>
+      </div>
+
       <div className="max-w-md w-full bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
         <div className="p-8">
           <div className="flex justify-center mb-6">
@@ -36,8 +46,8 @@ export default function Login() {
               V
             </div>
           </div>
-          <h2 className="text-2xl font-bold text-center text-gray-900 mb-2">VJN GSLA System</h2>
-          <p className="text-center text-gray-500 text-sm mb-8">Secure Access Portal</p>
+          <h2 className="text-2xl font-bold text-center text-gray-900 mb-2">{labels.appName}</h2>
+          <p className="text-center text-gray-500 text-sm mb-8">{labels.securePortal}</p>
 
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center text-red-700 text-sm">
@@ -48,7 +58,7 @@ export default function Login() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{labels.emailAddr}</label>
               <div className="relative">
                 <Mail className="absolute left-3 top-2.5 text-gray-400" size={18} />
                 <input 
@@ -63,7 +73,7 @@ export default function Login() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{labels.password}</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-2.5 text-gray-400" size={18} />
                 <input 
@@ -82,18 +92,18 @@ export default function Login() {
               disabled={isSubmitting}
               className="w-full py-2 bg-slate-900 text-white rounded-lg font-medium hover:bg-slate-800 transition-colors flex justify-center items-center"
             >
-              {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : 'Sign In'}
+              {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : labels.signIn}
             </button>
           </form>
         </div>
         <div className="bg-gray-50 px-8 py-4 border-t border-gray-100 text-center">
           <p className="text-xs text-gray-500">
-            Unauthorized access is prohibited. All activities are logged.
+            {labels.unauthMsg}
           </p>
         </div>
       </div>
       <div className="mt-8 text-center text-gray-400 text-xs">
-        <p>Use <strong>admin@vjn.rw</strong> / <strong>admin123</strong> for demo access</p>
+        <p>Use <strong>admin@vjn.rw</strong> / <strong>admin123</strong></p>
       </div>
     </div>
   );

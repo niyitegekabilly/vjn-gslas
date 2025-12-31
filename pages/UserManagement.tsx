@@ -6,6 +6,7 @@ import { LABELS } from '../constants';
 import { User, UserRole, UserStatus, GSLAGroup } from '../types';
 import { Users, Search, Plus, Shield, CheckCircle, XCircle, AlertTriangle, Lock, Edit, UserCheck, Loader2, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { TableRowSkeleton } from '../components/Skeleton';
 
 export default function UserManagement() {
   const { lang, groups } = useContext(AppContext);
@@ -104,10 +105,10 @@ export default function UserManagement() {
 
   const getRoleBadge = (role: UserRole) => {
     switch (role) {
-      case UserRole.SUPER_ADMIN: return <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs font-bold border border-purple-200">Super Admin</span>;
-      case UserRole.ADMIN: return <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-bold border border-blue-200">{labels.admins}</span>;
-      case UserRole.GROUP_LEADER: return <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-bold border border-green-200">{labels.groupLeaders}</span>;
-      default: return <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded-full text-xs font-medium">{labels.members}</span>;
+      case UserRole.SUPER_ADMIN: return <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs font-bold border border-purple-200">{labels.superAdmin}</span>;
+      case UserRole.ADMIN: return <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-bold border border-blue-200">{labels.admin}</span>;
+      case UserRole.GROUP_LEADER: return <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-bold border border-green-200">{labels.groupLeader}</span>;
+      default: return <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded-full text-xs font-medium">{labels.memberUser}</span>;
     }
   };
 
@@ -174,7 +175,13 @@ export default function UserManagement() {
           </thead>
           <tbody className="divide-y divide-gray-100">
             {loading ? (
-              <tr><td colSpan={6} className="p-8 text-center"><Loader2 className="animate-spin mx-auto text-gray-400" /></td></tr>
+              [...Array(5)].map((_, i) => (
+                <tr key={i}>
+                  <td colSpan={6} className="p-0">
+                    <TableRowSkeleton />
+                  </td>
+                </tr>
+              ))
             ) : filteredUsers.length === 0 ? (
               <tr><td colSpan={6} className="p-8 text-center text-gray-500">{labels.noData}</td></tr>
             ) : (
@@ -194,7 +201,7 @@ export default function UserManagement() {
                     }`}>
                       {user.status === UserStatus.ACTIVE && <CheckCircle size={14} className="mr-1" />}
                       {user.status === UserStatus.LOCKED && <Lock size={14} className="mr-1" />}
-                      {user.status}
+                      {user.status === UserStatus.ACTIVE ? labels.active : user.status}
                     </span>
                   </td>
                   <td className="p-4 text-gray-600">
@@ -242,7 +249,7 @@ export default function UserManagement() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{labels.emailAddr}</label>
                 <input 
                   type="email"
                   required
@@ -273,10 +280,10 @@ export default function UserManagement() {
                     onChange={e => setFormData({...formData, role: e.target.value as UserRole})}
                     className="w-full px-3 py-2 border rounded-lg"
                   >
-                    <option value={UserRole.GROUP_LEADER}>{labels.groupLeaders}</option>
-                    <option value={UserRole.ADMIN}>{labels.admins}</option>
-                    <option value={UserRole.SUPER_ADMIN}>Super Admin</option>
-                    <option value={UserRole.MEMBER_USER}>{labels.members}</option>
+                    <option value={UserRole.GROUP_LEADER}>{labels.groupLeader}</option>
+                    <option value={UserRole.ADMIN}>{labels.admin}</option>
+                    <option value={UserRole.SUPER_ADMIN}>{labels.superAdmin}</option>
+                    <option value={UserRole.MEMBER_USER}>{labels.memberUser}</option>
                   </select>
                 </div>
                 

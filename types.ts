@@ -199,6 +199,13 @@ export interface FineCategory {
   active: boolean;
 }
 
+export interface ExpenseCategory {
+  id: string;
+  groupId: string;
+  name: string;
+  active: boolean;
+}
+
 export interface Fine {
   id: string;
   groupId: string;
@@ -223,6 +230,7 @@ export interface Transaction {
   amount: number; // Primary amount (e.g. Share Value * Count)
   date: string;
   description?: string;
+  categoryId?: string; // For Expenses or Fines
   
   // Specific Contribution Fields
   shareCount?: number; 
@@ -234,6 +242,7 @@ export interface Transaction {
   voidReason?: string;
   notes?: string;
   recordedBy?: string; // User ID
+  approvedBy?: string; // For Expenses
   editHistory?: AuditRecord[];
 }
 

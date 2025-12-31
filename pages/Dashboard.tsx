@@ -8,15 +8,16 @@ import { api } from '../api/client';
 import { 
   Banknote, Users, TrendingUp, AlertTriangle, 
   Calendar, PlusCircle, CheckCircle, Wallet, 
-  Sprout, Clock, ArrowDownRight,
-  ShieldAlert, Building, Sparkles, AlertCircle
+  Sprout, Clock, ShieldAlert, Building, Sparkles, AlertCircle,
+  PiggyBank, Receipt, UserX, Activity
 } from 'lucide-react';
 import { LoanStatus, Member, Loan, Transaction, Cycle, Attendance, Fine, UserRole } from '../types';
 import { DashboardSkeleton } from '../components/Skeleton';
 import StatsCard from '../components/StatsCard';
+import { SyncStatus } from '../components/SyncStatus';
 
 export default function Dashboard() {
-  const { lang, activeGroupId, groups } = useContext(AppContext);
+  const { lang, activeGroupId, groups, isOnline } = useContext(AppContext);
   const { user } = useAuth();
   const labels = LABELS[lang];
   const navigate = useNavigate();
@@ -69,6 +70,7 @@ export default function Dashboard() {
   
   const totalOutstandingLoans = activeLoanList.reduce((acc, l) => acc + l.balance, 0);
   const totalOverdueAmount = overdueLoanList.reduce((acc, l) => acc + l.balance, 0);
+  const overdueLoanCount = overdueLoanList.length;
   
   // Cash Balance: (Shares + Repayments + Fines + Solidarity) - (Expenses + Disbursements)
   const validTx = transactions.filter(t => !t.isVoid);
@@ -82,7 +84,9 @@ export default function Dashboard() {
   const totalRevenue = totalLoanInterest + totalFinesCollected;
 
   // Unpaid Fines
-  const totalUnpaidFines = fines.filter(f => f.status !== 'VOID' && f.status !== 'PAID').reduce((acc, f) => acc + (f.amount - f.paidAmount), 0);
+  const unpaidFinesList = fines.filter(f => f.status !== 'VOID' && f.status !== 'PAID');
+  const totalUnpaidFines = unpaidFinesList.reduce((acc, f) => acc + (f.amount - f.paidAmount), 0);
+  const unpaidFineCount = unpaidFinesList.length;
 
   // 3. Activity & Flow
   const currentSeasonTxs = validTx.filter(t => t.cycleId === group.currentCycleId);
@@ -110,7 +114,7 @@ export default function Dashboard() {
 
   // --- TIME GREETING ---
   const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening';
+  const greeting = hour < 12 ? labels.goodMorning : hour < 18 ? labels.goodAfternoon : labels.goodEvening;
 
   // --- MEMBER VIEW RENDER ---
   if (user?.role === UserRole.MEMBER_USER) {
@@ -126,8 +130,11 @@ export default function Dashboard() {
     return (
       <div className="space-y-8 animate-in fade-in duration-500 pb-12">
         {/* Member Welcome Hero */}
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-3xl p-8 text-white shadow-xl">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-3xl p-8 text-white shadow-xl relative overflow-hidden">
+          <div className="absolute top-4 right-4">
+             <SyncStatus isOnline={isOnline} />
+          </div>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative z-10">
             <div>
               <p className="text-blue-200 text-sm font-medium uppercase tracking-wider mb-1">{greeting}</p>
               <h1 className="text-3xl font-bold">{myMember.fullName}</h1>
@@ -228,18 +235,22 @@ export default function Dashboard() {
               {greeting}, <span className="text-green-400">{user?.fullName.split(' ')[0]}</span>
             </h1>
             <p className="mt-2 text-slate-300 max-w-xl text-sm leading-relaxed">
-              System Status: <span className="text-green-400 font-medium">Operational</span>. 
+              System Status: <span className="text-green-400 font-medium">{labels.active}</span>. 
               {overdueLoanList.length > 0 
-                ? <span className="text-orange-300 font-semibold ml-1">Attention needed: {overdueLoanList.length} overdue loans.</span> 
+                ? <span className="text-orange-300 font-semibold ml-1">{labels.overdue}: {overdueLoanList.length}</span> 
                 : <span className="text-green-300 font-semibold ml-1">Financial health is good.</span>
               }
             </p>
           </div>
           
-          <div className="flex gap-3">
+          <div className="flex gap-3 items-center">
+             <SyncStatus isOnline={isOnline} />
              <button 
-               onClick={() => navigate('/meeting')}
-               className="flex items-center px-5 py-3 bg-green-600 hover:bg-green-500 text-white rounded-xl font-bold shadow-lg transition-all transform hover:scale-105 active:scale-95"
+               onClick={() => isOnline && navigate('/meeting')}
+               disabled={!isOnline}
+               className={`flex items-center px-5 py-3 rounded-xl font-bold shadow-lg transition-all transform hover:scale-105 active:scale-95 ${
+                 isOnline ? 'bg-green-600 hover:bg-green-500 text-white' : 'bg-gray-500 text-gray-300 cursor-not-allowed'
+               }`}
              >
                <PlusCircle size={20} className="mr-2" /> {labels.startNewMeeting}
              </button>
@@ -247,164 +258,198 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* 2. Core Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Row 1 */}
-        <StatsCard 
-          title={labels.totalSavings}
-          value={`${totalSharesValue.toLocaleString()}`}
-          // @ts-ignore
-          subValue={labels.currency}
-          icon={<Wallet size={24} />}
-          color="green"
-          // @ts-ignore
-          onClick={() => navigate('/contributions')}
-        />
-        <StatsCard 
-          title={labels.cashBalance}
-          value={`${cashBalance.toLocaleString()}`}
-          subValue="Available"
-          icon={<Banknote size={24} />}
-          color="blue"
-          // @ts-ignore
-          onClick={() => navigate('/expenses')}
-        />
-        <StatsCard 
-          title={labels.revenue}
-          value={`${totalRevenue.toLocaleString()}`}
-          // @ts-ignore
-          subValue={labels.currency}
-          icon={<TrendingUp size={24} />}
-          color="teal"
-          // @ts-ignore
-          onClick={() => navigate('/reports')}
-        />
-        <StatsCard 
-          title={labels.unpaidLoans}
-          value={`${totalOutstandingLoans.toLocaleString()}`}
-          // @ts-ignore
-          subValue={labels.currency}
-          icon={<AlertCircle size={24} />}
-          color={totalOutstandingLoans > 0 ? "orange" : "green"}
-          // @ts-ignore
-          onClick={() => navigate('/loans')}
-        />
-
-        {/* Row 2 */}
-        {(user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.ADMIN) ? (
-           <StatsCard 
-             title={labels.totalGroups}
-             value={groups.length.toString()}
-             subValue="Active Groups"
-             icon={<Building size={24} />}
-             color="purple"
-             // @ts-ignore
-             onClick={() => navigate('/groups')}
-           />
-        ) : (
-           <StatsCard 
-             title={labels.activeSeasons}
-             value={cycle?.status || 'None'}
-             subValue={cycle?.startDate || 'No Date'}
-             icon={<Sprout size={24} />}
-             color="teal"
-             // @ts-ignore
-             onClick={() => navigate('/seasons')}
-           />
-        )}
-        <StatsCard 
-          title={labels.members}
-          value={totalMembers.toString()}
-          subValue="Active Members"
-          icon={<Users size={24} />}
-          color="indigo"
-          // @ts-ignore
-          onClick={() => navigate('/members')}
-        />
-        <StatsCard 
-          title={labels.lastAttendance}
-          value={`${lastMeetingPercent}%`}
-          subValue="Presence"
-          icon={<CheckCircle size={24} />}
-          color="indigo"
-          // @ts-ignore
-          onClick={() => navigate('/attendance')}
-        />
-        <StatsCard 
-          title={labels.loansActive}
-          value={activeLoanList.length.toString()}
-          subValue="Loans Count"
-          icon={<Banknote size={24} />}
-          color="blue"
-          // @ts-ignore
-          onClick={() => navigate('/loans')}
-        />
+      {/* 2. Financial Overview */}
+      <div>
+        <h3 className="text-lg font-bold text-gray-800 flex items-center mb-4">
+          <Banknote size={20} className="mr-2 text-gray-400" /> {labels.healthIndicators}
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <StatsCard 
+            title={labels.totalSavings}
+            value={`${totalSharesValue.toLocaleString()}`}
+            // @ts-ignore
+            subValue={labels.currency}
+            icon={<Wallet size={24} />}
+            color="green"
+            // @ts-ignore
+            onClick={() => navigate('/contributions')}
+          />
+          <StatsCard 
+            title={labels.cashBalance}
+            value={`${cashBalance.toLocaleString()}`}
+            subValue="Available"
+            icon={<Banknote size={24} />}
+            color="blue"
+            // @ts-ignore
+            onClick={() => navigate('/expenses')}
+          />
+          <StatsCard 
+            title={labels.revenue}
+            value={`${totalRevenue.toLocaleString()}`}
+            // @ts-ignore
+            subValue={labels.currency}
+            icon={<TrendingUp size={24} />}
+            color="teal"
+            // @ts-ignore
+            onClick={() => navigate('/reports')}
+          />
+          <StatsCard 
+            title={labels.expensesSeason}
+            value={`${expensesSeason.toLocaleString()}`}
+            // @ts-ignore
+            subValue={labels.currency}
+            icon={<Receipt size={24} />}
+            color="orange"
+            // @ts-ignore
+            onClick={() => navigate('/expenses')}
+          />
+        </div>
       </div>
 
+      {/* 3. Operational Overview */}
+      <div>
+        <h3 className="text-lg font-bold text-gray-800 flex items-center mb-4">
+          <Activity size={20} className="mr-2 text-gray-400" /> {labels.healthIndicators}
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {(user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.ADMIN) ? (
+             <StatsCard 
+               title={labels.totalGroups}
+               value={groups.length.toString()}
+               subValue="Active Groups"
+               icon={<Building size={24} />}
+               color="purple"
+               // @ts-ignore
+               onClick={() => navigate('/groups')}
+             />
+          ) : (
+             <StatsCard 
+               title={labels.activeSeasons}
+               value={cycle?.status || 'None'}
+               subValue={cycle?.startDate || 'No Date'}
+               icon={<Sprout size={24} />}
+               color="purple"
+               // @ts-ignore
+               onClick={() => navigate('/seasons')}
+             />
+          )}
+          <StatsCard 
+            title={labels.members}
+            value={totalMembers.toString()}
+            subValue="Active Members"
+            icon={<Users size={24} />}
+            color="indigo"
+            // @ts-ignore
+            onClick={() => navigate('/members')}
+          />
+          <StatsCard 
+            title={labels.contributionsSeason}
+            value={contributionsSeason.toLocaleString()}
+            // @ts-ignore
+            subValue={labels.currency}
+            icon={<PiggyBank size={24} />}
+            color="green"
+            // @ts-ignore
+            onClick={() => navigate('/contributions')}
+          />
+          <StatsCard 
+            title={labels.contributionsMonth}
+            value={contributionsMonth.toLocaleString()}
+            // @ts-ignore
+            subValue="This Month"
+            icon={<Calendar size={24} />}
+            color="blue"
+            // @ts-ignore
+            onClick={() => navigate('/contributions')}
+          />
+        </div>
+      </div>
+
+      {/* 4. Risk & Health Monitoring */}
+      <div>
+        <h3 className="text-lg font-bold text-gray-800 flex items-center mb-4">
+          <ShieldAlert size={20} className="mr-2 text-gray-400" /> {labels.healthIndicators}
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <StatsCard 
+            title={labels.overdue}
+            value={overdueLoanCount.toString()}
+            subValue={`${totalOverdueAmount.toLocaleString()} ${labels.currency}`}
+            icon={<AlertTriangle size={24} />}
+            color={overdueLoanCount > 0 ? "red" : "green"}
+            onClick={() => navigate('/loans')}
+          />
+          <StatsCard 
+            title={labels.unpaidFinesTotal}
+            value={unpaidFineCount.toString()}
+            // @ts-ignore
+            subValue={`${totalUnpaidFines.toLocaleString()} ${labels.currency}`}
+            icon={<AlertCircle size={24} />}
+            color={unpaidFineCount > 0 ? "orange" : "green"}
+            // @ts-ignore
+            onClick={() => navigate('/fines')}
+          />
+          <StatsCard 
+            title={labels.lastAttendance}
+            value={`${lastMeetingPercent}%`}
+            subValue="Presence"
+            icon={<CheckCircle size={24} />}
+            color={lastMeetingPercent < 75 ? "orange" : "blue"}
+            // @ts-ignore
+            onClick={() => navigate('/attendance')}
+          />
+          <StatsCard 
+            title={labels.repeatedAbsence}
+            value={repeatedAbsenceCount.toString()}
+            subValue="Members"
+            icon={<UserX size={24} />}
+            color={repeatedAbsenceCount > 0 ? "red" : "indigo"}
+            // @ts-ignore
+            onClick={() => navigate('/attendance')}
+          />
+        </div>
+      </div>
+
+      {/* 5. Quick Actions & Schedules */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* 3. Operational & Risk Center */}
-        <div className="lg:col-span-2 space-y-6">
-           <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-gray-800 flex items-center">
-                <ShieldAlert size={20} className="mr-2 text-gray-400" /> Operational & Risk
-              </h3>
-              <div className="h-px bg-gray-200 flex-1 ml-4"></div>
-           </div>
-
-           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Outstanding Balance */}
-              <div 
-                onClick={() => navigate('/loans')}
-                className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:border-blue-200 transition-colors cursor-pointer group"
-              >
-                 <div className="flex justify-between items-start mb-4">
-                    <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-                       <TrendingUp size={24} />
-                    </div>
-                 </div>
-                 <p className="text-gray-500 text-xs font-bold uppercase tracking-wider">{labels.outstandingLoans}</p>
-                 <p className="text-2xl font-bold text-gray-900 mt-1">{totalOutstandingLoans.toLocaleString()} <span className="text-sm font-normal text-gray-400">RWF</span></p>
-              </div>
-
-              {/* Overdue Loans (Alert State) */}
-              <div 
-                onClick={() => navigate('/loans')}
-                className={`p-6 rounded-2xl shadow-sm border cursor-pointer transition-colors group ${
-                  overdueLoanList.length > 0 
-                  ? 'bg-red-50 border-red-100 hover:border-red-300' 
-                  : 'bg-white border-gray-100 hover:border-green-300'
-                }`}
-              >
-                 <div className="flex justify-between items-start mb-4">
-                    <div className={`p-2 rounded-lg transition-colors ${
-                       overdueLoanList.length > 0 ? 'bg-red-100 text-red-600 group-hover:bg-red-600 group-hover:text-white' : 'bg-green-50 text-green-600'
-                    }`}>
-                       <AlertTriangle size={24} />
-                    </div>
-                    {overdueLoanList.length > 0 && <span className="text-xs font-bold bg-red-100 text-red-700 px-2 py-1 rounded-full uppercase">Action Needed</span>}
-                 </div>
-                 <p className={`text-xs font-bold uppercase tracking-wider ${overdueLoanList.length > 0 ? 'text-red-600' : 'text-gray-500'}`}>{labels.overdue}</p>
-                 <p className={`text-2xl font-bold mt-1 ${overdueLoanList.length > 0 ? 'text-red-900' : 'text-gray-900'}`}>
-                    {totalOverdueAmount.toLocaleString()} <span className="text-sm font-normal opacity-60">RWF</span>
-                 </p>
-              </div>
-           </div>
-
            {/* Quick Actions Panel */}
-           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+           <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
               <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">{labels.quickActions}</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                 <button onClick={() => navigate('/contributions')} className="p-4 bg-gray-50 hover:bg-green-50 text-gray-700 hover:text-green-700 rounded-xl flex flex-col items-center justify-center transition-colors border border-gray-100 hover:border-green-200 group">
-                    <Wallet size={24} className="mb-2 text-gray-400 group-hover:text-green-600" />
+                 <button 
+                    onClick={() => isOnline && navigate('/contributions')}
+                    disabled={!isOnline} 
+                    className={`p-4 rounded-xl flex flex-col items-center justify-center transition-colors border group ${
+                      isOnline 
+                        ? 'bg-gray-50 hover:bg-green-50 text-gray-700 hover:text-green-700 border-gray-100 hover:border-green-200' 
+                        : 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'
+                    }`}
+                 >
+                    <Wallet size={24} className={`mb-2 ${isOnline ? 'text-gray-400 group-hover:text-green-600' : 'text-gray-400'}`} />
                     <span className="text-xs font-medium text-center">{labels.recordContribution}</span>
                  </button>
-                 <button onClick={() => navigate('/loans')} className="p-4 bg-gray-50 hover:bg-blue-50 text-gray-700 hover:text-blue-700 rounded-xl flex flex-col items-center justify-center transition-colors border border-gray-100 hover:border-blue-200 group">
-                    <Banknote size={24} className="mb-2 text-gray-400 group-hover:text-blue-600" />
+                 <button 
+                    onClick={() => isOnline && navigate('/loans')}
+                    disabled={!isOnline}
+                    className={`p-4 rounded-xl flex flex-col items-center justify-center transition-colors border group ${
+                      isOnline
+                        ? 'bg-gray-50 hover:bg-blue-50 text-gray-700 hover:text-blue-700 border-gray-100 hover:border-blue-200'
+                        : 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'
+                    }`}
+                 >
+                    <Banknote size={24} className={`mb-2 ${isOnline ? 'text-gray-400 group-hover:text-blue-600' : 'text-gray-400'}`} />
                     <span className="text-xs font-medium text-center">{labels.recordRepayment}</span>
                  </button>
-                 <button onClick={() => navigate('/fines')} className="p-4 bg-gray-50 hover:bg-orange-50 text-gray-700 hover:text-orange-700 rounded-xl flex flex-col items-center justify-center transition-colors border border-gray-100 hover:border-orange-200 group">
-                    <AlertCircle size={24} className="mb-2 text-gray-400 group-hover:text-orange-600" />
+                 <button 
+                    onClick={() => isOnline && navigate('/fines')}
+                    disabled={!isOnline}
+                    className={`p-4 rounded-xl flex flex-col items-center justify-center transition-colors border group ${
+                      isOnline
+                        ? 'bg-gray-50 hover:bg-orange-50 text-gray-700 hover:text-orange-700 border-gray-100 hover:border-orange-200'
+                        : 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'
+                    }`}
+                 >
+                    <AlertCircle size={24} className={`mb-2 ${isOnline ? 'text-gray-400 group-hover:text-orange-600' : 'text-gray-400'}`} />
                     <span className="text-xs font-medium text-center">{labels.recordNewFine}</span>
                  </button>
                  <button onClick={() => navigate('/reports')} className="p-4 bg-gray-50 hover:bg-purple-50 text-gray-700 hover:text-purple-700 rounded-xl flex flex-col items-center justify-center transition-colors border border-gray-100 hover:border-purple-200 group">
@@ -413,38 +458,8 @@ export default function Dashboard() {
                  </button>
               </div>
            </div>
-        </div>
 
-        {/* 4. Right Sidebar - Activity Summary */}
-        <div className="space-y-6">
-           <div className="bg-slate-900 text-white p-6 rounded-2xl shadow-lg relative overflow-hidden">
-              <div className="relative z-10">
-                 <h3 className="text-lg font-bold mb-4 flex items-center">
-                    <Sparkles size={18} className="text-yellow-400 mr-2" /> {labels.healthIndicators}
-                 </h3>
-                 <div className="space-y-4">
-                    <div>
-                       <div className="flex justify-between text-sm mb-1 text-slate-300">
-                          <span>{labels.repaymentRate}</span>
-                          <span className="text-white font-bold">94%</span>
-                       </div>
-                       <div className="w-full bg-slate-700 rounded-full h-2">
-                          <div className="bg-green-500 h-2 rounded-full" style={{ width: '94%' }}></div>
-                       </div>
-                    </div>
-                    <div>
-                       <div className="flex justify-between text-sm mb-1 text-slate-300">
-                          <span>{labels.attendanceRate}</span>
-                          <span className="text-white font-bold">{lastMeetingPercent}%</span>
-                       </div>
-                       <div className="w-full bg-slate-700 rounded-full h-2">
-                          <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${lastMeetingPercent}%` }}></div>
-                       </div>
-                    </div>
-                 </div>
-              </div>
-           </div>
-
+           {/* Schedule Sidebar */}
            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
               <h3 className="font-bold text-gray-800 mb-4">{labels.upcomingSchedule}</h3>
               <div className="space-y-4">
@@ -470,7 +485,6 @@ export default function Dashboard() {
                  )}
               </div>
            </div>
-        </div>
       </div>
     </div>
   );
