@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { GoogleGenAI } from "@google/genai";
-import { MessageCircle, X, Send, User, Bot, Loader2, Sparkles, HelpCircle } from 'lucide-react';
+import { MessageCircle, X, Send, User, Bot, Loader2, Sparkles, HelpCircle, Mic, MicOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { LABELS, HELP_CONTENT } from '../constants';
 import { useLocation } from 'react-router-dom';
@@ -39,6 +39,7 @@ export const HelpAssistant: React.FC<HelpAssistantProps> = ({ lang, activeGroupI
     }
   ]);
   const [isTyping, setIsTyping] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -46,6 +47,84 @@ export const HelpAssistant: React.FC<HelpAssistantProps> = ({ lang, activeGroupI
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
+
+  // Context Awareness Effect
+  useEffect(() => {
+    if (isOpen) {
+      let contextMsg = "";
+      const path = location.pathname;
+
+      if (path.includes('/loans')) {
+        contextMsg = lang === 'en' 
+          ? "Do you want to calculate loan interest or apply for a new loan?" 
+          : "Ese urashaka kubara inyungu y'inguzanyo cyangwa gusaba nshya?";
+      } else if (path.includes('/meeting')) {
+        contextMsg = lang === 'en' 
+          ? "I can help you understand how to record attendance and transactions in Meeting Mode." 
+          : "Nagufasha gusobanukirwa uko bandika ubwitabire n'amafaranga mu Nama.";
+      } else if (path.includes('/contributions')) {
+        contextMsg = lang === 'en' 
+          ? "Do you need help recording a new share deposit?" 
+          : "Ese ukeneye ubufasha bwo kwandika imigabane mishya?";
+      } else if (path.includes('/reports')) {
+        contextMsg = lang === 'en' 
+          ? "Looking for a specific report? I can explain what each report shows." 
+          : "Urashaka raporo yihariye? Nagusobanurira ibyo buri raporo yerekana.";
+      }
+
+      if (contextMsg) {
+        setMessages(prev => {
+          // Avoid duplicate context messages at the end
+          const lastMsg = prev[prev.length - 1];
+          if (lastMsg.text !== contextMsg) {
+             return [...prev, {
+               id: `ctx-${Date.now()}`,
+               sender: 'bot',
+               text: contextMsg,
+               timestamp: new Date()
+             }];
+          }
+          return prev;
+        });
+      }
+    }
+  }, [isOpen, location.pathname, lang]);
+
+  const handleVoiceInput = () => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      alert("Voice input is not supported in this browser.");
+      return;
+    }
+
+    if (isListening) return;
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    
+    // Attempt to set language based on app setting, fallback to browser default
+    recognition.lang = lang === 'rw' ? 'rw-RW' : 'en-US'; 
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    setIsListening(true);
+
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setInput(prev => (prev ? prev + ' ' : '') + transcript);
+      setIsListening(false);
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error("Speech recognition error", event.error);
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognition.start();
+  };
 
   const handleSend = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -180,11 +259,19 @@ export const HelpAssistant: React.FC<HelpAssistantProps> = ({ lang, activeGroupI
           {/* Input */}
           <form onSubmit={handleSend} className="p-3 border-t border-gray-100 bg-white rounded-b-2xl">
             <div className="flex gap-2">
+              <button 
+                type="button"
+                onClick={handleVoiceInput}
+                className={`p-2 rounded-full transition-colors ${isListening ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                title="Speak"
+              >
+                {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+              </button>
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder={labels.askMeAnything}
+                placeholder={isListening ? "Listening..." : labels.askMeAnything}
                 className="flex-1 px-4 py-2 border border-gray-200 rounded-full text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               />
               <button 

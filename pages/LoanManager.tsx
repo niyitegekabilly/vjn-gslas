@@ -53,7 +53,7 @@ export default function LoanManager() {
 
   // Filter State
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'DEFAULTED' | 'CLEARED'>('ALL');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'DEFAULTED' | 'CLEARED' | 'PENDING' | 'REJECTED'>('ALL');
 
   // Mobile Expanded State
   const [expandedLoanId, setExpandedLoanId] = useState<string | null>(null);
@@ -189,20 +189,18 @@ export default function LoanManager() {
 
   // Filter active loans
   const filteredActiveLoans = loans.filter(l => {
-    // Exclude pending and rejected from this list
-    if (l.status === LoanStatus.PENDING || l.status === LoanStatus.REJECTED) return false;
-
     // Search filter
     const nameMatch = getMemberName(l.memberId).toLowerCase().includes(searchTerm.toLowerCase());
     if (!nameMatch) return false;
 
     // Status filter
-    if (statusFilter === 'ALL') return true;
-    if (statusFilter === 'ACTIVE') return l.status === LoanStatus.ACTIVE;
-    if (statusFilter === 'DEFAULTED') return l.status === LoanStatus.DEFAULTED;
-    if (statusFilter === 'CLEARED') return l.status === LoanStatus.CLEARED;
+    if (statusFilter === 'ALL') {
+        // By default 'ALL' in portfolio view usually shows Active, Defaulted, Cleared. 
+        // Pending is usually separate.
+        return l.status !== LoanStatus.PENDING && l.status !== LoanStatus.REJECTED;
+    }
     
-    return true;
+    return l.status === statusFilter;
   });
   
   // Helper for modal
@@ -760,10 +758,12 @@ export default function LoanManager() {
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value as any)}
                 >
-                   <option value="ALL">All Active</option>
-                   <option value="ACTIVE">Current</option>
-                   <option value="DEFAULTED">Overdue</option>
+                   <option value="ALL">All Portfolio</option>
+                   <option value="ACTIVE">Active</option>
+                   <option value="PENDING">Pending Approval</option>
+                   <option value="DEFAULTED">Defaulted / Overdue</option>
                    <option value="CLEARED">Cleared History</option>
+                   <option value="REJECTED">Rejected</option>
                 </select>
              </div>
           </div>
@@ -846,7 +846,7 @@ export default function LoanManager() {
                                 </div>
                             )}
 
-                            {loan.status !== LoanStatus.CLEARED && canEdit && (
+                            {(loan.status === LoanStatus.ACTIVE || loan.status === LoanStatus.DEFAULTED) && canEdit && (
                                 <button 
                                     onClick={() => openRepayModal(loan)}
                                     className="w-full mt-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium flex justify-center items-center active:bg-blue-700"
@@ -928,7 +928,7 @@ export default function LoanManager() {
                           <button onClick={() => setViewingLoan(loan)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded" title="View Details">
                               <Eye size={16} />
                           </button>
-                          {loan.status !== LoanStatus.CLEARED && canEdit && (
+                          {(loan.status === LoanStatus.ACTIVE || loan.status === LoanStatus.DEFAULTED) && canEdit && (
                             <button 
                               onClick={() => openRepayModal(loan)}
                               className="p-2 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition-colors"

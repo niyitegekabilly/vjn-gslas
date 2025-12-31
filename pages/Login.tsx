@@ -122,32 +122,43 @@ export default function Login() {
       {/* Deep Blue Overlay */}
       <div className="absolute inset-0 bg-blue-950/60 backdrop-blur-[3px]"></div>
 
-      {/* Language Switcher */}
-      <div className="absolute top-4 right-4 flex gap-2 z-10">
-         <button 
-            onClick={() => setLang('en')} 
-            className={`px-3 py-1 rounded-lg text-xs font-bold shadow-sm transition-all border ${
-                lang === 'en' 
-                ? 'bg-blue-600 border-blue-500 text-white shadow-blue-500/30' 
-                : 'bg-white/10 border-white/20 text-blue-100 hover:bg-white/20 backdrop-blur-md'
-            }`}
-         >
-            EN
-         </button>
-         <button 
-            onClick={() => setLang('rw')} 
-            className={`px-3 py-1 rounded-lg text-xs font-bold shadow-sm transition-all border ${
-                lang === 'rw' 
-                ? 'bg-blue-600 border-blue-500 text-white shadow-blue-500/30' 
-                : 'bg-white/10 border-white/20 text-blue-100 hover:bg-white/20 backdrop-blur-md'
-            }`}
-         >
-            RW
-         </button>
-      </div>
-
       {/* Main Login Card - 50% Transparency */}
       <div className="max-w-md w-full bg-white/50 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/40 overflow-hidden relative z-10 animate-in fade-in zoom-in-95 duration-500">
+        
+        {/* Language Switcher moved inside card */}
+        <div className="absolute top-4 right-4 flex gap-2 z-20">
+           <button 
+              onClick={() => setLang('en')} 
+              className={`p-1.5 rounded-md transition-all border ${
+                  lang === 'en' 
+                  ? 'bg-blue-600 border-blue-500 shadow-blue-500/30 shadow-md ring-2 ring-blue-400/50 scale-110' 
+                  : 'bg-white/40 border-white/30 hover:bg-white/60 backdrop-blur-sm grayscale hover:grayscale-0'
+              }`}
+              title="English"
+           >
+              <img 
+                src="https://flagcdn.com/w40/gb.png" 
+                alt="English" 
+                className="w-6 h-4 object-cover rounded-[2px] shadow-sm"
+              />
+           </button>
+           <button 
+              onClick={() => setLang('rw')} 
+              className={`p-1.5 rounded-md transition-all border ${
+                  lang === 'rw' 
+                  ? 'bg-blue-600 border-blue-500 shadow-blue-500/30 shadow-md ring-2 ring-blue-400/50 scale-110' 
+                  : 'bg-white/40 border-white/30 hover:bg-white/60 backdrop-blur-sm grayscale hover:grayscale-0'
+              }`}
+              title="Kinyarwanda"
+           >
+              <img 
+                src="https://flagcdn.com/w40/rw.png" 
+                alt="Kinyarwanda" 
+                className="w-6 h-4 object-cover rounded-[2px] shadow-sm"
+              />
+           </button>
+        </div>
+
         <div className="p-8 md:p-10">
           <div className="flex justify-center mb-8">
             <div className="bg-white/20 p-3 rounded-full backdrop-blur-md border border-white/30 shadow-2xl ring-1 ring-white/40">
