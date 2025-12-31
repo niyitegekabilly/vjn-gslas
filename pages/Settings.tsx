@@ -9,6 +9,7 @@ import { UserRole } from '../types';
 import { Settings as SettingsIcon, Globe, Shield, Database, Trash2, Upload, Download, X, User, Lock, Copy, Check, Loader2, AlertTriangle, LogOut, Sparkles } from 'lucide-react';
 import { resetDatabase } from '../backend/db';
 import { RLS_POLICIES_SQL, TABLE_SCHEMA_SQL } from '../backend/schema';
+import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog';
 
 export default function Settings() {
   const { lang, setLang, showHelpAssistant, setShowHelpAssistant } = useContext(AppContext);
@@ -21,6 +22,10 @@ export default function Settings() {
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
   const [wiping, setWiping] = useState(false);
+
+  // Dialog States
+  const [showImportConfirm, setShowImportConfirm] = useState(false);
+  const [showWipeConfirm, setShowWipeConfirm] = useState(false);
 
   const handleExport = async () => {
     setExporting(true);
@@ -43,17 +48,18 @@ export default function Settings() {
   };
 
   const handleImportClick = () => {
+    // Show dialog first
+    setShowImportConfirm(true);
+  };
+
+  const proceedImport = () => {
+    setShowImportConfirm(false);
     fileInputRef.current?.click();
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    if(!window.confirm("WARNING: Importing data will overwrite existing records. Ensure you have a backup. Continue?")) {
-        e.target.value = '';
-        return;
-    }
 
     setImporting(true);
     const reader = new FileReader();
@@ -80,9 +86,6 @@ export default function Settings() {
   };
 
   const handleRemoteWipe = async () => {
-    if(!window.confirm("CRITICAL WARNING: This will permanently DELETE ALL business data (Members, Groups, Loans, etc) from the server. Users will be preserved. This cannot be undone. Are you absolutely sure?")) {
-        return;
-    }
     setWiping(true);
     try {
         const res = await api.wipeRemoteDatabase();
@@ -96,6 +99,7 @@ export default function Settings() {
         alert("Error: " + e.message);
     } finally {
         setWiping(false);
+        setShowWipeConfirm(false);
     }
   };
 
@@ -292,7 +296,7 @@ export default function Settings() {
                 </div>
             </div>
             <button 
-                onClick={handleRemoteWipe}
+                onClick={() => setShowWipeConfirm(true)}
                 disabled={wiping}
                 className="px-4 py-2 bg-red-600 border border-red-700 text-white rounded-lg text-sm font-bold hover:bg-red-700 shadow-sm disabled:opacity-50 flex items-center"
             >
@@ -302,6 +306,29 @@ export default function Settings() {
             </div>
         )}
       </div>
+
+      {/* Import Confirm Dialog */}
+      <DeleteConfirmDialog 
+        isOpen={showImportConfirm}
+        title="Import Database?"
+        description="WARNING: Importing data will overwrite existing records. Ensure you have a backup before proceeding."
+        onConfirm={proceedImport}
+        onCancel={() => setShowImportConfirm(false)}
+        confirmLabel="Proceed Import"
+        variant="warning"
+      />
+
+      {/* Wipe Confirm Dialog */}
+      <DeleteConfirmDialog 
+        isOpen={showWipeConfirm}
+        title="Factory Reset System?"
+        description="CRITICAL WARNING: This will permanently DELETE ALL business data (Members, Groups, Loans, etc) from the server. Users will be preserved. This cannot be undone."
+        onConfirm={handleRemoteWipe}
+        onCancel={() => setShowWipeConfirm(false)}
+        isDeleting={wiping}
+        confirmLabel="Permanently Wipe"
+        variant="danger"
+      />
     </div>
   );
 }

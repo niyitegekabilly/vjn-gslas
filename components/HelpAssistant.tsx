@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { GoogleGenAI } from "@google/genai";
-import { MessageCircle, X, Send, User, Bot, Loader2, Sparkles, HelpCircle, Mic, MicOff, Power } from 'lucide-react';
+import { MessageCircle, X, Send, User, Bot, Loader2, Sparkles, HelpCircle, Mic, MicOff, Power, GripHorizontal, Check } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { LABELS, HELP_CONTENT } from '../constants';
 import { useLocation } from 'react-router-dom';
@@ -42,12 +42,74 @@ export const HelpAssistant: React.FC<HelpAssistantProps> = ({ lang, activeGroupI
   const [isTyping, setIsTyping] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Drag State
+  const [position, setPosition] = useState({ x: window.innerWidth - 350, y: window.innerHeight - 600 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [hasMoved, setHasMoved] = useState(false);
+  
+  // Confirmation State
+  const [confirmTurnOff, setConfirmTurnOff] = useState(false);
 
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
+
+  // Handle Window Resize to keep in bounds
+  useEffect(() => {
+    const handleResize = () => {
+       setPosition(prev => ({
+         x: Math.min(prev.x, window.innerWidth - 350),
+         y: Math.min(prev.y, window.innerHeight - 100)
+       }));
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Drag Handlers
+  const handleMouseDown = (e: React.MouseEvent) => {
+    // Only drag from specific handles
+    setIsDragging(true);
+    setHasMoved(false);
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setDragOffset({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
+    });
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isDragging) {
+        setHasMoved(true);
+        const newX = e.clientX - dragOffset.x;
+        const newY = e.clientY - dragOffset.y;
+        
+        // Boundaries
+        const boundedX = Math.max(0, Math.min(window.innerWidth - 50, newX));
+        const boundedY = Math.max(0, Math.min(window.innerHeight - 50, newY));
+
+        setPosition({ x: boundedX, y: boundedY });
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, dragOffset]);
 
   // Context Awareness Effect
   useEffect(() => {
@@ -93,7 +155,8 @@ export const HelpAssistant: React.FC<HelpAssistantProps> = ({ lang, activeGroupI
 
   const handleVoiceInput = () => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      alert("Voice input is not supported in this browser.");
+      // Use simple alert, might be blocked but less critical than confirm
+      console.warn("Voice input not supported");
       return;
     }
 
@@ -203,22 +266,47 @@ export const HelpAssistant: React.FC<HelpAssistantProps> = ({ lang, activeGroupI
     }
   };
 
+  // Safe click handler that distinguishes drag vs click
+  const handleToggle = () => {
+    if (!hasMoved) {
+      setIsOpen(true);
+    }
+  };
+
   return (
-    <div className="fixed bottom-6 right-6 z-50 print:hidden">
+    <div 
+      className="fixed z-50 print:hidden transition-all duration-75 ease-linear"
+      style={{ 
+        left: isOpen ? undefined : position.x, // Use fixed positioning when closed for dragging bubble
+        top: isOpen ? undefined : position.y,
+        bottom: isOpen ? '1.5rem' : undefined, // Reset to bottom/right when open (or make draggable window too)
+        right: isOpen ? '1.5rem' : undefined
+      }}
+    >
       {!isOpen && (
-        <button 
-          onClick={() => setIsOpen(true)}
-          className="bg-slate-900 hover:bg-slate-800 text-white p-4 rounded-full shadow-lg transition-transform hover:scale-105 flex items-center gap-2"
-        >
-          <Sparkles size={24} className="text-yellow-400" />
-          <span className="font-bold pr-1">{labels.helpAssistant}</span>
-        </button>
+        <div onMouseDown={handleMouseDown} style={{ cursor: isDragging ? 'grabbing' : 'grab' }}>
+          <button 
+            onClick={handleToggle}
+            className="bg-slate-900 hover:bg-slate-800 text-white p-4 rounded-full shadow-lg transition-transform hover:scale-105 flex items-center gap-2 select-none"
+          >
+            <Sparkles size={24} className="text-yellow-400" />
+            <span className="font-bold pr-1">{labels.helpAssistant}</span>
+          </button>
+        </div>
       )}
 
       {isOpen && (
         <div className="bg-white w-80 sm:w-96 h-[500px] rounded-2xl shadow-2xl flex flex-col border border-gray-200 animate-in slide-in-from-bottom-5 duration-300">
-          {/* Header */}
-          <div className="bg-slate-900 text-white p-4 rounded-t-2xl flex justify-between items-center">
+          {/* Header - Now Draggable Too */}
+          <div 
+            className="bg-slate-900 text-white p-4 rounded-t-2xl flex justify-between items-center cursor-grab active:cursor-grabbing"
+            onMouseDown={e => {
+                // If implementing window drag, we would need logic here. 
+                // For now, let's keep the window fixed at bottom-right when open to simplify UX,
+                // or users can drag the bubble to preferred spot then open it? 
+                // Let's assume fixed position when open is standard for chatbots.
+            }}
+          >
             <div className="flex items-center gap-3">
               <div className="bg-slate-700 p-2 rounded-full">
                 <Bot size={20} className="text-blue-300" />
@@ -228,19 +316,23 @@ export const HelpAssistant: React.FC<HelpAssistantProps> = ({ lang, activeGroupI
                 <p className="text-xs text-slate-400">AI Powered Guide</p>
               </div>
             </div>
-            <div className="flex gap-1">
+            <div className="flex gap-2 items-center">
               {setShowHelpAssistant && (
-                <button 
-                  onClick={() => {
-                    if(window.confirm(lang === 'en' ? "Turn off Help Assistant? You can re-enable it in your Profile." : "Gufunga ubufasha? Wabigarura muri Profile.")) {
-                      setShowHelpAssistant(false);
-                    }
-                  }}
-                  className="p-1 text-slate-400 hover:text-red-400 rounded-full hover:bg-white/10 transition-colors"
-                  title="Turn Off Assistant"
-                >
-                  <Power size={18} />
-                </button>
+                confirmTurnOff ? (
+                    <div className="flex items-center bg-slate-800 rounded-full px-2 py-0.5 animate-in fade-in slide-in-from-right-2">
+                        <span className="text-[10px] text-slate-300 mr-2 whitespace-nowrap">Sure?</span>
+                        <button onClick={() => setShowHelpAssistant(false)} className="p-1 text-green-400 hover:bg-white/10 rounded-full" title="Confirm"><Check size={14}/></button>
+                        <button onClick={() => setConfirmTurnOff(false)} className="p-1 text-red-400 hover:bg-white/10 rounded-full" title="Cancel"><X size={14}/></button>
+                    </div>
+                ) : (
+                    <button 
+                      onClick={() => setConfirmTurnOff(true)}
+                      className="p-1 text-slate-400 hover:text-red-400 rounded-full hover:bg-white/10 transition-colors"
+                      title="Turn Off Assistant"
+                    >
+                      <Power size={18} />
+                    </button>
+                )
               )}
               <button onClick={() => setIsOpen(false)} className="p-1 text-slate-400 hover:text-white rounded-full hover:bg-white/10 transition-colors">
                 <X size={20} />

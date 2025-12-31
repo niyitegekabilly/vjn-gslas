@@ -33,6 +33,7 @@ const checkAccess = (groupId?: string) => {
 export const api = {
   // Users
   getUsers: async () => { await delay(); return service.getUsers(); },
+  getUser: async (id: string) => { await delay(); return service.getUser(id); },
   createUser: async (user: Partial<User>, creatorId: string) => { await delay(); return service.createUser(user, creatorId); },
   updateUser: async (id: string, data: Partial<User>) => { await delay(); return service.updateUser(id, data); },
   login: async (email: string, pass: string) => { await delay(); return service.login(email, pass); },

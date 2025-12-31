@@ -15,6 +15,8 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, 
   PieChart as RePieChart, Pie, Cell
 } from 'recharts';
+import { useAuth } from '../contexts/AuthContext';
+import { generatePDFReport } from '../services/pdfGenerator';
 
 type ReportType = 'SAVINGS_SUMMARY' | 'LOAN_PORTFOLIO' | 'CASH_FLOW' | 'ATTENDANCE_REGISTER' | 'EXPENSE_REPORT' | 'SHARE_OUT' | 'FINE_REPORT' | 'MEMBER_FINANCIAL_SUMMARY';
 
@@ -41,6 +43,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'
 
 export default function Reports() {
   const { activeGroupId, lang, groups } = useContext(AppContext);
+  const { user } = useAuth();
   const labels = LABELS[lang];
   const group = groups.find(g => g.id === activeGroupId);
   const location = useLocation();
@@ -100,7 +103,20 @@ export default function Reports() {
   }, [activeGroupId, activeReport, filters]);
 
   const handlePrint = () => {
-    window.print();
+    if (!data || !group) return;
+    
+    // @ts-ignore
+    const title = labels[REPORT_CONFIGS.find(r => r.id === activeReport)?.titleKey] || activeReport;
+    
+    generatePDFReport({
+        reportType: activeReport,
+        reportTitle: title,
+        group: group,
+        user: user,
+        cycle: cycle,
+        data: data,
+        filters: filters
+    });
   };
 
   const exportCSV = () => {

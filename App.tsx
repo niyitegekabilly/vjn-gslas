@@ -5,7 +5,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { GSLAGroup, UserRole } from './types';
 import { api } from './api/client';
 import { MENU_ITEMS, LABELS } from './constants';
-import { Menu, X, LogOut, Globe, Bell, User as UserIcon } from 'lucide-react';
+import { Menu, X, LogOut, Globe, Bell, User as UserIcon, Loader2 } from 'lucide-react';
 
 // Pages
 import Login from './pages/Login';
@@ -53,11 +53,20 @@ export const AppContext = createContext<AppContextType>({
 });
 
 const Layout = ({ children }: { children?: React.ReactNode }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading } = useAuth();
   const { lang, setLang, activeGroupId, setActiveGroupId, groups, showHelpAssistant, setShowHelpAssistant } = React.useContext(AppContext);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const labels = LABELS[lang];
+
+  // Prevent redirect loop during session restoration
+  if (isLoading) {
+     return (
+       <div className="h-screen w-full flex items-center justify-center bg-gray-50">
+          <Loader2 className="animate-spin text-blue-600" size={40} />
+       </div>
+     );
+  }
 
   // Role Based Menu Filtering
   const isMenuVisible = (itemId: string): boolean => {

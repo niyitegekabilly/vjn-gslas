@@ -26,17 +26,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check local storage for session (Mock session persistence)
-    const storedUser = localStorage.getItem('vjn_session');
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (e) {
-        console.error("Failed to parse user session", e);
-        localStorage.removeItem('vjn_session'); // Clear corrupt data
+    const restoreSession = async () => {
+      const storedSession = localStorage.getItem('vjn_session');
+      if (storedSession) {
+        try {
+          // Parse user object or token from storage
+          const parsed = JSON.parse(storedSession);
+          // If we have a user ID, validate it against the server to ensure session is fresh
+          if (parsed && parsed.id) {
+             // @ts-ignore
+             const freshUser = await api.getUser(parsed.id);
+             // Ensure user exists and is active
+             if (freshUser && freshUser.status === 'ACTIVE') {
+               setUser(freshUser);
+               // Update cache with fresh data
+               localStorage.setItem('vjn_session', JSON.stringify(freshUser));
+             } else {
+               console.warn("Session invalid or user inactive");
+               localStorage.removeItem('vjn_session');
+             }
+          }
+        } catch (e) {
+          console.error("Session restore failed", e);
+          localStorage.removeItem('vjn_session'); // Clear corrupt data
+        }
       }
-    }
-    setIsLoading(false);
+      setIsLoading(false);
+    };
+    
+    restoreSession();
   }, []);
 
   const login = async (email: string, pass: string): Promise<LoginResponse> => {

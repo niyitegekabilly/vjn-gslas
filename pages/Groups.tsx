@@ -8,6 +8,7 @@ import { GSLAGroup, GroupStatus, MeetingFrequency, Member, AuditRecord, UserRole
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { GroupForm } from '../components/GroupForm';
+import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog';
 
 type ViewMode = 'LIST' | 'CREATE' | 'PROFILE' | 'EDIT';
 
@@ -18,6 +19,10 @@ export default function Groups() {
   const navigate = useNavigate();
   const [view, setView] = useState<ViewMode>('LIST');
   const [selectedGroup, setSelectedGroup] = useState<GSLAGroup | null>(null);
+
+  // Dialog State
+  const [deleteGroup, setDeleteGroup] = useState<GSLAGroup | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Filter State
   const [searchTerm, setSearchTerm] = useState('');
@@ -45,18 +50,21 @@ export default function Groups() {
     navigate('/members');
   };
 
-  const handleDeleteGroup = async (group: GSLAGroup) => {
-    const confirmMsg = lang === 'rw' 
-        ? `Uragirango ufunge itsinda "${group.name}"? Ibi bizashyira itsinda muri 'CLOSED'.`
-        : `Are you sure you want to close the group "${group.name}"? This will mark it as CLOSED (Soft Delete).`;
-        
-    if (window.confirm(confirmMsg)) {
-       try {
-         await api.updateGroup(group.id, { status: GroupStatus.CLOSED }, "Group Closed via List Action", user?.fullName || 'Admin');
-         refreshApp();
-       } catch (e: any) {
-         alert(e.message);
-       }
+  const confirmDeleteGroup = (group: GSLAGroup) => {
+    setDeleteGroup(group);
+  };
+
+  const handleDeleteGroup = async () => {
+    if (!deleteGroup) return;
+    setIsDeleting(true);
+    try {
+      await api.updateGroup(deleteGroup.id, { status: GroupStatus.CLOSED }, "Group Closed via List Action", user?.fullName || 'Admin');
+      refreshApp();
+      setDeleteGroup(null); // Close dialog
+    } catch (e: any) {
+      alert(e.message);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -78,7 +86,7 @@ export default function Groups() {
           onSelect={handleGroupClick}
           onEdit={(g: GSLAGroup) => { setSelectedGroup(g); setView('EDIT'); }}
           onManageMembers={handleManageMembers}
-          onDelete={handleDeleteGroup}
+          onDelete={confirmDeleteGroup}
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
           statusFilter={statusFilter}
@@ -116,6 +124,24 @@ export default function Groups() {
           labels={labels}
         />
       )}
+
+      {/* Delete Dialog */}
+      <DeleteConfirmDialog 
+        isOpen={!!deleteGroup}
+        title="Close Group?"
+        description={
+          <span>
+            Are you sure you want to close <strong>{deleteGroup?.name}</strong>?
+            <br/><br/>
+            This action will mark the group as 'CLOSED'. Data is preserved for auditing but operations will be suspended.
+          </span>
+        }
+        onConfirm={handleDeleteGroup}
+        onCancel={() => setDeleteGroup(null)}
+        isDeleting={isDeleting}
+        confirmLabel="Close Group"
+        variant="danger"
+      />
     </div>
   );
 }
@@ -453,7 +479,7 @@ function EditGroupForm({ group, onCancel, onSuccess, labels }: { group: GSLAGrou
       </div>
       
       <form onSubmit={handleSubmit} className="p-6 space-y-8">
-        
+        {/* ... form content remains same ... */}
         {/* Section 1: Identification & Location */}
         <div className="space-y-4">
           <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wide flex items-center border-b border-gray-100 pb-2">
@@ -699,6 +725,7 @@ function EditGroupForm({ group, onCancel, onSuccess, labels }: { group: GSLAGrou
 }
 
 function GroupProfile({ group, onBack, onEdit, onChangeGroup, labels }: { group: GSLAGroup, onBack: () => void, onEdit: () => void, onChangeGroup: () => void, labels: any }) {
+  // ... existing implementation ...
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const { setActiveGroupId } = useContext(AppContext);

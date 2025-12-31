@@ -24,6 +24,10 @@ export const getUsers = async () => {
     return handleResponse(supabase.from('users').select('*'));
 };
 
+export const getUser = async (id: string) => {
+    return handleResponse(supabase.from('users').select('*').eq('id', id).single());
+};
+
 export const createUser = async (userData: Partial<User>, creatorId: string) => {
     const newUser = {
         id: `u_${Date.now()}`,
