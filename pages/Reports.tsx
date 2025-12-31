@@ -8,7 +8,7 @@ import { Member, Cycle } from '../types';
 import { 
   FileText, Download, Printer, Filter, Calendar, Users, 
   BarChart2, PieChart, TrendingUp, AlertCircle, Loader2, 
-  ChevronRight, Lock, Wallet, ArrowUpRight, ArrowDownRight, LayoutTemplate
+  ChevronRight, Lock, Wallet, ArrowUpRight, ArrowDownRight, LayoutTemplate, CheckCircle
 } from 'lucide-react';
 import { Skeleton, TableRowSkeleton } from '../components/Skeleton';
 import { 
@@ -50,6 +50,7 @@ export default function Reports() {
   const [loading, setLoading] = useState(false);
   const [members, setMembers] = useState<Member[]>([]);
   const [cycle, setCycle] = useState<Cycle | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Filters
   const [filters, setFilters] = useState({
@@ -61,8 +62,16 @@ export default function Reports() {
 
   // Handle Navigation State
   useEffect(() => {
-    if (location.state && location.state.reportId) {
-      setActiveReport(location.state.reportId);
+    if (location.state) {
+      if (location.state.reportId) {
+        setActiveReport(location.state.reportId);
+      }
+      if (location.state.successMessage) {
+        setSuccessMessage(location.state.successMessage);
+        // Clear message after 5 seconds
+        setTimeout(() => setSuccessMessage(null), 5000);
+      }
+      // Clear location state to prevent reappearing on refresh (optional, but good practice)
       window.history.replaceState({}, document.title);
     }
   }, [location]);
@@ -361,8 +370,18 @@ export default function Reports() {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-100px)] print:h-auto print:block">
+    <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-100px)] print:h-auto print:block relative">
       
+      {/* Toast Notification */}
+      {successMessage && (
+        <div className="absolute top-0 right-0 left-0 z-50 p-4 flex justify-center animate-in fade-in slide-in-from-top-4 duration-500 pointer-events-none">
+            <div className="bg-green-600 text-white px-6 py-3 rounded-lg shadow-xl flex items-center gap-3">
+                <CheckCircle size={24} />
+                <span className="font-bold">{successMessage}</span>
+            </div>
+        </div>
+      )}
+
       {/* SIDEBAR NAVIGATION */}
       <div className="w-full lg:w-64 flex-shrink-0 bg-white rounded-xl shadow-sm border border-gray-200 overflow-y-auto print:hidden flex flex-col">
         <div className="p-4 border-b border-gray-100">

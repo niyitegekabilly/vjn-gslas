@@ -300,6 +300,7 @@ export const LABELS = {
     startNewSeason: "Start New Season",
     
     // Reports
+    reports: "Reports",
     reportTypes: "Report Types",
     financial: "Financial",
     operational: "Operational",
@@ -648,6 +649,7 @@ export const LABELS = {
     startNewSeason: "Tangira Igihembwe Gishya",
 
     // Reports
+    reports: "Raporo",
     reportTypes: "Ubwoko bwa Raporo",
     financial: "Imari",
     operational: "Ibikorwa",

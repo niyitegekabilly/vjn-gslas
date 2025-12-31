@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { TableRowSkeleton } from '../components/Skeleton';
 import { SyncStatus } from '../components/SyncStatus';
+import { useNavigate } from 'react-router-dom';
 
 interface MeetingEntry {
   memberId: string;
@@ -26,6 +27,7 @@ interface MeetingEntry {
 export default function MeetingMode() {
   const { lang, activeGroupId, groups, refreshApp, isOnline } = useContext(AppContext);
   const labels = LABELS[lang];
+  const navigate = useNavigate();
   
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [entries, setEntries] = useState<MeetingEntry[]>([]);
@@ -107,7 +109,13 @@ export default function MeetingMode() {
       setSubmitting(false);
       setSaved(true);
       refreshApp(); // Update global context data
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      // Redirect to reports page
+      navigate('/reports', { 
+        state: { 
+          reportId: 'SAVINGS_SUMMARY', 
+          successMessage: 'Meeting saved successfully. Review the report below.' 
+        } 
+      });
     });
   };
 
@@ -160,6 +168,8 @@ export default function MeetingMode() {
     );
   }
 
+  // Not rendering success view anymore as we redirect, 
+  // but keeping it in code in case redirection is removed later or fails.
   if (saved) {
     return (
       <div className="flex flex-col items-center justify-center h-96 bg-white rounded-xl shadow-sm animate-in fade-in zoom-in-95 duration-300">
@@ -170,23 +180,11 @@ export default function MeetingMode() {
         <p className="text-gray-500 mb-8 text-center max-w-md">{labels.meetingSavedDesc}</p>
         
         <div className="flex gap-4">
-            <button
-                onClick={handleBulkSMS}
-                disabled={sendingSMS || !isOnline}
-                className={`px-6 py-3 rounded-xl font-medium transition-transform hover:scale-105 flex items-center shadow-lg ${
-                  isOnline 
-                    ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-100' 
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                }`}
-            >
-                {sendingSMS ? <Loader2 className="animate-spin mr-2" size={20}/> : <MessageSquare className="mr-2" size={20}/>}
-                Send SMS Receipts
-            </button>
             <button 
-            onClick={handleStartNew}
+            onClick={() => navigate('/reports')}
             className="px-8 py-3 bg-slate-900 text-white rounded-xl hover:bg-slate-800 font-medium transition-transform hover:scale-105"
             >
-            {labels.startNewMeeting}
+            View Reports
             </button>
         </div>
       </div>
@@ -431,7 +429,7 @@ export default function MeetingMode() {
       </div>
 
       {/* Sticky Footer Navigation */}
-      <div className="fixed bottom-0 left-0 lg:left-64 right-0 p-4 bg-white border-t border-gray-200 shadow-lg z-30 flex justify-between items-center print:hidden">
+      <div className="fixed bottom-0 left-0 lg:left-64 right-0 p-4 pr-24 bg-white border-t border-gray-200 shadow-lg z-30 flex justify-between items-center print:hidden">
          <button 
            onClick={prevStep}
            disabled={step === 1 || submitting}

@@ -36,6 +36,8 @@ interface AppContextType {
   groups: GSLAGroup[];
   refreshApp: () => void;
   isOnline: boolean;
+  showHelpAssistant: boolean;
+  setShowHelpAssistant: (show: boolean) => void;
 }
 
 export const AppContext = createContext<AppContextType>({
@@ -45,12 +47,14 @@ export const AppContext = createContext<AppContextType>({
   setActiveGroupId: () => {},
   groups: [],
   refreshApp: () => {},
-  isOnline: true
+  isOnline: true,
+  showHelpAssistant: true,
+  setShowHelpAssistant: () => {}
 });
 
 const Layout = ({ children }: { children?: React.ReactNode }) => {
   const { user, logout } = useAuth();
-  const { lang, setLang, activeGroupId, setActiveGroupId, groups } = React.useContext(AppContext);
+  const { lang, setLang, activeGroupId, setActiveGroupId, groups, showHelpAssistant, setShowHelpAssistant } = React.useContext(AppContext);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const labels = LABELS[lang];
@@ -133,7 +137,7 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
           <div className="flex items-center gap-3">
              <div className="bg-white p-1 rounded-md shadow-sm">
                 <img 
-                  src="https://cdn-icons-png.flaticon.com/512/2750/2750657.png" 
+                  src="https://odiukwlqorbjuipntmzj.supabase.co/storage/v1/object/public/images/logo.png" 
                   alt="VJN Logo" 
                   className="w-6 h-6 object-contain" 
                 />
@@ -188,7 +192,7 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
             </button>
             <div className="lg:hidden flex items-center gap-2">
                <img 
-                  src="https://cdn-icons-png.flaticon.com/512/2750/2750657.png" 
+                  src="https://odiukwlqorbjuipntmzj.supabase.co/storage/v1/object/public/images/logo.png" 
                   alt="VJN Logo" 
                   className="w-6 h-6 object-contain" 
                />
@@ -204,6 +208,7 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
                   value={activeGroupId} 
                   onChange={(e) => setActiveGroupId(e.target.value)}
                   className="bg-transparent text-sm font-semibold text-gray-800 outline-none cursor-pointer w-48"
+                  disabled={groups.length <= 1}
                 >
                    {canSeeAllGroups && <option value="ALL">All Groups (Aggregate)</option>}
                    {groups.map(g => (
@@ -213,10 +218,21 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
              </div>
 
              <div className="flex items-center gap-3">
-                <button onClick={() => setLang(lang === 'en' ? 'rw' : 'en')} className="p-2 text-gray-500 hover:bg-gray-100 rounded-full" title={labels.switchLanguage}>
-                   <Globe size={20} />
-                   <span className="sr-only">Language</span>
+                <button 
+                  onClick={() => setLang(lang === 'en' ? 'rw' : 'en')} 
+                  className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-gray-100 transition-colors border border-transparent hover:border-gray-200"
+                  title={labels.switchLanguage}
+                >
+                   <img 
+                     src={lang === 'en' ? "https://flagcdn.com/w40/gb.png" : "https://flagcdn.com/w40/rw.png"} 
+                     alt="Language" 
+                     className="w-6 h-4 object-cover rounded-[2px] shadow-sm"
+                   />
+                   <span className="text-sm font-semibold text-gray-700">{lang === 'en' ? 'EN' : 'RW'}</span>
                 </button>
+                
+                <div className="h-6 w-px bg-gray-200 mx-1"></div>
+
                 <button 
                   className="p-2 text-gray-500 hover:bg-gray-100 rounded-full relative"
                   onClick={() => {}} // Navigate to notifications or open dropdown
@@ -224,10 +240,6 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
                    <Bell size={20} />
                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
                 </button>
-                <div className="h-8 w-px bg-gray-200 mx-1"></div>
-                <div className="font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full text-xs">
-                   {lang.toUpperCase()}
-                </div>
              </div>
           </div>
         </header>
@@ -253,18 +265,28 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
         </main>
         
         {/* Helper */}
-        <HelpAssistant lang={lang} activeGroupId={activeGroupId} groups={groups} />
+        {showHelpAssistant && <HelpAssistant lang={lang} activeGroupId={activeGroupId} groups={groups} setShowHelpAssistant={setShowHelpAssistant} />}
       </div>
     </div>
   );
 };
 
 const AppContent = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [lang, setLang] = useState<'en' | 'rw'>('en');
   const [activeGroupId, setActiveGroupId] = useState('');
   const [groups, setGroups] = useState<GSLAGroup[]>([]);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  
+  // Persistent Setting for Help Assistant
+  const [showHelpAssistant, setShowHelpAssistantState] = useState(() => {
+    return localStorage.getItem('vjn_show_help') !== 'false';
+  });
+
+  const setShowHelpAssistant = (show: boolean) => {
+    setShowHelpAssistantState(show);
+    localStorage.setItem('vjn_show_help', String(show));
+  };
 
   useEffect(() => {
     const handleStatusChange = () => setIsOnline(navigator.onLine);
@@ -278,21 +300,35 @@ const AppContent = () => {
 
   const refreshApp = () => {
     api.getGroups().then(data => {
-      setGroups(data);
-      if (data.length > 0 && !activeGroupId) {
-        // Prefer 'g1' if available, otherwise first
-        const defaultGroup = data.find(g => g.id === 'g1') || data[0];
-        setActiveGroupId(defaultGroup.id);
+      let visibleGroups = data;
+
+      // Security: Restrict Group Leader to their managed group
+      if (user?.role === UserRole.GROUP_LEADER && user.managedGroupId) {
+         visibleGroups = data.filter(g => g.id === user.managedGroupId);
+      }
+
+      setGroups(visibleGroups);
+      
+      if (visibleGroups.length > 0) {
+        // If the current active group is no longer visible (or not set), default to the first available one
+        const isActiveValid = activeGroupId && visibleGroups.find(g => g.id === activeGroupId);
+        if (!isActiveValid) {
+            // Prefer 'g1' if available, otherwise first
+            const defaultGroup = visibleGroups.find(g => g.id === 'g1') || visibleGroups[0];
+            setActiveGroupId(defaultGroup.id);
+        }
+      } else {
+         setActiveGroupId('');
       }
     });
   };
 
   useEffect(() => {
     if (isAuthenticated) refreshApp();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user]);
 
   return (
-    <AppContext.Provider value={{ lang, setLang, activeGroupId, setActiveGroupId, groups, refreshApp, isOnline }}>
+    <AppContext.Provider value={{ lang, setLang, activeGroupId, setActiveGroupId, groups, refreshApp, isOnline, showHelpAssistant, setShowHelpAssistant }}>
       <Router>
         <Routes>
           <Route path="/login" element={<Login />} />

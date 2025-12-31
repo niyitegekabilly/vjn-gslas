@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { GoogleGenAI } from "@google/genai";
-import { MessageCircle, X, Send, User, Bot, Loader2, Sparkles, HelpCircle, Mic, MicOff } from 'lucide-react';
+import { MessageCircle, X, Send, User, Bot, Loader2, Sparkles, HelpCircle, Mic, MicOff, Power } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { LABELS, HELP_CONTENT } from '../constants';
 import { useLocation } from 'react-router-dom';
@@ -18,9 +18,10 @@ interface HelpAssistantProps {
   lang: 'en' | 'rw';
   activeGroupId: string;
   groups: GSLAGroup[];
+  setShowHelpAssistant?: (show: boolean) => void;
 }
 
-export const HelpAssistant: React.FC<HelpAssistantProps> = ({ lang, activeGroupId, groups }) => {
+export const HelpAssistant: React.FC<HelpAssistantProps> = ({ lang, activeGroupId, groups, setShowHelpAssistant }) => {
   const { user } = useAuth();
   const labels = LABELS[lang];
   const location = useLocation();
@@ -227,9 +228,24 @@ export const HelpAssistant: React.FC<HelpAssistantProps> = ({ lang, activeGroupI
                 <p className="text-xs text-slate-400">AI Powered Guide</p>
               </div>
             </div>
-            <button onClick={() => setIsOpen(false)} className="text-slate-400 hover:text-white">
-              <X size={20} />
-            </button>
+            <div className="flex gap-1">
+              {setShowHelpAssistant && (
+                <button 
+                  onClick={() => {
+                    if(window.confirm(lang === 'en' ? "Turn off Help Assistant? You can re-enable it in your Profile." : "Gufunga ubufasha? Wabigarura muri Profile.")) {
+                      setShowHelpAssistant(false);
+                    }
+                  }}
+                  className="p-1 text-slate-400 hover:text-red-400 rounded-full hover:bg-white/10 transition-colors"
+                  title="Turn Off Assistant"
+                >
+                  <Power size={18} />
+                </button>
+              )}
+              <button onClick={() => setIsOpen(false)} className="p-1 text-slate-400 hover:text-white rounded-full hover:bg-white/10 transition-colors">
+                <X size={20} />
+              </button>
+            </div>
           </div>
 
           {/* Messages */}

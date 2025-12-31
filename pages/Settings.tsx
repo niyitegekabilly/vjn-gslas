@@ -6,12 +6,12 @@ import { LABELS } from '../constants';
 import { api } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import { UserRole } from '../types';
-import { Settings as SettingsIcon, Globe, Shield, Database, Trash2, Upload, Download, X, User, Lock, Copy, Check, Loader2, AlertTriangle, LogOut } from 'lucide-react';
+import { Settings as SettingsIcon, Globe, Shield, Database, Trash2, Upload, Download, X, User, Lock, Copy, Check, Loader2, AlertTriangle, LogOut, Sparkles } from 'lucide-react';
 import { resetDatabase } from '../backend/db';
 import { RLS_POLICIES_SQL, TABLE_SCHEMA_SQL } from '../backend/schema';
 
 export default function Settings() {
-  const { lang, setLang } = useContext(AppContext);
+  const { lang, setLang, showHelpAssistant, setShowHelpAssistant } = useContext(AppContext);
   const { user } = useAuth();
   const labels = LABELS[lang];
   const navigate = useNavigate();
@@ -125,16 +125,45 @@ export default function Settings() {
           <div className="flex items-center space-x-2">
              <button 
                onClick={() => setLang('en')}
-               className={`px-4 py-2 rounded-lg text-sm font-medium ${lang === 'en' ? 'bg-slate-800 text-white' : 'bg-gray-100 text-gray-600'}`}
+               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${lang === 'en' ? 'bg-blue-50 border-blue-200 text-blue-700 shadow-sm' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
              >
+               <img src="https://flagcdn.com/w40/gb.png" alt="English" className="w-5 h-3.5 object-cover rounded-[2px]" />
                English
              </button>
              <button 
                onClick={() => setLang('rw')}
-               className={`px-4 py-2 rounded-lg text-sm font-medium ${lang === 'rw' ? 'bg-slate-800 text-white' : 'bg-gray-100 text-gray-600'}`}
+               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${lang === 'rw' ? 'bg-blue-50 border-blue-200 text-blue-700 shadow-sm' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
              >
+               <img src="https://flagcdn.com/w40/rw.png" alt="Kinyarwanda" className="w-5 h-3.5 object-cover rounded-[2px]" />
                Kinyarwanda
              </button>
+          </div>
+        </div>
+
+        {/* Interface: Help Assistant */}
+        <div className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex">
+            <div className="p-2 bg-yellow-50 text-yellow-600 rounded-lg mr-4 h-fit">
+              <Sparkles size={24} />
+            </div>
+            <div>
+              <h3 className="text-lg font-medium text-gray-900">Help Assistant</h3>
+              <p className="text-sm text-gray-500 mt-1">Enable the AI support button in the bottom right corner.</p>
+            </div>
+          </div>
+          <div className="relative inline-block w-12 h-6 transition duration-200 ease-in-out">
+              <input 
+                  type="checkbox" 
+                  id="help-toggle"
+                  className="peer absolute opacity-0 w-0 h-0"
+                  checked={showHelpAssistant}
+                  onChange={(e) => setShowHelpAssistant(e.target.checked)}
+              />
+              <label 
+                  htmlFor="help-toggle"
+                  className="block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer peer-checked:bg-blue-600 transition-colors"
+              ></label>
+              <div className="absolute left-0 top-0 w-6 h-6 bg-white rounded-full border border-gray-300 transition-transform duration-200 ease-in-out peer-checked:translate-x-full peer-checked:border-blue-600 shadow-sm"></div>
           </div>
         </div>
 

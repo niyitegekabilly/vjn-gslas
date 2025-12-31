@@ -1,4 +1,3 @@
-
 import React, { useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppContext } from '../App';
@@ -8,8 +7,8 @@ import { api } from '../api/client';
 import { 
   Banknote, Users, TrendingUp, AlertTriangle, 
   Calendar, PlusCircle, CheckCircle, Wallet, 
-  Sprout, Clock, ShieldAlert, Building, Sparkles, AlertCircle,
-  PiggyBank, Receipt, UserX, Activity
+  Sprout, ShieldAlert, Building, AlertCircle,
+  PiggyBank, Receipt, UserX, Activity, Gavel, BarChart2, Clock
 } from 'lucide-react';
 import { LoanStatus, Member, Loan, Transaction, Cycle, Attendance, Fine, UserRole, GSLAGroup } from '../types';
 import { DashboardSkeleton } from '../components/Skeleton';
@@ -326,7 +325,7 @@ export default function Dashboard() {
                onClick={() => isOnline && navigate('/meeting')}
                disabled={!isOnline || isAllGroups}
                className={`flex items-center px-5 py-3 rounded-xl font-bold shadow-lg transition-all transform hover:scale-105 active:scale-95 ${
-                 isOnline && !isAllGroups ? 'bg-green-600 hover:bg-green-500 text-white' : 'bg-gray-500 text-gray-300 cursor-not-allowed'
+                 isOnline && !isAllGroups ? 'bg-green-600 hover:bg-green-500 text-white' : 'bg-gray-50 text-gray-300 cursor-not-allowed'
                }`}
                title={isAllGroups ? "Select a specific group to start meeting" : "Start Meeting"}
              >
@@ -529,12 +528,13 @@ export default function Dashboard() {
                         : 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'
                     }`}
                  >
-                    <AlertCircle size={24} className={`mb-2 ${isOnline && !isAllGroups ? 'text-gray-400 group-hover:text-orange-600' : 'text-gray-400'}`} />
+                    <Gavel size={24} className={`mb-2 ${isOnline && !isAllGroups ? 'text-gray-400 group-hover:text-orange-600' : 'text-gray-400'}`} />
                     <span className="text-xs font-medium text-center">{labels.recordNewFine}</span>
                  </button>
                  <button onClick={() => navigate('/reports')} className="p-4 bg-gray-50 hover:bg-purple-50 text-gray-700 hover:text-purple-700 rounded-xl flex flex-col items-center justify-center transition-colors border border-gray-100 hover:border-purple-200 group">
-                    <TrendingUp size={24} className="mb-2 text-gray-400 group-hover:text-purple-600" />
-                    <span className="text-xs font-medium text-center">{labels.financialTrends}</span>
+                    <BarChart2 size={24} className="mb-2 text-gray-400 group-hover:text-purple-600" />
+                    {/* @ts-ignore */}
+                    <span className="text-xs font-medium text-center">{labels.reports}</span>
                  </button>
               </div>
            </div>

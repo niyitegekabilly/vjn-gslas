@@ -5,10 +5,10 @@ import { api } from '../api/client';
 import { LABELS } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
 import { User, UserRole } from '../types';
-import { User as UserIcon, Lock, Mail, Phone, Calendar, Shield, Save, Loader2, Key, ShieldCheck, Check } from 'lucide-react';
+import { User as UserIcon, Lock, Mail, Phone, Calendar, Shield, Save, Loader2, Key, ShieldCheck, Check, Sparkles } from 'lucide-react';
 
 export default function Profile() {
-  const { lang } = useContext(AppContext);
+  const { lang, showHelpAssistant, setShowHelpAssistant } = useContext(AppContext);
   const labels = LABELS[lang];
   const { user } = useAuth();
   
@@ -172,6 +172,35 @@ export default function Profile() {
         </div>
 
         <div className="space-y-6">
+            {/* Preferences */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden h-fit">
+                <div className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex">
+                        <div className="p-2 bg-yellow-50 text-yellow-600 rounded-lg mr-4 h-fit">
+                        <Sparkles size={24} />
+                        </div>
+                        <div>
+                        <h3 className="text-lg font-medium text-gray-900">Help Assistant</h3>
+                        <p className="text-sm text-gray-500 mt-1">Show the AI support button in the corner.</p>
+                        </div>
+                    </div>
+                    <div className="relative inline-block w-12 h-6 transition duration-200 ease-in-out">
+                        <input 
+                            type="checkbox" 
+                            id="help-toggle-profile"
+                            className="peer absolute opacity-0 w-0 h-0"
+                            checked={showHelpAssistant}
+                            onChange={(e) => setShowHelpAssistant(e.target.checked)}
+                        />
+                        <label 
+                            htmlFor="help-toggle-profile"
+                            className="block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer peer-checked:bg-yellow-500 transition-colors"
+                        ></label>
+                        <div className="absolute left-0 top-0 w-6 h-6 bg-white rounded-full border border-gray-300 transition-transform duration-200 ease-in-out peer-checked:translate-x-full peer-checked:border-yellow-500 shadow-sm"></div>
+                    </div>
+                </div>
+            </div>
+
             {/* Security Settings */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden h-fit">
             <div className="p-6 border-b border-gray-100 bg-gray-50 flex items-center gap-3">
