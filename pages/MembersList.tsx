@@ -6,12 +6,14 @@ import { LABELS } from '../constants';
 import { Search, UserPlus, Phone, User as UserIcon, Loader2, Edit2, Trash2, X, Save, ChevronLeft, ChevronRight, Filter, Upload, Camera } from 'lucide-react';
 import { MemberStatus, Member, UserRole } from '../types';
 import { CardSkeleton } from '../components/Skeleton';
+import { useAuth } from '../contexts/AuthContext';
 
 const ITEMS_PER_PAGE = 24;
 
 export default function MembersList() {
   const { activeGroupId, lang, groups } = useContext(AppContext);
   const labels = LABELS[lang];
+  const { user } = useAuth();
   const group = groups.find(g => g.id === activeGroupId);
   
   // Filters
@@ -38,6 +40,8 @@ export default function MembersList() {
   
   // Import Ref
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const canEdit = user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.ADMIN || user?.role === UserRole.GROUP_LEADER;
 
   const fetchMembers = () => {
     if (!activeGroupId) return;
@@ -213,31 +217,33 @@ export default function MembersList() {
     <div className="space-y-6 relative pb-12">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h2 className="text-2xl font-bold text-gray-800">{labels.members} ({members.length})</h2>
-        <div className="flex gap-2">
-          <input 
-            type="file" 
-            ref={fileInputRef}
-            className="hidden"
-            accept=".csv"
-            onChange={handleFileChange}
-          />
-          <button 
-            onClick={handleImportClick}
-            disabled={submitting}
-            className="flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition shadow-sm"
-            title="CSV Format: Name, NationalID, Phone, Role"
-          >
-            {submitting ? <Loader2 size={18} className="animate-spin mr-2" /> : <Upload size={18} className="mr-2" />}
-            Import CSV
-          </button>
-          <button 
-            onClick={() => handleOpenModal()}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-sm"
-          >
-            <UserPlus size={18} className="mr-2" />
-            {labels.addMember}
-          </button>
-        </div>
+        {canEdit && (
+          <div className="flex gap-2">
+            <input 
+              type="file" 
+              ref={fileInputRef}
+              className="hidden"
+              accept=".csv"
+              onChange={handleFileChange}
+            />
+            <button 
+              onClick={handleImportClick}
+              disabled={submitting}
+              className="flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition shadow-sm"
+              title="CSV Format: Name, NationalID, Phone, Role"
+            >
+              {submitting ? <Loader2 size={18} className="animate-spin mr-2" /> : <Upload size={18} className="mr-2" />}
+              Import CSV
+            </button>
+            <button 
+              onClick={() => handleOpenModal()}
+              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-sm"
+            >
+              <UserPlus size={18} className="mr-2" />
+              {labels.addMember}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Filters Toolbar */}
@@ -330,24 +336,26 @@ export default function MembersList() {
                   </div>
                 </div>
                 
-                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                   <button 
-                    onClick={() => handleOpenModal(member)}
-                    className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                    title={labels.editMember}
-                   >
-                     <Edit2 size={16} />
-                   </button>
-                   {member.status !== MemberStatus.EXITED && (
+                {canEdit && (
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                      <button 
-                      onClick={() => handleDelete(member)}
-                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      title={labels.removeMember}
+                      onClick={() => handleOpenModal(member)}
+                      className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      title={labels.editMember}
                      >
-                       <Trash2 size={16} />
+                       <Edit2 size={16} />
                      </button>
-                   )}
-                </div>
+                     {member.status !== MemberStatus.EXITED && (
+                       <button 
+                        onClick={() => handleDelete(member)}
+                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title={labels.removeMember}
+                       >
+                         <Trash2 size={16} />
+                       </button>
+                     )}
+                  </div>
+                )}
               </div>
               
               <div className="mt-6 grid grid-cols-2 gap-4 text-sm bg-gray-50 p-3 rounded-lg border border-gray-100">
@@ -403,7 +411,7 @@ export default function MembersList() {
       )}
 
       {/* Add/Edit Modal */}
-      {isModalOpen && (
+      {isModalOpen && canEdit && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-xl shadow-xl max-w-lg w-full overflow-hidden">
             <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">

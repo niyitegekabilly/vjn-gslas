@@ -3,15 +3,19 @@ import React, { useContext, useEffect, useState } from 'react';
 import { AppContext } from '../App';
 import { api } from '../api/client';
 import { LABELS } from '../constants';
-import { Transaction } from '../types';
+import { Transaction, UserRole } from '../types';
 import { Receipt, Plus, Loader2, Search } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function Expenses() {
   const { activeGroupId, lang } = useContext(AppContext);
   const labels = LABELS[lang];
+  const { user } = useAuth();
   const [expenses, setExpenses] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+
+  const canEdit = user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.ADMIN || user?.role === UserRole.GROUP_LEADER;
 
   useEffect(() => {
     if (!activeGroupId) return;
@@ -33,10 +37,12 @@ export default function Expenses() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-800">{labels.expenses}</h2>
-        <button className="flex items-center px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900">
-          <Plus size={18} className="mr-2" />
-          {labels.addExpense}
-        </button>
+        {canEdit && (
+          <button className="flex items-center px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900">
+            <Plus size={18} className="mr-2" />
+            {labels.addExpense}
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

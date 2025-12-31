@@ -1,11 +1,11 @@
 
-import React, { useState, useRef, useEffect, useContext } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import { MessageCircle, X, Send, User, Bot, Loader2, Sparkles, HelpCircle } from 'lucide-react';
-import { AppContext } from '../App';
 import { useAuth } from '../contexts/AuthContext';
 import { LABELS, HELP_CONTENT } from '../constants';
 import { useLocation } from 'react-router-dom';
+import { GSLAGroup } from '../types';
 
 interface Message {
   id: string;
@@ -14,8 +14,13 @@ interface Message {
   timestamp: Date;
 }
 
-export const HelpAssistant = () => {
-  const { lang, activeGroupId, groups } = useContext(AppContext);
+interface HelpAssistantProps {
+  lang: 'en' | 'rw';
+  activeGroupId: string;
+  groups: GSLAGroup[];
+}
+
+export const HelpAssistant: React.FC<HelpAssistantProps> = ({ lang, activeGroupId, groups }) => {
   const { user } = useAuth();
   const labels = LABELS[lang];
   const location = useLocation();

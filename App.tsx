@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import { HashRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Menu, Globe, Bell, LogOut, Loader2, ChevronDown, User, Check, X
@@ -8,26 +8,28 @@ import { MENU_ITEMS, LABELS } from './constants';
 import { api } from './api/client';
 import { GSLAGroup, Notification, User as UserType, UserRole } from './types';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { HelpAssistant } from './components/HelpAssistant';
 
-// Pages
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import Groups from './pages/Groups';
-import MembersList from './pages/MembersList';
-import Seasons from './pages/Seasons';
-import MeetingMode from './pages/MeetingMode';
-import Contributions from './pages/Contributions';
-import LoanManager from './pages/LoanManager';
-import Fines from './pages/Fines';
-import Expenses from './pages/Expenses';
-import Attendance from './pages/Attendance';
-import Reports from './pages/Reports';
-import Settings from './pages/Settings';
-import AuditLogs from './pages/AuditLogs';
-import Help from './pages/Help';
-import UserManagement from './pages/UserManagement';
-import Notifications from './pages/Notifications';
+// Lazy Load Pages to prevent circular dependencies and improve load time
+const Login = React.lazy(() => import('./pages/Login'));
+const Dashboard = React.lazy(() => import('./pages/Dashboard'));
+const Groups = React.lazy(() => import('./pages/Groups'));
+const MembersList = React.lazy(() => import('./pages/MembersList'));
+const Seasons = React.lazy(() => import('./pages/Seasons'));
+const MeetingMode = React.lazy(() => import('./pages/MeetingMode'));
+const Contributions = React.lazy(() => import('./pages/Contributions'));
+const LoanManager = React.lazy(() => import('./pages/LoanManager'));
+const Fines = React.lazy(() => import('./pages/Fines'));
+const Expenses = React.lazy(() => import('./pages/Expenses'));
+const Attendance = React.lazy(() => import('./pages/Attendance'));
+const Reports = React.lazy(() => import('./pages/Reports'));
+const Settings = React.lazy(() => import('./pages/Settings'));
+const AuditLogs = React.lazy(() => import('./pages/AuditLogs'));
+const Help = React.lazy(() => import('./pages/Help'));
+const UserManagement = React.lazy(() => import('./pages/UserManagement'));
+const Notifications = React.lazy(() => import('./pages/Notifications'));
+
+// Lazy load component to match page pattern
+const HelpAssistant = React.lazy(() => import('./components/HelpAssistant').then(module => ({ default: module.HelpAssistant })));
 
 // Context definition
 interface AppContextType {
@@ -48,12 +50,16 @@ export const AppContext = React.createContext<AppContextType>({
   refreshApp: () => {},
 });
 
-const ProtectedRoute = ({ children }: { children?: React.ReactNode }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+const ProtectedRoute = ({ children, allowedRoles }: { children?: React.ReactNode, allowedRoles?: UserRole[] }) => {
+  const { user, isAuthenticated, isLoading } = useAuth();
   
   if (isLoading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-green-600" size={32} /></div>;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   
+  if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+     return <div className="p-8 text-center text-red-600 font-bold">Access Denied: Insufficient Permissions</div>;
+  }
+
   return <>{children}</>;
 };
 
@@ -90,6 +96,39 @@ const Layout: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
+  // Role Based Menu Filtering
+  const isMenuVisible = (itemId: string): boolean => {
+    if (!user) return false;
+    
+    // Global items
+    if (['dashboard', 'help'].includes(itemId)) return true;
+
+    // Super Admin & Admin see everything
+    if (user.role === UserRole.SUPER_ADMIN || user.role === UserRole.ADMIN) return true;
+
+    // Group Leader Restrictions
+    if (user.role === UserRole.GROUP_LEADER) {
+       // Hidden for Group Leaders
+       if (['users', 'audit', 'settings'].includes(itemId)) return false;
+       return true;
+    }
+
+    // Member Restrictions (High Security / Read Only View)
+    if (user.role === UserRole.MEMBER_USER) {
+       // Visible to Members
+       if (['loans', 'reports'].includes(itemId)) return true;
+       return false; 
+    }
+
+    // Auditor
+    if (user.role === UserRole.AUDITOR) {
+       if (['dashboard', 'reports', 'audit', 'groups', 'members'].includes(itemId)) return true;
+       return false;
+    }
+
+    return false;
+  };
+
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden font-sans text-gray-900 print:h-auto print:overflow-visible">
       {/* Sidebar Mobile Overlay */}
@@ -116,11 +155,9 @@ const Layout: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
 
         <nav className="flex-1 mt-6 px-3 space-y-1 overflow-y-auto custom-scrollbar">
           {MENU_ITEMS.map((item) => {
-            const isActive = location.pathname === item.path;
+            if (!isMenuVisible(item.id)) return null;
             
-            // Role Checks
-            if (item.id === 'users' && user?.role !== UserRole.SUPER_ADMIN && user?.role !== UserRole.ADMIN) return null;
-            if (item.id === 'audit' && user?.role !== UserRole.SUPER_ADMIN && user?.role !== UserRole.ADMIN) return null;
+            const isActive = location.pathname === item.path;
             
             return (
               <button
@@ -144,7 +181,7 @@ const Layout: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
         </nav>
 
         <div className="p-4 border-t border-slate-800">
-          <div className="text-xs text-slate-500 text-center mb-2">VJN System v1.2</div>
+          <div className="text-xs text-slate-500 text-center mb-2">VJN System v1.3 RBAC</div>
         </div>
       </aside>
 
@@ -293,7 +330,9 @@ const Layout: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
             {children}
           </div>
           {/* HELP BOT */}
-          <HelpAssistant />
+          <Suspense fallback={null}>
+            <HelpAssistant lang={lang} activeGroupId={activeGroupId} groups={groups} />
+          </Suspense>
         </main>
       </div>
     </div>
@@ -356,26 +395,64 @@ const AppContent = () => {
   return (
     <AppContext.Provider value={contextValue}>
       <HashRouter>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
-          <Route path="/groups" element={<ProtectedRoute><Layout><Groups /></Layout></ProtectedRoute>} />
-          <Route path="/members" element={<ProtectedRoute><Layout><MembersList /></Layout></ProtectedRoute>} />
-          <Route path="/seasons" element={<ProtectedRoute><Layout><Seasons /></Layout></ProtectedRoute>} />
-          <Route path="/meeting" element={<ProtectedRoute><Layout><MeetingMode /></Layout></ProtectedRoute>} />
-          <Route path="/contributions" element={<ProtectedRoute><Layout><Contributions /></Layout></ProtectedRoute>} />
-          <Route path="/loans" element={<ProtectedRoute><Layout><LoanManager /></Layout></ProtectedRoute>} />
-          <Route path="/fines" element={<ProtectedRoute><Layout><Fines /></Layout></ProtectedRoute>} />
-          <Route path="/expenses" element={<ProtectedRoute><Layout><Expenses /></Layout></ProtectedRoute>} />
-          <Route path="/attendance" element={<ProtectedRoute><Layout><Attendance /></Layout></ProtectedRoute>} />
-          <Route path="/reports" element={<ProtectedRoute><Layout><Reports /></Layout></ProtectedRoute>} />
-          <Route path="/notifications" element={<ProtectedRoute><Layout><Notifications /></Layout></ProtectedRoute>} />
-          <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
-          <Route path="/audit" element={<ProtectedRoute><Layout><AuditLogs /></Layout></ProtectedRoute>} />
-          <Route path="/help" element={<ProtectedRoute><Layout><Help /></Layout></ProtectedRoute>} />
-          <Route path="/users" element={<ProtectedRoute><Layout><UserManagement /></Layout></ProtectedRoute>} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        <Suspense fallback={
+          <div className="flex items-center justify-center h-screen bg-gray-50">
+            <div className="flex flex-col items-center">
+              <Loader2 className="animate-spin text-green-600 mb-4" size={32} />
+              <p className="text-sm text-gray-500">Loading Module...</p>
+            </div>
+          </div>
+        }>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
+            <Route path="/groups" element={<ProtectedRoute><Layout><Groups /></Layout></ProtectedRoute>} />
+            <Route path="/members" element={<ProtectedRoute><Layout><MembersList /></Layout></ProtectedRoute>} />
+            <Route path="/seasons" element={<ProtectedRoute><Layout><Seasons /></Layout></ProtectedRoute>} />
+            
+            {/* Protected Meeting Mode - Only Admin/Leaders */}
+            <Route path="/meeting" element={
+              <ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.GROUP_LEADER]}>
+                  <Layout><MeetingMode /></Layout>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/contributions" element={<ProtectedRoute><Layout><Contributions /></Layout></ProtectedRoute>} />
+            <Route path="/loans" element={<ProtectedRoute><Layout><LoanManager /></Layout></ProtectedRoute>} />
+            <Route path="/fines" element={<ProtectedRoute><Layout><Fines /></Layout></ProtectedRoute>} />
+            <Route path="/expenses" element={<ProtectedRoute><Layout><Expenses /></Layout></ProtectedRoute>} />
+            
+            {/* Protected Attendance - Only Admin/Leaders */}
+            <Route path="/attendance" element={
+              <ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.GROUP_LEADER]}>
+                  <Layout><Attendance /></Layout>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/reports" element={<ProtectedRoute><Layout><Reports /></Layout></ProtectedRoute>} />
+            <Route path="/notifications" element={<ProtectedRoute><Layout><Notifications /></Layout></ProtectedRoute>} />
+            
+            {/* Admin Only Routes */}
+            <Route path="/settings" element={
+              <ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN, UserRole.ADMIN]}>
+                  <Layout><Settings /></Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/audit" element={
+              <ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.AUDITOR]}>
+                  <Layout><AuditLogs /></Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/users" element={
+              <ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN, UserRole.ADMIN]}>
+                  <Layout><UserManagement /></Layout>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/help" element={<ProtectedRoute><Layout><Help /></Layout></ProtectedRoute>} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
       </HashRouter>
     </AppContext.Provider>
   );

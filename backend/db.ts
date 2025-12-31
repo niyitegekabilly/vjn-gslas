@@ -67,6 +67,8 @@ const GENERATED_ADDED_GROUPS: GSLAGroup[] = NEW_GROUPS_LIST.map((name, i) => {
     minShares: 1,
     maxShares: 10,
     maxLoanMultiplier: 3,
+    lateFeeAmount: 5,
+    lateFeeType: 'PERCENTAGE',
     currentCycleId: '', // Initially inactive
     status: GroupStatus.ACTIVE,
     totalSavings: 0,
@@ -98,6 +100,8 @@ const STATIC_GROUPS: GSLAGroup[] = [
       minShares: 1,
       maxShares: 5,
       maxLoanMultiplier: 3,
+      lateFeeAmount: 5,
+      lateFeeType: 'PERCENTAGE',
       currentCycleId: 'c1',
       status: GroupStatus.ACTIVE,
       totalSavings: 450000,
@@ -123,6 +127,8 @@ const STATIC_GROUPS: GSLAGroup[] = [
       minShares: 1,
       maxShares: 10,
       maxLoanMultiplier: 3,
+      lateFeeAmount: 500,
+      lateFeeType: 'FIXED',
       currentCycleId: 'c2',
       status: GroupStatus.ACTIVE,
       totalSavings: 120000,
@@ -133,15 +139,15 @@ const STATIC_GROUPS: GSLAGroup[] = [
       coordinates: { lat: -1.442, lng: 29.585 }
     },
     // --- Nyabihu District Groups ---
-    { id: 'g_n1', name: 'Tuzamurane-Twitezimbere (Youth)', branchId: 'b_nyabihu', district: 'Nyabihu', sector: 'Shyira', cell: 'Kanyamitana', village: '', location: 'Shyira, Nyabihu', meetingDay: 'Friday', meetingFrequency: MeetingFrequency.WEEKLY, shareValue: 300, minShares: 1, maxShares: 5, maxLoanMultiplier: 3, currentCycleId: '', status: GroupStatus.ACTIVE, totalSavings: 0, totalLoansOutstanding: 0, totalSolidarity: 0, createdAt: '2024-01-01', auditHistory: [], presidentId: 'm_n1', coordinates: { lat: -1.63, lng: 29.52 } },
+    { id: 'g_n1', name: 'Tuzamurane-Twitezimbere (Youth)', branchId: 'b_nyabihu', district: 'Nyabihu', sector: 'Shyira', cell: 'Kanyamitana', village: '', location: 'Shyira, Nyabihu', meetingDay: 'Friday', meetingFrequency: MeetingFrequency.WEEKLY, shareValue: 300, minShares: 1, maxShares: 5, maxLoanMultiplier: 3, lateFeeAmount: 5, lateFeeType: 'PERCENTAGE', currentCycleId: '', status: GroupStatus.ACTIVE, totalSavings: 0, totalLoansOutstanding: 0, totalSolidarity: 0, createdAt: '2024-01-01', auditHistory: [], presidentId: 'm_n1', coordinates: { lat: -1.63, lng: 29.52 } },
     ...GENERATED_ADDED_GROUPS
 ];
 
 const STATIC_MEMBERS: Member[] = [
-  { id: 'm1', groupId: 'g1', fullName: 'Jean Pierre N.', nationalId: '11990800...', phone: '0788123456', role: 'GROUP_ADMIN', status: MemberStatus.ACTIVE, joinDate: '2023-01-01', totalShares: 100, totalLoans: 0 },
-  { id: 'm2', groupId: 'g1', fullName: 'Marie Claire M.', nationalId: '11992700...', phone: '0788654321', role: 'MEMBER', status: MemberStatus.ACTIVE, joinDate: '2023-01-01', totalShares: 80, totalLoans: 50000 },
-  { id: 'm3', groupId: 'g1', fullName: 'Emmanuel K.', nationalId: '11985600...', phone: '0722123123', role: 'MEMBER', status: MemberStatus.ACTIVE, joinDate: '2023-02-10', totalShares: 60, totalLoans: 0 },
-  { id: 'm4', groupId: 'g1', fullName: 'Grace U.', nationalId: '11995400...', phone: '0733456456', role: 'MEMBER', status: MemberStatus.SUSPENDED, joinDate: '2023-03-05', totalShares: 20, totalLoans: 0 },
+  { id: 'm1', groupId: 'g1', fullName: 'Jean Pierre N.', nationalId: '11990800...', phone: '0788123456', role: UserRole.GROUP_LEADER, status: MemberStatus.ACTIVE, joinDate: '2023-01-01', totalShares: 100, totalLoans: 0 },
+  { id: 'm2', groupId: 'g1', fullName: 'Marie Claire M.', nationalId: '11992700...', phone: '0788654321', role: UserRole.MEMBER_USER, status: MemberStatus.ACTIVE, joinDate: '2023-01-01', totalShares: 80, totalLoans: 50000 },
+  { id: 'm3', groupId: 'g1', fullName: 'Emmanuel K.', nationalId: '11985600...', phone: '0722123123', role: UserRole.MEMBER_USER, status: MemberStatus.ACTIVE, joinDate: '2023-02-10', totalShares: 60, totalLoans: 0 },
+  { id: 'm4', groupId: 'g1', fullName: 'Grace U.', nationalId: '11995400...', phone: '0733456456', role: UserRole.MEMBER_USER, status: MemberStatus.SUSPENDED, joinDate: '2023-03-05', totalShares: 20, totalLoans: 0 },
 ];
 
 const STATIC_USERS: User[] = [
@@ -193,7 +199,7 @@ const generateMockMembers = (groups: GSLAGroup[]) => {
         fullName: `${fn} ${ln}`,
         nationalId: `1${1950 + Math.floor(Math.random() * 50)}${Math.floor(Math.random() * 10000000000)}`,
         phone: `07${8 + Math.floor(Math.random() * 2)}${Math.floor(Math.random() * 10000000)}`,
-        role: 'MEMBER',
+        role: UserRole.MEMBER_USER, // Standardized Role
         status: MemberStatus.ACTIVE,
         joinDate: '2024-01-15',
         totalShares: Math.floor(Math.random() * 50),

@@ -3,12 +3,14 @@ import React, { useContext, useState, useEffect } from 'react';
 import { AppContext } from '../App';
 import { api } from '../api/client';
 import { LABELS } from '../constants';
-import { LoanStatus, Loan, Member } from '../types';
+import { LoanStatus, Loan, Member, UserRole } from '../types';
 import { Check, X, AlertTriangle, FileText, Calculator, Loader2, Coins, RefreshCw, Info, Plus, Banknote, Search, Filter, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { TableRowSkeleton } from '../components/Skeleton';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function LoanManager() {
   const { activeGroupId, lang, groups } = useContext(AppContext);
+  const { user } = useAuth();
   const labels = LABELS[lang];
   const group = groups.find(g => g.id === activeGroupId);
   
@@ -53,6 +55,8 @@ export default function LoanManager() {
   // Mobile Expanded State
   const [expandedLoanId, setExpandedLoanId] = useState<string | null>(null);
 
+  const canEdit = user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.ADMIN || user?.role === UserRole.GROUP_LEADER;
+
   const fetchData = () => {
     if (!activeGroupId) return;
     setLoading(true);
@@ -81,6 +85,11 @@ export default function LoanManager() {
 
   useEffect(() => {
     fetchData();
+    // Load Group Defaults
+    if (group) {
+        setFeeAmount(group.lateFeeAmount ?? 5);
+        setFeeIsPercentage(group.lateFeeType !== 'FIXED');
+    }
   }, [activeGroupId, group]);
 
   const handleApplyFees = async () => {
@@ -172,6 +181,9 @@ export default function LoanManager() {
 
   const pendingLoans = loans.filter(l => l.status === LoanStatus.PENDING);
   
+  // Overdue Check for Tool
+  const overdueCount = loans.filter(l => l.status === LoanStatus.ACTIVE && l.dueDate < new Date().toISOString().split('T')[0]).length;
+
   // Filter active loans
   const filteredActiveLoans = loans.filter(l => {
     // Exclude pending and rejected from this list
@@ -215,17 +227,19 @@ export default function LoanManager() {
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
         <h2 className="text-2xl font-bold text-gray-800">{labels.loanManagement}</h2>
         <div className="flex flex-wrap gap-2 w-full xl:w-auto">
-           <button 
-            onClick={() => { setShowFeeManager(!showFeeManager); setShowCalculator(false); }}
-            className={`flex-1 xl:flex-none flex justify-center items-center px-4 py-2 border rounded-lg shadow-sm transition-colors ${
-              showFeeManager 
-                ? 'bg-red-50 border-red-200 text-red-700' 
-                : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            <Coins size={18} className="mr-2" />
-            {showFeeManager ? labels.hidePenalty : labels.penaltyTool}
-          </button>
+           {canEdit && (
+             <button 
+              onClick={() => { setShowFeeManager(!showFeeManager); setShowCalculator(false); }}
+              className={`flex-1 xl:flex-none flex justify-center items-center px-4 py-2 border rounded-lg shadow-sm transition-colors ${
+                showFeeManager 
+                  ? 'bg-red-50 border-red-200 text-red-700' 
+                  : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <Coins size={18} className="mr-2" />
+              {showFeeManager ? labels.hidePenalty : labels.penaltyTool}
+            </button>
+           )}
           <button 
             onClick={() => { setShowCalculator(!showCalculator); setShowFeeManager(false); }}
             className={`flex-1 xl:flex-none flex justify-center items-center px-4 py-2 border rounded-lg shadow-sm transition-colors ${
@@ -247,6 +261,7 @@ export default function LoanManager() {
         </div>
       </div>
 
+      {/* ... [Rest of modals same as before] ... */}
       {/* Repayment Modal */}
       {isRepayModalOpen && repayingLoan && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm animate-in fade-in duration-200">
@@ -310,20 +325,26 @@ export default function LoanManager() {
             <form onSubmit={handleCreateLoan} className="p-6 space-y-5">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{labels.selectMember}</label>
-                <select 
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                  value={selectedMemberId}
-                  onChange={(e) => {
-                    setSelectedMemberId(e.target.value);
-                    setFormAmount(''); // Reset amount when member changes
-                  }}
-                  required
-                >
-                  <option value="">-- {labels.selectMember} --</option>
-                  {members.map(m => (
-                    <option key={m.id} value={m.id}>{m.fullName} ({labels.totalSavings}: {(m.totalShares * (group?.shareValue || 0)).toLocaleString()})</option>
-                  ))}
-                </select>
+                {canEdit ? (
+                  <select 
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    value={selectedMemberId}
+                    onChange={(e) => {
+                      setSelectedMemberId(e.target.value);
+                      setFormAmount(''); // Reset amount when member changes
+                    }}
+                    required
+                  >
+                    <option value="">-- {labels.selectMember} --</option>
+                    {members.map(m => (
+                      <option key={m.id} value={m.id}>{m.fullName} ({labels.totalSavings}: {(m.totalShares * (group?.shareValue || 0)).toLocaleString()})</option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm">
+                     You can only apply for yourself. Please contact leader for assistance.
+                  </div>
+                )}
                 {selectedMember && (
                   <div className="mt-2 p-3 bg-blue-50 text-blue-700 rounded-lg text-sm flex justify-between items-center">
                     <span>{labels.maxEligible}:</span>
@@ -344,7 +365,7 @@ export default function LoanManager() {
                     className={`w-full px-4 py-2 border rounded-lg focus:ring-2 outline-none ${
                        formAmount && Number(formAmount) > maxLoanAmount ? 'border-red-300 focus:ring-red-200' : 'border-gray-300 focus:ring-blue-500'
                     }`}
-                    disabled={!selectedMemberId}
+                    disabled={!selectedMemberId && canEdit}
                     required
                   />
                   {formAmount && Number(formAmount) > maxLoanAmount && (
@@ -403,12 +424,25 @@ export default function LoanManager() {
       {/* Tools Section (Calculator / Fee Manager) */}
       {showFeeManager && (
         <div className="bg-gradient-to-br from-white to-red-50 p-6 rounded-xl border border-red-100 shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
-          <h3 className="text-lg font-semibold text-red-800 mb-4 flex items-center">
-            <Coins size={20} className="mr-2" /> {labels.penaltyManager}
-          </h3>
-          <p className="text-sm text-gray-600 mb-6 max-w-2xl">
-            Automatically check all active loans. If a loan is past its due date, the system will apply the configured penalty to the loan balance and mark it as 'Defaulted'.
-          </p>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+            <div>
+              <h3 className="text-lg font-semibold text-red-800 flex items-center">
+                <Coins size={20} className="mr-2" /> {labels.penaltyManager}
+              </h3>
+              <p className="text-sm text-gray-600 max-w-2xl mt-1">
+                Apply fees to overdue loans. Affected loans will be marked as 'Defaulted'.
+              </p>
+            </div>
+            {overdueCount > 0 ? (
+                <div className="mt-2 md:mt-0 px-4 py-2 bg-red-100 text-red-800 rounded-lg text-sm font-bold flex items-center animate-pulse">
+                    <AlertTriangle size={16} className="mr-2" /> {overdueCount} Loans Overdue
+                </div>
+            ) : (
+                <div className="mt-2 md:mt-0 px-4 py-2 bg-green-100 text-green-800 rounded-lg text-sm font-bold flex items-center">
+                    <CheckCircle size={16} className="mr-2" /> No Overdue Loans
+                </div>
+            )}
+          </div>
           
           <div className="flex flex-col md:flex-row items-end gap-6">
             <div className="w-full md:w-64">
@@ -448,9 +482,9 @@ export default function LoanManager() {
 
             <button 
               onClick={handleApplyFees}
-              disabled={applyingFees}
+              disabled={applyingFees || overdueCount === 0}
               className={`flex items-center px-6 py-2 rounded-lg font-medium text-white shadow-sm transition-all ${
-                applyingFees ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'
+                applyingFees || overdueCount === 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'
               }`}
             >
               {applyingFees ? <Loader2 className="animate-spin mr-2" size={18} /> : <RefreshCw size={18} className="mr-2" />}
@@ -555,7 +589,7 @@ export default function LoanManager() {
       )}
 
       {/* Pending Approvals Section */}
-      {pendingLoans.length > 0 && (
+      {pendingLoans.length > 0 && canEdit && (
         <section>
           <h3 className="text-lg font-semibold text-gray-700 mb-4 flex items-center">
             <FileText size={20} className="mr-2" /> {labels.pendingApproval}
@@ -718,7 +752,7 @@ export default function LoanManager() {
                                 </div>
                             )}
 
-                            {loan.status !== LoanStatus.CLEARED && (
+                            {loan.status !== LoanStatus.CLEARED && canEdit && (
                                 <button 
                                     onClick={() => openRepayModal(loan)}
                                     className="w-full mt-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium flex justify-center items-center active:bg-blue-700"
@@ -797,7 +831,7 @@ export default function LoanManager() {
                           )}
                         </td>
                         <td className="p-4 text-right">
-                          {loan.status !== LoanStatus.CLEARED && (
+                          {loan.status !== LoanStatus.CLEARED && canEdit && (
                             <button 
                               onClick={() => openRepayModal(loan)}
                               className="p-2 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition-colors"

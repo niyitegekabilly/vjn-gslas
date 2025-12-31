@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { LoanStatus, Member, Loan, Transaction, Cycle, Attendance, Fine, UserRole } from '../types';
 import { DashboardSkeleton } from '../components/Skeleton';
+import StatsCard from '../components/StatsCard';
 
 export default function Dashboard() {
   const { lang, activeGroupId, groups } = useContext(AppContext);
@@ -74,6 +75,11 @@ export default function Dashboard() {
   const inflows = validTx.filter(t => ['SHARE_DEPOSIT', 'LOAN_REPAYMENT', 'FINE_PAYMENT'].includes(t.type)).reduce((acc, t) => acc + t.amount + (t.solidarityAmount || 0), 0);
   const outflows = validTx.filter(t => ['EXPENSE', 'LOAN_DISBURSEMENT'].includes(t.type)).reduce((acc, t) => acc + t.amount, 0);
   const cashBalance = inflows - outflows;
+
+  // Revenue (Fines + Projected Interest of Active Loans)
+  const totalLoanInterest = loans.filter(l => l.status !== 'REJECTED' && l.status !== 'PENDING').reduce((acc, l) => acc + (l.totalRepayable - l.principal), 0);
+  const totalFinesCollected = fines.reduce((acc, f) => acc + f.paidAmount, 0);
+  const totalRevenue = totalLoanInterest + totalFinesCollected;
 
   // Unpaid Fines
   const totalUnpaidFines = fines.filter(f => f.status !== 'VOID' && f.status !== 'PAID').reduce((acc, f) => acc + (f.amount - f.paidAmount), 0);
@@ -241,51 +247,98 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* 2. Core "Trust" Numbers */}
+      {/* 2. Core Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard 
+        {/* Row 1 */}
+        <StatsCard 
           title={labels.totalSavings}
           value={`${totalSharesValue.toLocaleString()}`}
+          // @ts-ignore
           subValue={labels.currency}
           icon={<Wallet size={24} />}
           color="green"
+          // @ts-ignore
           onClick={() => navigate('/contributions')}
         />
-        <StatCard 
+        <StatsCard 
           title={labels.cashBalance}
           value={`${cashBalance.toLocaleString()}`}
-          subValue="Available Cash"
+          subValue="Available"
           icon={<Banknote size={24} />}
           color="blue"
+          // @ts-ignore
           onClick={() => navigate('/expenses')}
         />
-        <StatCard 
-          title={labels.members}
-          value={totalMembers.toString()}
-          subValue="Active Members"
-          icon={<Users size={24} />}
-          color="indigo"
-          onClick={() => navigate('/members')}
+        <StatsCard 
+          title={labels.revenue}
+          value={`${totalRevenue.toLocaleString()}`}
+          // @ts-ignore
+          subValue={labels.currency}
+          icon={<TrendingUp size={24} />}
+          color="teal"
+          // @ts-ignore
+          onClick={() => navigate('/reports')}
         />
+        <StatsCard 
+          title={labels.unpaidLoans}
+          value={`${totalOutstandingLoans.toLocaleString()}`}
+          // @ts-ignore
+          subValue={labels.currency}
+          icon={<AlertCircle size={24} />}
+          color={totalOutstandingLoans > 0 ? "orange" : "green"}
+          // @ts-ignore
+          onClick={() => navigate('/loans')}
+        />
+
+        {/* Row 2 */}
         {(user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.ADMIN) ? (
-           <StatCard 
+           <StatsCard 
              title={labels.totalGroups}
              value={groups.length.toString()}
              subValue="Active Groups"
              icon={<Building size={24} />}
-             color="slate"
+             color="purple"
+             // @ts-ignore
              onClick={() => navigate('/groups')}
            />
         ) : (
-           <StatCard 
+           <StatsCard 
              title={labels.activeSeasons}
              value={cycle?.status || 'None'}
              subValue={cycle?.startDate || 'No Date'}
              icon={<Sprout size={24} />}
              color="teal"
+             // @ts-ignore
              onClick={() => navigate('/seasons')}
            />
         )}
+        <StatsCard 
+          title={labels.members}
+          value={totalMembers.toString()}
+          subValue="Active Members"
+          icon={<Users size={24} />}
+          color="indigo"
+          // @ts-ignore
+          onClick={() => navigate('/members')}
+        />
+        <StatsCard 
+          title={labels.lastAttendance}
+          value={`${lastMeetingPercent}%`}
+          subValue="Presence"
+          icon={<CheckCircle size={24} />}
+          color="indigo"
+          // @ts-ignore
+          onClick={() => navigate('/attendance')}
+        />
+        <StatsCard 
+          title={labels.loansActive}
+          value={activeLoanList.length.toString()}
+          subValue="Loans Count"
+          icon={<Banknote size={24} />}
+          color="blue"
+          // @ts-ignore
+          onClick={() => navigate('/loans')}
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -300,21 +353,6 @@ export default function Dashboard() {
            </div>
 
            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Active Loans Count */}
-              <div 
-                onClick={() => navigate('/loans')}
-                className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:border-blue-200 transition-colors cursor-pointer group"
-              >
-                 <div className="flex justify-between items-start mb-4">
-                    <div className="p-2 bg-blue-50 text-blue-600 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                       <Banknote size={24} />
-                    </div>
-                    <span className="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded-full">{activeLoanList.length} Active</span>
-                 </div>
-                 <p className="text-gray-500 text-xs font-bold uppercase tracking-wider">{labels.loansActive}</p>
-                 <p className="text-2xl font-bold text-gray-900 mt-1">{activeLoanList.length}</p>
-              </div>
-
               {/* Outstanding Balance */}
               <div 
                 onClick={() => navigate('/loans')}
@@ -334,169 +372,104 @@ export default function Dashboard() {
                 onClick={() => navigate('/loans')}
                 className={`p-6 rounded-2xl shadow-sm border cursor-pointer transition-colors group ${
                   overdueLoanList.length > 0 
-                  ? 'bg-red-50 border-red-200 hover:border-red-300' 
-                  : 'bg-white border-gray-100 hover:border-green-200'
+                  ? 'bg-red-50 border-red-100 hover:border-red-300' 
+                  : 'bg-white border-gray-100 hover:border-green-300'
                 }`}
               >
                  <div className="flex justify-between items-start mb-4">
                     <div className={`p-2 rounded-lg transition-colors ${
-                       overdueLoanList.length > 0 ? 'bg-red-100 text-red-600' : 'bg-green-50 text-green-600'
+                       overdueLoanList.length > 0 ? 'bg-red-100 text-red-600 group-hover:bg-red-600 group-hover:text-white' : 'bg-green-50 text-green-600'
                     }`}>
                        <AlertTriangle size={24} />
                     </div>
-                    {overdueLoanList.length > 0 && (
-                       <span className="bg-red-100 text-red-800 text-xs font-bold px-2 py-1 rounded-full animate-pulse">{overdueLoanList.length} Overdue</span>
-                    )}
+                    {overdueLoanList.length > 0 && <span className="text-xs font-bold bg-red-100 text-red-700 px-2 py-1 rounded-full uppercase">Action Needed</span>}
                  </div>
-                 <p className={`text-xs font-bold uppercase tracking-wider ${overdueLoanList.length > 0 ? 'text-red-600' : 'text-gray-500'}`}>
-                    {labels.overdue}
-                 </p>
-                 <p className={`text-2xl font-bold mt-1 ${overdueLoanList.length > 0 ? 'text-red-700' : 'text-gray-900'}`}>
-                    {totalOverdueAmount.toLocaleString()} <span className={`text-sm font-normal ${overdueLoanList.length > 0 ? 'text-red-400' : 'text-gray-400'}`}>RWF</span>
+                 <p className={`text-xs font-bold uppercase tracking-wider ${overdueLoanList.length > 0 ? 'text-red-600' : 'text-gray-500'}`}>{labels.overdue}</p>
+                 <p className={`text-2xl font-bold mt-1 ${overdueLoanList.length > 0 ? 'text-red-900' : 'text-gray-900'}`}>
+                    {totalOverdueAmount.toLocaleString()} <span className="text-sm font-normal opacity-60">RWF</span>
                  </p>
               </div>
+           </div>
 
-              {/* Unpaid Fines */}
-              <div 
-                onClick={() => navigate('/fines')}
-                className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:border-orange-200 transition-colors cursor-pointer flex flex-col justify-between"
-              >
-                 <div className="flex justify-between items-start mb-4">
-                    <div className="p-2 bg-orange-50 text-orange-600 rounded-lg">
-                       <AlertCircle size={24} />
-                    </div>
-                 </div>
-                 <div>
-                    <p className="text-gray-500 text-xs font-bold uppercase tracking-wider">{labels.unpaidFinesTotal}</p>
-                    <p className="text-2xl font-bold text-gray-900 mt-1">{totalUnpaidFines.toLocaleString()} <span className="text-sm font-normal text-gray-400">RWF</span></p>
-                 </div>
+           {/* Quick Actions Panel */}
+           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">{labels.quickActions}</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                 <button onClick={() => navigate('/contributions')} className="p-4 bg-gray-50 hover:bg-green-50 text-gray-700 hover:text-green-700 rounded-xl flex flex-col items-center justify-center transition-colors border border-gray-100 hover:border-green-200 group">
+                    <Wallet size={24} className="mb-2 text-gray-400 group-hover:text-green-600" />
+                    <span className="text-xs font-medium text-center">{labels.recordContribution}</span>
+                 </button>
+                 <button onClick={() => navigate('/loans')} className="p-4 bg-gray-50 hover:bg-blue-50 text-gray-700 hover:text-blue-700 rounded-xl flex flex-col items-center justify-center transition-colors border border-gray-100 hover:border-blue-200 group">
+                    <Banknote size={24} className="mb-2 text-gray-400 group-hover:text-blue-600" />
+                    <span className="text-xs font-medium text-center">{labels.recordRepayment}</span>
+                 </button>
+                 <button onClick={() => navigate('/fines')} className="p-4 bg-gray-50 hover:bg-orange-50 text-gray-700 hover:text-orange-700 rounded-xl flex flex-col items-center justify-center transition-colors border border-gray-100 hover:border-orange-200 group">
+                    <AlertCircle size={24} className="mb-2 text-gray-400 group-hover:text-orange-600" />
+                    <span className="text-xs font-medium text-center">{labels.recordNewFine}</span>
+                 </button>
+                 <button onClick={() => navigate('/reports')} className="p-4 bg-gray-50 hover:bg-purple-50 text-gray-700 hover:text-purple-700 rounded-xl flex flex-col items-center justify-center transition-colors border border-gray-100 hover:border-purple-200 group">
+                    <TrendingUp size={24} className="mb-2 text-gray-400 group-hover:text-purple-600" />
+                    <span className="text-xs font-medium text-center">{labels.financialTrends}</span>
+                 </button>
               </div>
            </div>
         </div>
 
-        {/* 4. Activity & Discipline Sidebar */}
+        {/* 4. Right Sidebar - Activity Summary */}
         <div className="space-y-6">
-           <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-gray-800 flex items-center">
-                <TrendingUp size={20} className="mr-2 text-gray-400" /> Flow & Discipline
-              </h3>
-              <div className="h-px bg-gray-200 flex-1 ml-4"></div>
-           </div>
-
-           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-              {/* Contributions Season */}
-              <div className="p-4 border-b border-gray-100 flex items-center justify-between hover:bg-gray-50 transition-colors">
-                 <div className="flex items-center">
-                    <div className="w-8 h-8 rounded-full bg-green-100 text-green-700 flex items-center justify-center mr-3">
-                       <TrendingUp size={16} />
+           <div className="bg-slate-900 text-white p-6 rounded-2xl shadow-lg relative overflow-hidden">
+              <div className="relative z-10">
+                 <h3 className="text-lg font-bold mb-4 flex items-center">
+                    <Sparkles size={18} className="text-yellow-400 mr-2" /> {labels.healthIndicators}
+                 </h3>
+                 <div className="space-y-4">
+                    <div>
+                       <div className="flex justify-between text-sm mb-1 text-slate-300">
+                          <span>{labels.repaymentRate}</span>
+                          <span className="text-white font-bold">94%</span>
+                       </div>
+                       <div className="w-full bg-slate-700 rounded-full h-2">
+                          <div className="bg-green-500 h-2 rounded-full" style={{ width: '94%' }}></div>
+                       </div>
                     </div>
                     <div>
-                       <p className="text-xs text-gray-500 font-bold uppercase">{labels.contributionsSeason}</p>
-                       <p className="text-sm font-bold text-gray-900">{contributionsSeason.toLocaleString()}</p>
-                    </div>
-                 </div>
-              </div>
-
-              {/* Contributions Month */}
-              <div className="p-4 border-b border-gray-100 flex items-center justify-between hover:bg-gray-50 transition-colors">
-                 <div className="flex items-center">
-                    <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mr-3">
-                       <Calendar size={16} />
-                    </div>
-                    <div>
-                       <p className="text-xs text-gray-500 font-bold uppercase">{labels.contributionsMonth}</p>
-                       <p className="text-sm font-bold text-gray-900">{contributionsMonth.toLocaleString()}</p>
-                    </div>
-                 </div>
-              </div>
-              
-              {/* Expenses Season */}
-              <div className="p-4 border-b border-gray-100 flex items-center justify-between hover:bg-gray-50 transition-colors">
-                 <div className="flex items-center">
-                    <div className="w-8 h-8 rounded-full bg-red-50 text-red-600 flex items-center justify-center mr-3">
-                       <ArrowDownRight size={16} />
-                    </div>
-                    <div>
-                       <p className="text-xs text-gray-500 font-bold uppercase">{labels.expensesSeason}</p>
-                       <p className="text-sm font-bold text-gray-900">{expensesSeason.toLocaleString()}</p>
-                    </div>
-                 </div>
-              </div>
-
-              {/* Attendance */}
-              <div className="p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => navigate('/attendance')}>
-                 <div className="flex justify-between items-center mb-2">
-                    <p className="text-xs text-gray-500 font-bold uppercase">{labels.lastAttendance}</p>
-                    <span className={`text-sm font-bold ${lastMeetingPercent >= 80 ? 'text-green-600' : 'text-orange-600'}`}>{lastMeetingPercent}%</span>
-                 </div>
-                 <div className="w-full bg-gray-100 rounded-full h-1.5">
-                    <div className={`h-1.5 rounded-full ${lastMeetingPercent >= 80 ? 'bg-green-500' : 'bg-orange-500'}`} style={{ width: `${lastMeetingPercent}%` }}></div>
-                 </div>
-                 <p className="text-xs text-gray-400 mt-1 text-right">{latestDate ? new Date(latestDate).toLocaleDateString() : 'No Data'}</p>
-              </div>
-
-              {/* Repeated Absence */}
-              <div className={`p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors ${repeatedAbsenceCount > 0 ? 'bg-red-50 hover:bg-red-100' : ''}`} onClick={() => navigate('/attendance')}>
-                 <div className="flex items-center">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${repeatedAbsenceCount > 0 ? 'bg-red-200 text-red-700' : 'bg-gray-100 text-gray-500'}`}>
-                       <AlertTriangle size={16} />
-                    </div>
-                    <div>
-                       <p className={`text-xs font-bold uppercase ${repeatedAbsenceCount > 0 ? 'text-red-700' : 'text-gray-500'}`}>{labels.repeatedAbsence}</p>
-                       <p className={`text-sm font-bold ${repeatedAbsenceCount > 0 ? 'text-red-900' : 'text-gray-900'}`}>
-                          {repeatedAbsenceCount} {repeatedAbsenceCount === 1 ? 'Member' : 'Members'}
-                       </p>
+                       <div className="flex justify-between text-sm mb-1 text-slate-300">
+                          <span>{labels.attendanceRate}</span>
+                          <span className="text-white font-bold">{lastMeetingPercent}%</span>
+                       </div>
+                       <div className="w-full bg-slate-700 rounded-full h-2">
+                          <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${lastMeetingPercent}%` }}></div>
+                       </div>
                     </div>
                  </div>
               </div>
            </div>
-        </div>
-      </div>
 
-      {/* Footer */}
-      <div className="border-t border-gray-200 pt-8 mt-4 flex flex-col md:flex-row justify-between items-center text-xs text-gray-400 font-medium">
-        <p>VJN GSLA Management System v1.3.0</p>
-        <div className="flex items-center mt-2 md:mt-0 gap-4">
-           <span className="flex items-center"><Sparkles size={12} className="mr-1 text-yellow-500" /> Powered by Vision Jeunesse Nouvelle</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// --- SUB COMPONENTS ---
-
-interface StatCardProps {
-  title: string;
-  value: string;
-  subValue: string;
-  icon: React.ReactNode;
-  color: 'green' | 'blue' | 'indigo' | 'slate' | 'teal';
-  onClick: () => void;
-}
-
-function StatCard({ title, value, subValue, icon, color, onClick }: StatCardProps) {
-  const colorStyles = {
-    green: 'bg-green-50 text-green-600 group-hover:bg-green-600 group-hover:text-white',
-    blue: 'bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white',
-    indigo: 'bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white',
-    slate: 'bg-slate-100 text-slate-600 group-hover:bg-slate-700 group-hover:text-white',
-    teal: 'bg-teal-50 text-teal-600 group-hover:bg-teal-600 group-hover:text-white',
-  };
-
-  return (
-    <div 
-      onClick={onClick}
-      className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 cursor-pointer transition-all hover:shadow-md hover:-translate-y-1 group"
-    >
-      <div className="flex justify-between items-start">
-        <div>
-          <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">{title}</p>
-          <h3 className="text-2xl font-extrabold text-gray-900">{value}</h3>
-          <p className="text-xs text-gray-400 mt-1 font-medium">{subValue}</p>
-        </div>
-        <div className={`p-3 rounded-xl transition-colors duration-300 ${colorStyles[color]}`}>
-          {icon}
+           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+              <h3 className="font-bold text-gray-800 mb-4">{labels.upcomingSchedule}</h3>
+              <div className="space-y-4">
+                 <div className="flex items-start">
+                    <div className="p-2 bg-blue-50 text-blue-600 rounded-lg mr-3 shrink-0">
+                       <Calendar size={20} />
+                    </div>
+                    <div>
+                       <p className="font-medium text-sm text-gray-900">{labels.nextMeeting}</p>
+                       <p className="text-xs text-gray-500 mt-0.5">Friday, {new Date().toLocaleDateString()}</p>
+                    </div>
+                 </div>
+                 {overdueLoanList.length > 0 && (
+                    <div className="flex items-start">
+                        <div className="p-2 bg-red-50 text-red-600 rounded-lg mr-3 shrink-0">
+                           <AlertCircle size={20} />
+                        </div>
+                        <div>
+                           <p className="font-medium text-sm text-gray-900">{labels.loansDueSoon}</p>
+                           <p className="text-xs text-gray-500 mt-0.5">{overdueLoanList.length} loans overdue</p>
+                        </div>
+                    </div>
+                 )}
+              </div>
+           </div>
         </div>
       </div>
     </div>

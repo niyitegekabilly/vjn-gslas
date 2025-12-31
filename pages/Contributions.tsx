@@ -3,12 +3,14 @@ import React, { useContext, useEffect, useState } from 'react';
 import { AppContext } from '../App';
 import { api } from '../api/client';
 import { LABELS } from '../constants';
-import { Transaction, Member, MemberStatus, AuditRecord } from '../types';
+import { Transaction, Member, MemberStatus, AuditRecord, UserRole } from '../types';
 import { PiggyBank, Search, Loader2, Plus, Filter, MoreVertical, AlertTriangle, History, XCircle, Edit, Save, X, Ban, TrendingUp, ShieldCheck } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function Contributions() {
   const { activeGroupId, lang, groups } = useContext(AppContext);
   const labels = LABELS[lang];
+  const { user } = useAuth();
   const group = groups.find(g => g.id === activeGroupId);
   
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -47,6 +49,8 @@ export default function Contributions() {
   
   const [voidReason, setVoidReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  const canEdit = user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.ADMIN || user?.role === UserRole.GROUP_LEADER;
 
   // --- Initial Data Load ---
   const fetchData = () => {
@@ -184,13 +188,15 @@ export default function Contributions() {
           <h2 className="text-2xl font-bold text-gray-800">{labels.sharesLedger}</h2>
           <p className="text-sm text-gray-500">{labels.strictRecording}</p>
         </div>
-        <button 
-          onClick={() => { resetForms(); setIsAddModalOpen(true); }}
-          className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 shadow-sm transition"
-        >
-          <Plus size={18} className="mr-2" />
-          {labels.newContribution}
-        </button>
+        {canEdit && (
+          <button 
+            onClick={() => { resetForms(); setIsAddModalOpen(true); }}
+            className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 shadow-sm transition"
+          >
+            <Plus size={18} className="mr-2" />
+            {labels.newContribution}
+          </button>
+        )}
       </div>
 
       {/* Pots Summary Cards */}
@@ -301,7 +307,7 @@ export default function Contributions() {
                       </div>
                     </td>
                     <td className="p-4 text-right">
-                      {!t.isVoid && (
+                      {!t.isVoid && canEdit && (
                         <div className="flex justify-end gap-2">
                           <button 
                             onClick={() => handleEditInit(t)}

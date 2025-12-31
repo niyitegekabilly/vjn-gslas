@@ -39,6 +39,8 @@ export const GroupForm: React.FC<GroupFormProps> = ({
     maxShares: 5,
     maxLoanMultiplier: 3,
     status: GroupStatus.ACTIVE,
+    lateFeeAmount: 5,
+    lateFeeType: 'PERCENTAGE',
     ...initialData
   });
 
@@ -286,6 +288,28 @@ export const GroupForm: React.FC<GroupFormProps> = ({
                         className="w-full pl-7 pr-4 py-2 border border-gray-300 rounded-lg"
                     />
                 </div>
+             </div>
+             <div className="col-span-2">
+               <label className="block text-sm font-medium text-gray-700 mb-1">Late Payment Fee (Auto-Apply)</label>
+               <div className="flex gap-2">
+                  <select 
+                    value={formData.lateFeeType}
+                    onChange={e => setFormData({...formData, lateFeeType: e.target.value as 'PERCENTAGE' | 'FIXED' })}
+                    className="w-1/3 px-4 py-2 border border-gray-300 rounded-lg bg-white"
+                  >
+                    <option value="PERCENTAGE">Percentage (%)</option>
+                    <option value="FIXED">Fixed (RWF)</option>
+                  </select>
+                  <input 
+                    type="number"
+                    min="0"
+                    step={formData.lateFeeType === 'PERCENTAGE' ? 0.1 : 50}
+                    value={formData.lateFeeAmount}
+                    onChange={e => setFormData({...formData, lateFeeAmount: parseFloat(e.target.value)})}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg"
+                    placeholder="Fee amount"
+                  />
+               </div>
              </div>
           </div>
         </div>

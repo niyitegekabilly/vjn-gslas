@@ -14,6 +14,7 @@ type ViewMode = 'LIST' | 'CREATE' | 'PROFILE' | 'EDIT';
 export default function Groups() {
   const { groups: allGroups, lang, setActiveGroupId, refreshApp } = useContext(AppContext);
   const labels = LABELS[lang];
+  const { user } = useAuth();
   const [view, setView] = useState<ViewMode>('LIST');
   const [selectedGroup, setSelectedGroup] = useState<GSLAGroup | null>(null);
 
@@ -45,6 +46,8 @@ export default function Groups() {
     return matchesSearch && matchesStatus;
   });
 
+  const canCreate = user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.ADMIN;
+
   return (
     <div className="space-y-6">
       {view === 'LIST' && (
@@ -57,10 +60,11 @@ export default function Groups() {
           statusFilter={statusFilter}
           setStatusFilter={setStatusFilter}
           labels={labels}
+          canCreate={canCreate}
         />
       )}
       
-      {view === 'CREATE' && (
+      {view === 'CREATE' && canCreate && (
         <CreateGroupForm 
           onCancel={() => setView('LIST')} 
           onSuccess={handleCreateSuccess} 
@@ -93,10 +97,9 @@ export default function Groups() {
 }
 
 // ... existing SUB-COMPONENTS code ...
-// Re-implementing sub-components to ensure full file integrity as strict replacement is required
 
 function GroupList({ 
-  groups, onCreate, onSelect, searchTerm, setSearchTerm, statusFilter, setStatusFilter, labels
+  groups, onCreate, onSelect, searchTerm, setSearchTerm, statusFilter, setStatusFilter, labels, canCreate
 }: any) {
   return (
     <>
@@ -105,13 +108,15 @@ function GroupList({
            <h2 className="text-2xl font-bold text-gray-800">{labels.groupsManagement}</h2>
            <p className="text-gray-500 text-sm">{labels.manageGroupsDesc}</p>
         </div>
-        <button 
-          onClick={onCreate}
-          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm transition-colors"
-        >
-          <Plus size={18} className="mr-2" />
-          {labels.newGroup}
-        </button>
+        {canCreate && (
+          <button 
+            onClick={onCreate}
+            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm transition-colors"
+          >
+            <Plus size={18} className="mr-2" />
+            {labels.newGroup}
+          </button>
+        )}
       </div>
 
       {/* Search & Filter Toolbar */}

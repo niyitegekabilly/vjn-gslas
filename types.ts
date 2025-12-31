@@ -132,6 +132,8 @@ export interface GSLAGroup {
   minShares: number;
   maxShares: number;
   maxLoanMultiplier: number; // Default 3
+  lateFeeAmount?: number; // Configurable late fee
+  lateFeeType?: 'PERCENTAGE' | 'FIXED'; // Configurable type
   
   // Documents
   constitutionUrl?: string; // Base64 or URL

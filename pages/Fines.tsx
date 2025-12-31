@@ -3,12 +3,14 @@ import React, { useContext, useEffect, useState } from 'react';
 import { AppContext } from '../App';
 import { api } from '../api/client';
 import { LABELS } from '../constants';
-import { Fine, FineCategory, Member, FineStatus } from '../types';
+import { Fine, FineCategory, Member, FineStatus, UserRole } from '../types';
 import { Gavel, Search, Plus, Loader2, CheckCircle, AlertTriangle, X, DollarSign, Edit, Archive, History, Shield, Tag } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function Fines() {
   const { activeGroupId, lang, groups } = useContext(AppContext);
   const labels = LABELS[lang];
+  const { user } = useAuth();
   const group = groups.find(g => g.id === activeGroupId);
 
   const [fines, setFines] = useState<Fine[]>([]);
@@ -43,6 +45,8 @@ export default function Fines() {
   const [newCatAmount, setNewCatAmount] = useState(0);
 
   const [submitting, setSubmitting] = useState(false);
+
+  const canEdit = user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.ADMIN || user?.role === UserRole.GROUP_LEADER;
 
   const fetchData = () => {
     if (!activeGroupId) return;
@@ -155,18 +159,22 @@ export default function Fines() {
            <div className="p-3 bg-green-100 text-green-600 rounded-lg"><CheckCircle size={24} /></div>
          </div>
          <div className="p-6 bg-white rounded-xl border border-gray-200 flex flex-col justify-center gap-3">
-             <button 
-               onClick={() => setIsCreateOpen(true)}
-               className="w-full flex items-center justify-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium shadow-sm"
-             >
-               <Plus size={18} className="mr-2" /> {labels.recordNewFine}
-             </button>
-             <button 
-               onClick={() => setView(view === 'LIST' ? 'CATEGORIES' : 'LIST')}
-               className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium"
-             >
-               <Tag size={16} className="mr-2" /> {view === 'LIST' ? labels.manageCategories : labels.backToList}
-             </button>
+             {canEdit && (
+                <button 
+                  onClick={() => setIsCreateOpen(true)}
+                  className="w-full flex items-center justify-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium shadow-sm"
+                >
+                  <Plus size={18} className="mr-2" /> {labels.recordNewFine}
+                </button>
+             )}
+             {canEdit && (
+                <button 
+                  onClick={() => setView(view === 'LIST' ? 'CATEGORIES' : 'LIST')}
+                  className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium"
+                >
+                  <Tag size={16} className="mr-2" /> {view === 'LIST' ? labels.manageCategories : labels.backToList}
+                </button>
+             )}
          </div>
       </div>
 
@@ -239,7 +247,7 @@ export default function Fines() {
                          <td className="p-4 text-sm text-green-600">{f.paidAmount.toLocaleString()}</td>
                          <td className="p-4 text-sm font-bold text-red-600">{(f.amount - f.paidAmount).toLocaleString()}</td>
                          <td className="p-4 text-right">
-                           {f.status !== 'VOID' && f.status !== 'PAID' && (
+                           {canEdit && f.status !== 'VOID' && f.status !== 'PAID' && (
                               <button 
                                 onClick={() => { setSelectedFine(f); setPayAmount(f.amount - f.paidAmount); setIsPayOpen(true); }}
                                 className="p-1.5 bg-green-50 text-green-600 rounded hover:bg-green-100 mr-2"
@@ -248,7 +256,7 @@ export default function Fines() {
                                 <DollarSign size={16} />
                               </button>
                            )}
-                           {f.status !== 'VOID' && (
+                           {canEdit && f.status !== 'VOID' && (
                              <>
                               <button 
                                 onClick={() => { setSelectedFine(f); setEditData({ amount: f.amount, categoryId: f.categoryId, reason: '' }); setIsEditOpen(true); }}
@@ -314,7 +322,7 @@ export default function Fines() {
       )}
 
       {/* CREATE MODAL */}
-      {isCreateOpen && (
+      {isCreateOpen && canEdit && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm">
            <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
               <div className="flex justify-between items-center mb-6">
@@ -388,7 +396,7 @@ export default function Fines() {
       )}
 
       {/* PAY MODAL */}
-      {isPayOpen && selectedFine && (
+      {isPayOpen && selectedFine && canEdit && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm">
            <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
               <h3 className="text-lg font-bold text-gray-800 mb-4">{labels.payFine}</h3>
@@ -414,7 +422,7 @@ export default function Fines() {
       )}
 
       {/* EDIT MODAL */}
-      {isEditOpen && selectedFine && (
+      {isEditOpen && selectedFine && canEdit && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm">
            <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 border-t-4 border-amber-500">
               <h3 className="text-lg font-bold text-gray-800 mb-6">{labels.edit}</h3>
@@ -458,7 +466,7 @@ export default function Fines() {
       )}
 
       {/* VOID MODAL */}
-      {isVoidOpen && selectedFine && (
+      {isVoidOpen && selectedFine && canEdit && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm">
            <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 border-t-4 border-gray-500">
               <h3 className="text-lg font-bold text-gray-800 mb-2">{labels.void}</h3>
