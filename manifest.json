@@ -1,0 +1,22 @@
+
+{
+  "name": "VJN GSLA Management System",
+  "short_name": "VJN GSLA",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f3f4f6",
+  "theme_color": "#16a34a",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "https://odiukwlqorbjuipntmzj.supabase.co/storage/v1/object/public/images/logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://odiukwlqorbjuipntmzj.supabase.co/storage/v1/object/public/images/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
