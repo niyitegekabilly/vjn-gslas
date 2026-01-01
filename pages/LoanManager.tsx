@@ -4,16 +4,10 @@ import { AppContext } from '../App';
 import { api } from '../api/client';
 import { LABELS } from '../constants';
 import { LoanStatus, Loan, Member, UserRole } from '../types';
-<<<<<<< HEAD
 import { Check, X, AlertTriangle, FileText, Calculator, Loader2, Coins, RefreshCw, Info, Plus, Banknote, Search, Filter, CheckCircle, ChevronDown, ChevronUp, Eye, FileCheck, ThumbsUp, ThumbsDown, ArrowRight, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { TableRowSkeleton } from '../components/Skeleton';
 import { useAuth } from '../contexts/AuthContext';
 import { CsvImporter } from '../components/CsvImporter';
-=======
-import { Check, X, AlertTriangle, FileText, Calculator, Loader2, Coins, RefreshCw, Info, Plus, Banknote, Search, Filter, CheckCircle, ChevronDown, ChevronUp, Eye } from 'lucide-react';
-import { TableRowSkeleton } from '../components/Skeleton';
-import { useAuth } from '../contexts/AuthContext';
->>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
 
 export default function LoanManager() {
   const { activeGroupId, lang, groups } = useContext(AppContext);
@@ -24,10 +18,7 @@ export default function LoanManager() {
   const [loans, setLoans] = useState<Loan[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
-<<<<<<< HEAD
   const [cashBalance, setCashBalance] = useState(0);
-=======
->>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
 
   // Tools State
   const [showCalculator, setShowCalculator] = useState(false);
@@ -43,7 +34,6 @@ export default function LoanManager() {
   // View Details Modal State
   const [viewingLoan, setViewingLoan] = useState<Loan | null>(null);
 
-<<<<<<< HEAD
   // Review (Approval/Rejection) Modal State
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [reviewingLoan, setReviewingLoan] = useState<Loan | null>(null);
@@ -51,29 +41,19 @@ export default function LoanManager() {
   const [rejectReason, setRejectReason] = useState('');
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
 
-=======
->>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
   // Calculator State
   const [calcAmount, setCalcAmount] = useState<number>(50000);
   const [calcRate, setCalcRate] = useState<number>(5);
   const [calcDuration, setCalcDuration] = useState<number>(3);
-<<<<<<< HEAD
   const [calcType, setCalcType] = useState<'FLAT' | 'REDUCING'>('FLAT');
-=======
->>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
 
   // Application Form State
   const [selectedMemberId, setSelectedMemberId] = useState('');
   const [formAmount, setFormAmount] = useState<number | ''>('');
   const [formDuration, setFormDuration] = useState<number>(3);
   const [formPurpose, setFormPurpose] = useState('');
-<<<<<<< HEAD
   const [purposeError, setPurposeError] = useState<string | null>(null); // Validation State
   const [formSubmitting, setFormSubmitting] = useState(false);
-=======
-  const [formSubmitting, setFormSubmitting] = useState(false);
-  const [actionProcessing, setActionProcessing] = useState<string | null>(null);
->>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
 
   // Late Fee State
   const [feeAmount, setFeeAmount] = useState<number>(5);
@@ -81,17 +61,11 @@ export default function LoanManager() {
   const [applyingFees, setApplyingFees] = useState(false);
   const [feeResult, setFeeResult] = useState<string | null>(null);
 
-<<<<<<< HEAD
   // Filter & Sort State
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'DEFAULTED' | 'CLEARED' | 'PENDING' | 'REJECTED'>('ALL');
   const [sortField, setSortField] = useState<'memberName' | 'amount' | 'dueDate' | 'status'>('dueDate');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-=======
-  // Filter State
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'DEFAULTED' | 'CLEARED' | 'PENDING' | 'REJECTED'>('ALL');
->>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
 
   // Mobile Expanded State
   const [expandedLoanId, setExpandedLoanId] = useState<string | null>(null);
@@ -104,12 +78,8 @@ export default function LoanManager() {
     
     const promises: Promise<any>[] = [
       api.getLoans(activeGroupId),
-<<<<<<< HEAD
       api.getMembers(activeGroupId),
       api.getCashBalance(activeGroupId)
-=======
-      api.getMembers(activeGroupId)
->>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
     ];
 
     if (group?.currentCycleId) {
@@ -119,18 +89,11 @@ export default function LoanManager() {
     Promise.all(promises).then((results) => {
       setLoans(results[0]);
       setMembers(results[1]);
-<<<<<<< HEAD
       setCashBalance(results[2]);
       
       // If cycle data exists (index 3), use it to set default calculator rate
       if (results[3]) {
         setCalcRate(results[3].interestRate);
-=======
-      
-      // If cycle data exists (index 2), use it to set default calculator rate
-      if (results[2]) {
-        setCalcRate(results[2].interestRate);
->>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
       }
       
       setLoading(false);
@@ -163,7 +126,6 @@ export default function LoanManager() {
     }
   };
 
-<<<<<<< HEAD
   const handleImportLoans = async (data: any[]) => {
     if(!activeGroupId) return { success: false, message: "No active group." };
     try {
@@ -208,21 +170,6 @@ export default function LoanManager() {
       }
   };
 
-=======
-  const handleUpdateStatus = async (loanId: string, status: LoanStatus) => {
-    setActionProcessing(loanId);
-    try {
-      await api.updateLoanStatus(loanId, status);
-      fetchData();
-    } catch (error) {
-      console.error(error);
-      alert("Failed to update loan status");
-    } finally {
-      setActionProcessing(null);
-    }
-  };
-
->>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
   const openRepayModal = (loan: Loan) => {
     setRepayLoanId(loan.id);
     setRepayAmount(''); // Start empty
@@ -248,7 +195,6 @@ export default function LoanManager() {
 
   const handleCreateLoan = async (e: React.FormEvent) => {
     e.preventDefault();
-<<<<<<< HEAD
     
     // Validation
     if (!formPurpose.trim()) {
@@ -262,8 +208,6 @@ export default function LoanManager() {
     }
     setPurposeError(null);
 
-=======
->>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
     if (!selectedMemberId || !formAmount || !group) return;
 
     setFormSubmitting(true);
@@ -280,10 +224,7 @@ export default function LoanManager() {
       setFormAmount('');
       setFormPurpose('');
       setSelectedMemberId('');
-<<<<<<< HEAD
       setPurposeError(null);
-=======
->>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
       fetchData();
     } catch (error) {
       console.error(error);
@@ -302,7 +243,6 @@ export default function LoanManager() {
 
   const pendingLoans = loans.filter(l => l.status === LoanStatus.PENDING);
   
-<<<<<<< HEAD
   // Overdue Check
   const overdueLoans = loans.filter(l => l.status === LoanStatus.ACTIVE && l.dueDate < new Date().toISOString().split('T')[0]);
   const overdueCount = overdueLoans.length;
@@ -320,10 +260,6 @@ export default function LoanManager() {
     if (sortField !== field) return <ArrowUpDown size={14} className="ml-1 text-gray-400" />;
     return sortDirection === 'asc' ? <ArrowUp size={14} className="ml-1 text-blue-600" /> : <ArrowDown size={14} className="ml-1 text-blue-600" />;
   };
-=======
-  // Overdue Check for Tool
-  const overdueCount = loans.filter(l => l.status === LoanStatus.ACTIVE && l.dueDate < new Date().toISOString().split('T')[0]).length;
->>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
 
   // Filter active loans
   const filteredActiveLoans = loans.filter(l => {
@@ -333,16 +269,10 @@ export default function LoanManager() {
 
     // Status filter
     if (statusFilter === 'ALL') {
-<<<<<<< HEAD
-=======
-        // By default 'ALL' in portfolio view usually shows Active, Defaulted, Cleared. 
-        // Pending is usually separate.
->>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
         return l.status !== LoanStatus.PENDING && l.status !== LoanStatus.REJECTED;
     }
     
     return l.status === statusFilter;
-<<<<<<< HEAD
   }).sort((a, b) => {
     let comparison = 0;
     
@@ -362,15 +292,12 @@ export default function LoanManager() {
     }
     
     return sortDirection === 'asc' ? comparison : -comparison;
-=======
->>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
   });
   
   // Helper for modal
   const repayingLoan = loans.find(l => l.id === repayLoanId);
   const repayingMember = repayingLoan ? members.find(m => m.id === repayingLoan.memberId) : null;
 
-<<<<<<< HEAD
   // --- Calculator Logic ---
   let totalInterest = 0;
   let totalRepayment = 0;
@@ -400,17 +327,6 @@ export default function LoanManager() {
   const BreakdownView = ({ principal, totalRepayable, interestRate }: { principal: number, totalRepayable: number, interestRate: number }) => {
     const interest = totalRepayable - principal;
     const durationEstimate = interestRate > 0 && principal > 0 ? Math.round(interest / (principal * (interestRate / 100))) : 0;
-=======
-  // Calculator Logic (Simple Interest / Flat Rate)
-  const totalInterest = calcAmount * (calcRate / 100) * calcDuration;
-  const totalRepayment = calcAmount + totalInterest;
-  const monthlyPayment = calcDuration > 0 ? totalRepayment / calcDuration : 0;
-
-  // Breakdown Render Helper
-  const BreakdownView = ({ principal, totalRepayable, interestRate }: { principal: number, totalRepayable: number, interestRate: number }) => {
-    const interest = totalRepayable - principal;
-    const duration = interestRate > 0 && principal > 0 ? Math.round(interest / (principal * (interestRate / 100))) : 0;
->>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
     
     return (
       <div className="bg-gray-50 p-3 rounded-lg text-sm border border-gray-100 mt-3">
@@ -421,11 +337,7 @@ export default function LoanManager() {
         </div>
         <div className="flex justify-between mb-1 pb-1 border-b border-gray-200">
             <span className="text-gray-600 flex items-center">
-<<<<<<< HEAD
                 Interest <span className="text-xs text-gray-400 ml-1">({interestRate}% /mo)</span>
-=======
-                Interest <span className="text-xs text-gray-400 ml-1">({interestRate}% &times; ~{duration} mo)</span>
->>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
             </span>
             <span className="font-mono text-blue-600">+{interest.toLocaleString()} {labels.currency}</span>
         </div>
@@ -437,7 +349,6 @@ export default function LoanManager() {
     );
   };
 
-<<<<<<< HEAD
   const importFields = [
     { key: 'NationalID', label: 'National ID', sample: '11990800...', required: true },
     { key: 'Amount', label: 'Principal', sample: '50000', required: true },
@@ -447,8 +358,6 @@ export default function LoanManager() {
     { key: 'Purpose', label: 'Purpose', sample: 'School Fees', required: false },
   ];
 
-=======
->>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
   if (loading) {
      return (
        <div className="space-y-6">
@@ -466,15 +375,12 @@ export default function LoanManager() {
         <h2 className="text-2xl font-bold text-gray-800">{labels.loanManagement}</h2>
         <div className="flex flex-wrap gap-2 w-full xl:w-auto">
            {canEdit && (
-<<<<<<< HEAD
              <>
              <CsvImporter 
                 entityName="Loans"
                 fields={importFields}
                 onImport={handleImportLoans}
              />
-=======
->>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
              <button 
               onClick={() => { setShowFeeManager(!showFeeManager); setShowCalculator(false); }}
               className={`flex-1 xl:flex-none flex justify-center items-center px-4 py-2 border rounded-lg shadow-sm transition-colors ${
@@ -486,10 +392,7 @@ export default function LoanManager() {
               <Coins size={18} className="mr-2" />
               {showFeeManager ? labels.hidePenalty : labels.penaltyTool}
             </button>
-<<<<<<< HEAD
             </>
-=======
->>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
            )}
           <button 
             onClick={() => { setShowCalculator(!showCalculator); setShowFeeManager(false); }}
@@ -512,7 +415,6 @@ export default function LoanManager() {
         </div>
       </div>
 
-<<<<<<< HEAD
       {/* Review Modal */}
       {isReviewModalOpen && reviewingLoan && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm animate-in fade-in duration-200">
@@ -607,8 +509,6 @@ export default function LoanManager() {
           </div>
       )}
 
-=======
->>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
       {/* Repayment Modal */}
       {isRepayModalOpen && repayingLoan && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm animate-in fade-in duration-200">
@@ -635,11 +535,7 @@ export default function LoanManager() {
                       max={repayingLoan.balance}
                       value={repayAmount}
                       onChange={(e) => setRepayAmount(e.target.value === '' ? '' : Number(e.target.value))}
-<<<<<<< HEAD
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
-=======
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
->>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
                       required
                       autoFocus
                    />
@@ -737,11 +633,7 @@ export default function LoanManager() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">{labels.selectMember}</label>
                 {canEdit ? (
                   <select 
-<<<<<<< HEAD
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
-=======
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
->>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
                     value={selectedMemberId}
                     onChange={(e) => {
                       setSelectedMemberId(e.target.value);
@@ -776,11 +668,7 @@ export default function LoanManager() {
                     max={maxLoanAmount}
                     value={formAmount}
                     onChange={(e) => setFormAmount(e.target.value === '' ? '' : Number(e.target.value))}
-<<<<<<< HEAD
                     className={`w-full px-4 py-2 border rounded-lg focus:ring-2 outline-none bg-white text-gray-900 ${
-=======
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 outline-none ${
->>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
                        formAmount && Number(formAmount) > maxLoanAmount ? 'border-red-300 focus:ring-red-200' : 'border-gray-300 focus:ring-blue-500'
                     }`}
                     disabled={!selectedMemberId && canEdit}
@@ -798,11 +686,7 @@ export default function LoanManager() {
                     max="24"
                     value={formDuration}
                     onChange={(e) => setFormDuration(Number(e.target.value))}
-<<<<<<< HEAD
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
-=======
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
->>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
                     required
                   />
                 </div>
@@ -813,7 +697,6 @@ export default function LoanManager() {
                 <textarea 
                   rows={2}
                   value={formPurpose}
-<<<<<<< HEAD
                   onChange={(e) => {
                     setFormPurpose(e.target.value);
                     if (purposeError) setPurposeError(null);
@@ -829,26 +712,15 @@ export default function LoanManager() {
                     <AlertTriangle size={12} className="mr-1" /> {purposeError}
                   </p>
                 )}
-=======
-                  onChange={(e) => setFormPurpose(e.target.value)}
-                  placeholder="e.g. School Fees, Agriculture, Business..."
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                  required
-                />
->>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
               </div>
 
               <div className="pt-2 flex gap-3">
                 <button 
                   type="button" 
-<<<<<<< HEAD
                   onClick={() => {
                     setIsModalOpen(false);
                     setPurposeError(null);
                   }}
-=======
-                  onClick={() => setIsModalOpen(false)}
->>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
                   className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
                 >
                   {labels.cancel}
@@ -868,11 +740,7 @@ export default function LoanManager() {
         </div>
       )}
 
-<<<<<<< HEAD
       {/* Fee Manager Tool */}
-=======
-      {/* Tools Section (Calculator / Fee Manager) */}
->>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
       {showFeeManager && (
         <div className="bg-gradient-to-br from-white to-red-50 p-6 rounded-xl border border-red-100 shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
@@ -881,30 +749,12 @@ export default function LoanManager() {
                 <Coins size={20} className="mr-2" /> {labels.penaltyManager}
               </h3>
               <p className="text-sm text-gray-600 max-w-2xl mt-1">
-<<<<<<< HEAD
                 Calculate and apply fees to overdue loans. {overdueLoans.length} loans are currently overdue.
               </p>
             </div>
           </div>
           
           <div className="flex flex-col md:flex-row items-end gap-6 border-b border-red-100 pb-6 mb-6">
-=======
-                Apply fees to overdue loans. Affected loans will be marked as 'Defaulted'.
-              </p>
-            </div>
-            {overdueCount > 0 ? (
-                <div className="mt-2 md:mt-0 px-4 py-2 bg-red-100 text-red-800 rounded-lg text-sm font-bold flex items-center animate-pulse">
-                    <AlertTriangle size={16} className="mr-2" /> {overdueCount} Loans Overdue
-                </div>
-            ) : (
-                <div className="mt-2 md:mt-0 px-4 py-2 bg-green-100 text-green-800 rounded-lg text-sm font-bold flex items-center">
-                    <CheckCircle size={16} className="mr-2" /> No Overdue Loans
-                </div>
-            )}
-          </div>
-          
-          <div className="flex flex-col md:flex-row items-end gap-6">
->>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
             <div className="w-full md:w-64">
               <label className="block text-sm font-medium text-gray-700 mb-1">{labels.penaltyType}</label>
               <div className="flex rounded-lg shadow-sm">
@@ -936,11 +786,7 @@ export default function LoanManager() {
                 min="0"
                 value={feeAmount}
                 onChange={(e) => setFeeAmount(Number(e.target.value))}
-<<<<<<< HEAD
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none bg-white text-gray-900"
-=======
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
->>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
               />
             </div>
 
@@ -956,7 +802,6 @@ export default function LoanManager() {
             </button>
           </div>
 
-<<<<<<< HEAD
           {/* Penalty Preview Table */}
           {overdueCount > 0 && (
              <div className="bg-white rounded-lg border border-red-100 overflow-hidden">
@@ -986,8 +831,6 @@ export default function LoanManager() {
              </div>
           )}
 
-=======
->>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
           {feeResult && (
             <div className="mt-4 p-3 bg-green-100 text-green-800 rounded-lg text-sm flex items-center">
               <Check size={16} className="mr-2" /> {feeResult}
@@ -996,17 +839,13 @@ export default function LoanManager() {
         </div>
       )}
 
-<<<<<<< HEAD
       {/* Loan Estimator Tool */}
-=======
->>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
       {showCalculator && (
         <div className="bg-gradient-to-br from-white to-blue-50 p-6 rounded-xl border border-blue-100 shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
           <div className="flex justify-between items-start mb-4">
             <h3 className="text-lg font-semibold text-gray-800 flex items-center">
               <Calculator size={20} className="mr-2 text-blue-600" /> {labels.loanEstimator}
             </h3>
-<<<<<<< HEAD
             <div className="flex items-center bg-blue-100 rounded-lg p-1">
                 <button 
                    onClick={() => setCalcType('FLAT')}
@@ -1020,10 +859,6 @@ export default function LoanManager() {
                 >
                    Reducing
                 </button>
-=======
-            <div className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold flex items-center">
-              <Info size={12} className="mr-1" /> {labels.simpleInterest}
->>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
             </div>
           </div>
 
@@ -1038,11 +873,7 @@ export default function LoanManager() {
                     min="0"
                     value={calcAmount}
                     onChange={(e) => setCalcAmount(Number(e.target.value))}
-<<<<<<< HEAD
                     className="w-full pl-4 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-shadow bg-white text-gray-900"
-=======
-                    className="w-full pl-4 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-shadow"
->>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
                   />
                 </div>
               </div>
@@ -1055,11 +886,7 @@ export default function LoanManager() {
                     step="0.1"
                     value={calcRate}
                     onChange={(e) => setCalcRate(Number(e.target.value))}
-<<<<<<< HEAD
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-shadow bg-white text-gray-900"
-=======
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-shadow"
->>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
                   />
                   <span className="text-xs text-gray-500 mt-1 block">{labels.perMonth}</span>
                 </div>
@@ -1070,11 +897,7 @@ export default function LoanManager() {
                     min="1"
                     value={calcDuration}
                     onChange={(e) => setCalcDuration(Number(e.target.value))}
-<<<<<<< HEAD
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-shadow bg-white text-gray-900"
-=======
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-shadow"
->>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
                   />
                   <span className="text-xs text-gray-500 mt-1 block">{labels.months}</span>
                 </div>
@@ -1109,11 +932,7 @@ export default function LoanManager() {
               <div className="mt-6 pt-4 border-t border-gray-100">
                  <BreakdownView principal={calcAmount} totalRepayable={totalRepayment} interestRate={calcRate} />
                  <p className="text-xs text-center text-gray-400 mt-2">
-<<<<<<< HEAD
                     * {calcType === 'FLAT' ? labels.formulaNote : 'Formula: Amortization (PMT)'}
-=======
-                    * {labels.formulaNote}
->>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
                 </p>
               </div>
             </div>
@@ -1146,19 +965,11 @@ export default function LoanManager() {
                       <td className="p-4">{loan.principal.toLocaleString()} {labels.currency}</td>
                       <td className="p-4 text-gray-600">{loan.purpose}</td>
                       <td className="p-4 flex justify-end gap-2">
-<<<<<<< HEAD
                         <button 
                             onClick={() => openReviewModal(loan)} 
                             className="flex items-center px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-colors text-sm"
                         >
                            <FileCheck size={16} className="mr-2" /> Review
-=======
-                        <button onClick={() => handleUpdateStatus(loan.id, LoanStatus.ACTIVE)} disabled={!!actionProcessing} className="p-2 bg-green-100 text-green-600 rounded hover:bg-green-200 disabled:opacity-50" title={labels.approve}>
-                           {actionProcessing === loan.id ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
-                        </button>
-                        <button onClick={() => handleUpdateStatus(loan.id, LoanStatus.REJECTED)} disabled={!!actionProcessing} className="p-2 bg-red-100 text-red-600 rounded hover:bg-red-200 disabled:opacity-50" title={labels.reject}>
-                          <X size={18} />
->>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
                         </button>
                       </td>
                     </tr>
@@ -1175,23 +986,12 @@ export default function LoanManager() {
                             <span className="text-lg font-bold text-gray-800">{loan.principal.toLocaleString()} F</span>
                         </div>
                         <p className="text-sm text-gray-600 mb-3">{loan.purpose}</p>
-<<<<<<< HEAD
                         <button 
                             onClick={() => openReviewModal(loan)} 
                             className="w-full py-2 bg-slate-800 text-white rounded-lg text-sm font-medium flex justify-center items-center"
                         >
                             Review Application
                         </button>
-=======
-                        <div className="flex gap-2">
-                            <button onClick={() => handleUpdateStatus(loan.id, LoanStatus.ACTIVE)} disabled={!!actionProcessing} className="flex-1 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-medium flex justify-center items-center">
-                                {labels.approve}
-                            </button>
-                            <button onClick={() => handleUpdateStatus(loan.id, LoanStatus.REJECTED)} disabled={!!actionProcessing} className="flex-1 py-2 bg-red-100 text-red-700 rounded-lg text-sm font-medium flex justify-center items-center">
-                                {labels.reject}
-                            </button>
-                        </div>
->>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
                     </div>
                 ))}
             </div>
@@ -1212,11 +1012,7 @@ export default function LoanManager() {
                   placeholder={labels.search} 
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-<<<<<<< HEAD
                   className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
-=======
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
->>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
                 />
              </div>
              <div className="flex items-center gap-2 bg-white border border-gray-300 rounded-lg px-3 py-2">
@@ -1234,7 +1030,6 @@ export default function LoanManager() {
                    <option value="REJECTED">Rejected</option>
                 </select>
              </div>
-<<<<<<< HEAD
              <div className="flex items-center gap-2 bg-white border border-gray-300 rounded-lg px-3 py-2">
                 <ArrowUpDown size={16} className="text-gray-500" />
                 <select 
@@ -1364,11 +1159,6 @@ export default function LoanManager() {
           </div>
         </div>
         
-=======
-          </div>
-        </div>
-
->>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
         {/* --- MOBILE CARD VIEW --- */}
         <div className="md:hidden space-y-4">
             {filteredActiveLoans.length === 0 ? (
@@ -1459,96 +1249,6 @@ export default function LoanManager() {
                 })
             )}
         </div>
-<<<<<<< HEAD
-=======
-
-        {/* --- DESKTOP TABLE VIEW --- */}
-        <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-200">
-                <tr>
-                  <th className="p-4">{labels.members}</th>
-                  <th className="p-4">Start Date</th>
-                  <th className="p-4">Due Date</th>
-                  <th className="p-4">Principal</th>
-                  <th className="p-4">Repaid</th>
-                  <th className="p-4">Balance</th>
-                  <th className="p-4">{labels.status}</th>
-                  <th className="p-4">Progress</th>
-                  <th className="p-4 text-right">{labels.actions}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {filteredActiveLoans.length === 0 ? (
-                  <tr><td colSpan={9} className="p-8 text-center text-gray-500">{labels.noData}</td></tr>
-                ) : (
-                  filteredActiveLoans.map(loan => {
-                    const repaid = loan.totalRepayable - loan.balance;
-                    const progress = loan.totalRepayable > 0 ? (repaid / loan.totalRepayable) * 100 : 100;
-                    const isOverdue = loan.status !== LoanStatus.CLEARED && new Date(loan.dueDate) < new Date();
-                    const isDefaulted = loan.status === LoanStatus.DEFAULTED;
-                    
-                    return (
-                      <tr key={loan.id} className="hover:bg-gray-50">
-                        <td className="p-4 font-medium text-gray-900">{getMemberName(loan.memberId)}</td>
-                        <td className="p-4 text-gray-500">{loan.startDate}</td>
-                        <td className="p-4 text-gray-500">
-                          <span className={isOverdue ? "text-red-600 font-bold flex items-center" : ""}>
-                            {isOverdue && <AlertTriangle size={14} className="mr-1" />}
-                            {loan.dueDate}
-                          </span>
-                        </td>
-                        <td className="p-4">{loan.principal.toLocaleString()}</td>
-                        <td className="p-4 text-green-600">{repaid.toLocaleString()}</td>
-                        <td className="p-4 font-bold">{loan.balance.toLocaleString()}</td>
-                        <td className="p-4">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                            loan.status === LoanStatus.ACTIVE ? 'bg-blue-100 text-blue-800' :
-                            loan.status === LoanStatus.DEFAULTED ? 'bg-red-100 text-red-800' :
-                            loan.status === LoanStatus.CLEARED ? 'bg-green-100 text-green-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
-                            {loan.status}
-                          </span>
-                        </td>
-                        <td className="p-4">
-                          {loan.status === LoanStatus.CLEARED ? (
-                             <span className="text-xs font-bold text-green-600">100% Paid</span>
-                          ) : (
-                            <>
-                              <div className="w-full bg-gray-200 rounded-full h-2.5 mb-1">
-                                <div className={`h-2.5 rounded-full ${isDefaulted ? 'bg-red-500' : 'bg-blue-600'}`} style={{ width: `${progress}%` }}></div>
-                              </div>
-                              <span className={`text-xs ${isDefaulted ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
-                                {Math.round(progress)}% Paid
-                              </span>
-                            </>
-                          )}
-                        </td>
-                        <td className="p-4 text-right flex justify-end gap-1">
-                          <button onClick={() => setViewingLoan(loan)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded" title="View Details">
-                              <Eye size={16} />
-                          </button>
-                          {(loan.status === LoanStatus.ACTIVE || loan.status === LoanStatus.DEFAULTED) && canEdit && (
-                            <button 
-                              onClick={() => openRepayModal(loan)}
-                              className="p-2 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition-colors"
-                              title={labels.recordRepayment}
-                            >
-                              <Banknote size={16} />
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
->>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
       </section>
     </div>
   );
