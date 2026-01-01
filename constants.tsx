@@ -24,12 +24,15 @@ export const MENU_ITEMS = [
   { id: 'help', label: { en: 'Help / Support', rw: 'Ubufasha' }, icon: <HelpCircle size={20} />, path: '/help' },
 ];
 
+<<<<<<< HEAD
 export const EMAIL_CONFIG = {
   // EXACT verified domain configuration
   defaultFrom: "VJN System <notifications@amatsinda.vjn.org.rw>", 
   replyTo: "support@amatsinda.vjn.org.rw"
 };
 
+=======
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
 export const LABELS = {
   en: {
     // General
@@ -64,7 +67,10 @@ export const LABELS = {
     next: "Next",
     step: "Step",
     of: "of",
+<<<<<<< HEAD
     send: "Send",
+=======
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
     
     // Auth & Greetings
     goodMorning: "Good Morning",
@@ -75,6 +81,7 @@ export const LABELS = {
     password: "Password",
     securePortal: "Secure Access Portal",
     unauthMsg: "Unauthorized access is prohibited. All activities are logged.",
+<<<<<<< HEAD
     verifyIdentity: "Verify Identity",
     recoverAccess: "Recover Access",
     enterCode: "Enter the secure code sent to your inbox",
@@ -95,6 +102,8 @@ export const LABELS = {
     msgSentSuccess: "Message sent successfully!",
     msgFailed: "Failed to send message.",
     emailSentSim: "Email Simulation: Sent to",
+=======
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
     
     // Profile
     profile: "User Profile",
@@ -106,9 +115,12 @@ export const LABELS = {
     confirmPassword: "Confirm Password",
     updateProfile: "Update Profile",
     updateSuccess: "Profile updated successfully",
+<<<<<<< HEAD
     emailFixed: "Email cannot be changed.",
     secureAccount: "Secure your account with an extra layer of protection.",
     activeAccount: "Active on your account.",
+=======
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
     
     // Roles & Status
     superAdmin: "Super Admin",
@@ -169,12 +181,15 @@ export const LABELS = {
     mySavings: "My Total Savings",
     myLoans: "My Loan Balance",
     myAttendance: "My Attendance",
+<<<<<<< HEAD
     aggregatePortfolio: "You are viewing the Aggregate Portfolio",
     systemStatus: "System Status",
     financialHealthGood: "Financial health is good.",
     avgUnitValue: "Avg. Unit Value",
     thisMonth: "This Month",
     presence: "Presence",
+=======
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
 
     // Groups & Forms
     groupsManagement: "Groups Management",
@@ -221,12 +236,15 @@ export const LABELS = {
     nationalId: "National ID",
     phoneNumber: "Phone Number",
     role: "Role",
+<<<<<<< HEAD
     importCsv: "Import CSV",
     csvFormat: "Format: Name, NationalID, Phone, Role",
     memberPhoto: "Member Photo",
     uploadPhotoDesc: "Upload a clear headshot for identification.",
     confirmRemoveMember: "Are you sure you want to remove this member?",
     archiveWarning: "If they have financial history, they will be archived instead of deleted.",
+=======
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
     
     // Loans
     loanManagement: "Loan Management",
@@ -262,8 +280,11 @@ export const LABELS = {
     repaymentAmount: "Repayment Amount",
     clearsLoan: "This payment will clear the loan.",
     purpose: "Purpose",
+<<<<<<< HEAD
     interestBreakdown: "Interest Breakdown",
     feesApplied: "Fees Applied Successfully",
+=======
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
     
     // Meeting Mode
     startMeeting: "Start Meeting Recording",
@@ -296,12 +317,16 @@ export const LABELS = {
     shareCount: "Share Count",
     solidarity: "Solidarity",
     auditWarning: "All changes are audited. You must provide a valid reason.",
+<<<<<<< HEAD
     voidConfirm: "Are you sure you want to void this transaction?",
     shareCapitalInv: "Share Capital (Investment)",
     socialFundIns: "Social Fund (Insurance)",
     refundableEnd: "Refundable at cycle end",
     nonRefundable: "Non-refundable pot",
     insuranceContrib: "Insurance Contribution",
+=======
+    voidConfirm: "Are you sure you want to void this contribution?",
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
     
     // Fines
     fines: "Fines",
@@ -323,9 +348,12 @@ export const LABELS = {
     expenseCategory: "Expense Category",
     approvedBy: "Approved By",
     recordedBy: "Recorded By",
+<<<<<<< HEAD
     trackAudit: "Track and audit group expenditures",
     balanceAuditWarning: "Warning: Changing expense details will affect the cash balance audit.",
     whyChange: "Why is this being changed?",
+=======
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
     
     // Attendance
     attendanceManagement: "Attendance Management",
@@ -350,6 +378,7 @@ export const LABELS = {
     viewPrevious: "View previous seasons",
     noActiveSeason: "No active season found for this group.",
     startNewSeason: "Start New Season",
+<<<<<<< HEAD
     calculating: "Calculating financial positions...",
     shareOutPreview: "Share-Out Preview",
     simulated: "Simulated",
@@ -360,6 +389,8 @@ export const LABELS = {
     finalizeSeason: "Finalize & Close Season",
     confirmSeasonClose: "Finalize Share-Out & Close Season?",
     irreversibleAction: "This action is irreversible.",
+=======
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
     
     // Reports
     reports: "Reports",
@@ -400,11 +431,16 @@ export const LABELS = {
     exportJson: "Export JSON",
     resetDb: "Reset Database",
     resetDbDesc: "Clear all local data and reset to initial state",
+<<<<<<< HEAD
     systemMaintenance: "System Maintenance",
     clearCache: "Clear Local Cache",
     clearCacheDesc: "Fix display issues by clearing local storage. Requires re-login.",
     verifyHealth: "Verify Health",
     healthCheckDesc: "Check database connection and system status.",
+=======
+    resetSystem: "Reset System",
+    confirmReset: "Are you sure you want to reset the database? This cannot be undone.",
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
     systemUsers: "System Users & Roles",
     manageAccess: "Manage access control and permissions",
     addUser: "Add User",
@@ -422,6 +458,7 @@ export const LABELS = {
     saveUser: "Save User",
     never: "Never",
     global: "Global / None",
+<<<<<<< HEAD
     enableAi: "Enable Help Assistant",
     rlsConfig: "Database & Security (RLS)",
     copySql: "Copy SQL",
@@ -429,6 +466,9 @@ export const LABELS = {
     clearCacheBtn: "Clear Cache",
     resetLocal: "Clear & Logout",
     
+=======
+
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
     // Audit & Help
     auditLogs: "Audit Logs",
     userGuide: "User Guide",
@@ -478,6 +518,7 @@ export const LABELS = {
     next: "Komeza",
     step: "Intambwe",
     of: "ya",
+<<<<<<< HEAD
     verifyIdentity: "Kugenzura Umwirondoro",
     recoverAccess: "Kugarura Konti",
     enterCode: "Andika umubare w'ibanga wohererejwe",
@@ -499,6 +540,18 @@ export const LABELS = {
     msgSentSuccess: "Ubutumwa bwoherejwe neza!",
     msgFailed: "Ntibyakunze kohereza ubutumwa.",
     emailSentSim: "Imeyili yoherejwe kuri",
+=======
+
+    // Auth & Greetings
+    goodMorning: "Mwaramutse",
+    goodAfternoon: "Mwiriwe",
+    goodEvening: "Mwiriwe neza",
+    signIn: "Injira",
+    emailAddr: "Imeyili / Izina",
+    password: "Ijambo ry'ibanga",
+    securePortal: "Urubuga Rwizewe",
+    unauthMsg: "Kwinjira utabifitiye uburenganzira birabujijwe.",
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
 
     // Profile
     profile: "Imyirondoro yanjye",
@@ -510,9 +563,12 @@ export const LABELS = {
     confirmPassword: "Emeza ijambo ry'ibanga",
     updateProfile: "Vugurura Imyirondoro",
     updateSuccess: "Imyirondoro yavuguruwe",
+<<<<<<< HEAD
     emailFixed: "Imeyili ntishobora guhindurwa.",
     secureAccount: "Ongera umutekano wa konti yawe.",
     activeAccount: "Birakora kuri konti yawe.",
+=======
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
 
     // Roles & Status
     superAdmin: "Umuhuzabikorwa Mukuru",
@@ -573,12 +629,15 @@ export const LABELS = {
     mySavings: "Ubwizigame Bwanjye",
     myLoans: "Ideni Nsigaje",
     myAttendance: "Ubwitabire Bwanjye",
+<<<<<<< HEAD
     aggregatePortfolio: "Incamake y'Amatsinda Yose",
     systemStatus: "Imiterere ya Sisitemu",
     financialHealthGood: "Ubuzima bw'imari bumeze neza.",
     avgUnitValue: "Agaciro k'impuzandengo",
     thisMonth: "Kuri Uku Kwezi",
     presence: "Kwitabira",
+=======
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
 
     // Groups & Forms
     groupsManagement: "Gucunga Amatsinda",
@@ -619,6 +678,7 @@ export const LABELS = {
     addMember: "Ongeramo Umunyamuryango",
     editMember: "Hindura Umunyamuryango",
     removeMember: "Kuramo Umunyamuryango",
+<<<<<<< HEAD
     memberSearchPlaceholder: "Search (Name, Phone, ID)",
     loanBalance: "Loan Balance",
     fullName: "Full Name",
@@ -653,6 +713,36 @@ export const LABELS = {
     percentage: "Percentage",
     fixedAmount: "Fixed Amount",
     percentageRate: "Percentage Rate",
+=======
+    memberSearchPlaceholder: "Shakisha (Izina, Telefoni, Indangamuntu)",
+    loanBalance: "Ideni Asigaje",
+    fullName: "Amazina Yose",
+    nationalId: "Indangamuntu",
+    phoneNumber: "Telefoni",
+    role: "Inshingano",
+
+    // Loans
+    loanManagement: "Gucunga Inguzanyo",
+    applyLoan: "Saba Inguzanyo",
+    newLoanApp: "Gusaba Inguzanyo Nshya",
+    loanEstimator: "Ibalura ry'Inguzanyo",
+    penaltyTool: "Gucunga Ibihano",
+    penaltyManager: "Gucunga Ibihano",
+    latePenalties: "Ibihano by'Ubukererewe",
+    pendingApproval: "Itegereje Kwemezwa",
+    approve: "Emeza",
+    reject: "Hakana",
+    portfolio: "Urutonde rw'Inguzanyo",
+    monthlyPayment: "Ubwishyu bwa Buri Kwezi",
+    totalInterest: "Inyungu Yose",
+    totalRepayment: "Ubwishyu Bwose",
+    hidePenalty: "Hisha Ibihano",
+    hideCalc: "Hisha Ibalura",
+    penaltyType: "Ubwoko bw'Igihano",
+    percentage: "Ijanisha",
+    fixedAmount: "Amafaranga Azwi",
+    percentageRate: "Igipimo cy'Ijanisha",
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
     applyPenalties: "Emeza Ibihano",
     simpleInterest: "Inyungu Isanzwe",
     perMonth: "Ku kwezi",
@@ -666,8 +756,11 @@ export const LABELS = {
     repaymentAmount: "Ayishyurwa",
     clearsLoan: "Ubu bwishyu burasoza ideni.",
     purpose: "Impamvu",
+<<<<<<< HEAD
     interestBreakdown: "Imiterere y'Inyungu",
     feesApplied: "Ibihano byatanzwe neza",
+=======
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
 
     // Meeting Mode
     startMeeting: "Tangira Kwandika Inama",
@@ -701,11 +794,14 @@ export const LABELS = {
     solidarity: "Ingoboka",
     auditWarning: "Impinduka zose ziragenzurwa. Ugomba gutanga impamvu yumvikana.",
     voidConfirm: "Ese uremera gutesha agaciro ubu bwizigame?",
+<<<<<<< HEAD
     shareCapitalInv: "Imigabane Shingiro (Ishoramari)",
     socialFundIns: "Isanduku y'Ingoboka (Ubwishingizi)",
     refundableEnd: "Yishyurwa ku musozo",
     nonRefundable: "Ntigaruzwa",
     insuranceContrib: "Umusanzu w'Ubwishingizi",
+=======
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
 
     // Fines
     fines: "Amande",
@@ -727,9 +823,12 @@ export const LABELS = {
     expenseCategory: "Icyiciro cy'Isoko",
     approvedBy: "Yemejwe na",
     recordedBy: "Yanditswe na",
+<<<<<<< HEAD
     trackAudit: "Gukurikirana no kugenzura ayasohotse",
     balanceAuditWarning: "Icyitonderwa: Guhindura ibi bizagira ingaruka kuibarura ry'amafaranga ariho.",
     whyChange: "Kuki ugiye kubihindura?",
+=======
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
 
     // Attendance
     attendanceManagement: "Gucunga Ubwitabire",
@@ -754,6 +853,7 @@ export const LABELS = {
     viewPrevious: "Reba ibihembwe byashize",
     noActiveSeason: "Nta gihembwe gihari muri iri tsinda.",
     startNewSeason: "Tangira Igihembwe Gishya",
+<<<<<<< HEAD
     calculating: "Birigukorwa...",
     shareOutPreview: "Incamake yo Kugabana",
     simulated: "Byagereranyijwe",
@@ -764,6 +864,8 @@ export const LABELS = {
     finalizeSeason: "Gusoza Igihembwe Burundu",
     confirmSeasonClose: "Emeza Gusoza Igihembwe",
     irreversibleAction: "Iki gikorwa ntikigarurwa.",
+=======
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
 
     // Reports
     reports: "Raporo",
@@ -804,11 +906,16 @@ export const LABELS = {
     exportJson: "Kurura JSON",
     resetDb: "Siba Ububiko",
     resetDbDesc: "Siba byose utangire bushya",
+<<<<<<< HEAD
     systemMaintenance: "Kubungabunga Sisitemu",
     clearCache: "Siba Cache",
     clearCacheDesc: "Kemura ibibazo bya sisitemu. Bisaba kwinjira bundi bushya.",
     verifyHealth: "Genzura Ubuzima",
     healthCheckDesc: "Reba niba sisitemu ihujwe neza n'ububiko.",
+=======
+    resetSystem: "Siba Sisitemu",
+    confirmReset: "Ese urahenganya ushaka gusiba ububiko bwose? Ibi ntibigarurwa.",
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
     systemUsers: "Abakoresha Sisitemu n'Inshingano",
     manageAccess: "Gucunga uburenganzira bw'injira",
     addUser: "Ongeramo Umukoresha",
@@ -826,12 +933,15 @@ export const LABELS = {
     saveUser: "Bika Umukoresha",
     never: "Ntabwo arinjira",
     global: "Rusange / Ntabwo",
+<<<<<<< HEAD
     enableAi: "Koresha Umufasha (AI)",
     rlsConfig: "Umutekano w'Ububiko (RLS)",
     copySql: "Kopi ya SQL",
     runSqlWarning: "Icyitonderwa: Koresha iyi SQL muri Supabase kugirango wemeze amategeko y'umutekano.",
     clearCacheBtn: "Siba Cache",
     resetLocal: "Sohoka Burundu",
+=======
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
 
     // Audit & Help
     auditLogs: "Raporo y'Ubugenzuzi",
@@ -926,4 +1036,8 @@ export const HELP_CONTENT = {
       content: 'Andika amafaranga yose asohoka mu itsinda (urugero: Ibitabo, Tike). Sisitemu ireba niba hari amafaranga ahagije mbere yo kubika. Guhindura bisaba kwerekana impamvu kandi bijya mu bugenzuzi.'
     }
   ]
+<<<<<<< HEAD
 };
+=======
+};
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a

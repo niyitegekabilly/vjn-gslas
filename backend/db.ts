@@ -3,11 +3,20 @@ import {
   Branch, GSLAGroup, Cycle, Member, Loan, Transaction, 
   UserRole, MemberStatus, LoanStatus, TransactionType, Attendance,
   GroupStatus, MeetingFrequency, Fine, FineCategory, FineStatus, Meeting, AttendanceStatus, Notification,
+<<<<<<< HEAD
   User, UserStatus, ExpenseCategory, SMSTemplate, SMSEventType, SMSConfig
+=======
+  User, UserStatus, ExpenseCategory
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
 } from '../types';
 
 const DB_KEY = 'VJN_GSLA_DB_V1';
 
+<<<<<<< HEAD
+=======
+// --- Static Data Definitions ---
+
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
 const STATIC_BRANCHES: Branch[] = [
   { id: 'b1', name: 'Musanze HQ', district: 'Musanze' },
   { id: 'b2', name: 'Kigali Branch', district: 'Kigali' },
@@ -35,6 +44,10 @@ const NEW_GROUPS_LIST = [
 ];
 
 const GENERATED_ADDED_GROUPS: GSLAGroup[] = NEW_GROUPS_LIST.map((name, i) => {
+<<<<<<< HEAD
+=======
+  // Heuristic location mapping
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
   let district = 'Musanze';
   let branchId = 'b1';
   let sector = 'Muhoza';
@@ -66,7 +79,11 @@ const GENERATED_ADDED_GROUPS: GSLAGroup[] = NEW_GROUPS_LIST.map((name, i) => {
     maxLoanMultiplier: 3,
     lateFeeAmount: 5,
     lateFeeType: 'PERCENTAGE',
+<<<<<<< HEAD
     currentCycleId: '',
+=======
+    currentCycleId: '', // Initially inactive
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
     status: GroupStatus.ACTIVE,
     totalSavings: 0,
     totalLoansOutstanding: 0,
@@ -154,7 +171,10 @@ const STATIC_USERS: User[] = [
     passwordHash: 'admin123',
     role: UserRole.SUPER_ADMIN,
     status: UserStatus.ACTIVE,
+<<<<<<< HEAD
     twoFactorEnabled: false,
+=======
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
     failedLoginAttempts: 0,
     createdAt: '2023-01-01',
     createdBy: 'system'
@@ -167,15 +187,25 @@ const STATIC_USERS: User[] = [
     passwordHash: 'password',
     role: UserRole.GROUP_LEADER,
     status: UserStatus.ACTIVE,
+<<<<<<< HEAD
     twoFactorEnabled: false,
     linkedMemberId: 'm1',
     managedGroupIds: ['g1'],
+=======
+    linkedMemberId: 'm1',
+    managedGroupId: 'g1',
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
     failedLoginAttempts: 0,
     createdAt: '2023-01-05',
     createdBy: 'u_super'
   }
 ];
 
+<<<<<<< HEAD
+=======
+// --- Generation Logic ---
+
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
 const generateMockMembers = (groups: GSLAGroup[]) => {
   const firstNames = ["Jean", "Marie", "Emmanuel", "Claudine", "Patrick", "Alice", "Eric", "Grace", "David", "Sarah", "Paul", "Esther", "Frank", "Olive", "Peter", "Diane", "Claude", "Divine", "Felix", "Gloria", "Belyse", "Chantal", "Innocent", "Joseph", "Lydie", "Moses"];
   const lastNames = ["Mugisha", "Uwase", "Nizigiyimana", "Bizimana", "Ndayisaba", "Iradukunda", "Uwamahoro", "Nshimiyimana", "Mutoni", "Hakizimana", "Karekezi", "Umutesi", "Habimana", "Uwimana", "Akimana", "Umurerwa", "Nkurunziza", "Ishimwe", "Ingabire", "Irakoze", "Manzi", "Keza", "Gwiza"];
@@ -183,6 +213,10 @@ const generateMockMembers = (groups: GSLAGroup[]) => {
   const members: Member[] = [];
   
   groups.forEach(g => {
+<<<<<<< HEAD
+=======
+    // Generate 15 members per group
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
     for (let i = 0; i < 15; i++) {
       const fn = firstNames[Math.floor(Math.random() * firstNames.length)];
       const ln = lastNames[Math.floor(Math.random() * lastNames.length)];
@@ -245,6 +279,7 @@ const STATIC_NOTIFICATIONS: Notification[] = [
   { id: 'n3', title: 'Loan Approved', message: 'Your loan application was approved.', date: '2024-03-08', read: true, type: 'SUCCESS' },
 ];
 
+<<<<<<< HEAD
 const STATIC_SMS_TEMPLATES: SMSTemplate[] = [
   { 
     eventType: SMSEventType.CONTRIBUTION_RECEIVED, 
@@ -306,6 +341,9 @@ const STATIC_SMS_CONFIG: SMSConfig = {
   updatedAt: new Date().toISOString(),
   updatedBy: 'system'
 };
+=======
+// --- Final Seed Data Assembly ---
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
 
 export const SEED_DATA = {
   users: STATIC_USERS,
@@ -321,11 +359,19 @@ export const SEED_DATA = {
   meetings: [] as Meeting[],
   attendance: [] as Attendance[],
   notifications: STATIC_NOTIFICATIONS,
+<<<<<<< HEAD
   smsTemplates: STATIC_SMS_TEMPLATES,
   smsConfig: [STATIC_SMS_CONFIG],
   smsLogs: [] // Initialize empty
 };
 
+=======
+};
+
+// --- Persistence Layer ---
+
+// MOCK LOCAL STORE (For client-side non-supabase testing if needed)
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
 export const db = JSON.parse(JSON.stringify(SEED_DATA)); 
 
 export const resetDatabase = () => {

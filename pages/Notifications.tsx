@@ -3,6 +3,7 @@ import React, { useContext, useEffect, useState } from 'react';
 import { AppContext } from '../App';
 import { api } from '../api/client';
 import { LABELS } from '../constants';
+<<<<<<< HEAD
 import { Notification, Member, UserRole } from '../types';
 import { Bell, Check, Loader2, Info, AlertTriangle, CheckCircle, Mail, MessageSquare, Send, X, Users } from 'lucide-react';
 import { Skeleton } from '../components/Skeleton';
@@ -24,17 +25,31 @@ export default function Notifications() {
   const [recipients, setRecipients] = useState<'ALL' | 'SPECIFIC'>('ALL');
   const [members, setMembers] = useState<Member[]>([]);
   const [sending, setSending] = useState(false);
+=======
+import { Notification } from '../types';
+import { Bell, Check, Loader2, Info, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Skeleton } from '../components/Skeleton';
+
+export default function Notifications() {
+  const { lang } = useContext(AppContext);
+  const labels = LABELS[lang];
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
 
   useEffect(() => {
     fetchData();
   }, []);
 
+<<<<<<< HEAD
   useEffect(() => {
     if (activeGroupId && isComposeOpen) {
        api.getMembers(activeGroupId).then(setMembers);
     }
   }, [activeGroupId, isComposeOpen]);
 
+=======
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
   const fetchData = async () => {
     setLoading(true);
     const data = await api.getNotifications();
@@ -52,6 +67,7 @@ export default function Notifications() {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   };
 
+<<<<<<< HEAD
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeGroupId) return;
@@ -106,6 +122,8 @@ export default function Notifications() {
 
   const canBroadcast = user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.ADMIN || user?.role === UserRole.GROUP_LEADER;
 
+=======
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
   if (loading) {
     return (
       <div className="space-y-6">
@@ -139,6 +157,7 @@ export default function Notifications() {
         <h2 className="text-2xl font-bold text-gray-800 flex items-center">
           <Bell className="mr-3 text-blue-600" /> {labels.notifications}
         </h2>
+<<<<<<< HEAD
         <div className="flex gap-3">
             {canBroadcast && (
                 <button 
@@ -157,6 +176,16 @@ export default function Notifications() {
             </button>
             )}
         </div>
+=======
+        {notifications.some(n => !n.read) && (
+          <button 
+            onClick={markAllRead}
+            className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center"
+          >
+            <Check className="mr-1" size={16} /> {labels.markAllRead}
+          </button>
+        )}
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -200,6 +229,7 @@ export default function Notifications() {
           </div>
         )}
       </div>
+<<<<<<< HEAD
 
       {/* Compose Modal */}
       {isComposeOpen && (
@@ -308,6 +338,8 @@ export default function Notifications() {
            </div>
         </div>
       )}
+=======
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
     </div>
   );
 }

@@ -5,7 +5,10 @@ import { useNavigate } from 'react-router-dom';
 import { Lock, Mail, Loader2, AlertCircle, ShieldCheck, ArrowRight, ArrowLeft, KeyRound, CheckCircle2 } from 'lucide-react';
 import { AppContext } from '../App';
 import { LABELS } from '../constants';
+<<<<<<< HEAD
 import { api } from '../api/client';
+=======
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -78,7 +81,11 @@ export default function Login() {
     
     const code = otpCode.join('');
     if (code.length !== 6) {
+<<<<<<< HEAD
         setError(labels.invalidCode);
+=======
+        setError("Please enter a 6-digit code.");
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
         return;
     }
 
@@ -88,20 +95,32 @@ export default function Login() {
         await verifyOtp(tempUserId, code);
         navigate('/');
     } catch (err: any) {
+<<<<<<< HEAD
         setError(err.message || labels.invalidCode);
+=======
+        setError(err.message || 'Invalid code');
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
     } finally {
         setIsSubmitting(false);
     }
   };
 
+<<<<<<< HEAD
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) {
         setError(labels.enterEmailRecover);
+=======
+  const handleForgotPassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+        setError('Please enter your email address first.');
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
         return;
     }
     
     setIsSubmitting(true);
+<<<<<<< HEAD
     try {
         await api.requestPasswordReset(email);
         setSuccessMsg("If an account exists, a reset link has been sent.");
@@ -115,6 +134,17 @@ export default function Login() {
     } finally {
         setIsSubmitting(false);
     }
+=======
+    // Simulate API call
+    setTimeout(() => {
+        setIsSubmitting(false);
+        setSuccessMsg(`If an account exists for ${email}, a reset link has been sent.`);
+        setTimeout(() => {
+            setSuccessMsg('');
+            setStep('CREDENTIALS');
+        }, 3000);
+    }, 1000);
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
   };
 
   return (
@@ -182,13 +212,22 @@ export default function Login() {
           </div>
           
           <h2 className="text-3xl font-extrabold text-center text-blue-950 mb-3 tracking-tight drop-shadow-sm">
+<<<<<<< HEAD
             {step === '2FA' ? labels.verifyIdentity : (step === 'FORGOT_PASSWORD' ? labels.recoverAccess : labels.appName)}
+=======
+            {step === '2FA' ? 'Verify Identity' : (step === 'FORGOT_PASSWORD' ? 'Recover Access' : labels.appName)}
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
           </h2>
           
           <p className="text-center text-blue-900 text-sm mb-8 font-semibold px-4 leading-relaxed opacity-90">
             {step === '2FA' 
+<<<<<<< HEAD
                 ? labels.enterCode 
                 : (step === 'FORGOT_PASSWORD' ? labels.enterEmailRecover : labels.securePortal)
+=======
+                ? `Enter the secure code sent to your inbox` 
+                : (step === 'FORGOT_PASSWORD' ? 'Enter your email to receive a recovery link' : labels.securePortal)
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
             }
           </p>
 
@@ -285,14 +324,22 @@ export default function Login() {
                         onClick={() => setStep('CREDENTIALS')}
                         className="flex-1 py-3 border border-blue-900/30 text-blue-900 rounded-xl font-bold hover:bg-blue-50/50 transition-colors flex justify-center items-center"
                     >
+<<<<<<< HEAD
                         <ArrowLeft size={18} className="mr-2"/> {labels.back}
+=======
+                        <ArrowLeft size={18} className="mr-2"/> Back
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
                     </button>
                     <button 
                         type="submit" 
                         disabled={isSubmitting}
                         className="flex-1 py-3 bg-gradient-to-r from-green-700 to-emerald-800 text-white rounded-xl font-bold hover:from-green-800 hover:to-emerald-900 transition-all shadow-lg shadow-green-900/20 flex justify-center items-center border border-white/20"
                     >
+<<<<<<< HEAD
                         {isSubmitting ? <Loader2 className="animate-spin text-white/80" size={22} /> : labels.verifyCode}
+=======
+                        {isSubmitting ? <Loader2 className="animate-spin text-white/80" size={22} /> : 'Verify Code'}
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
                     </button>
                 </div>
             </form>
@@ -323,14 +370,22 @@ export default function Login() {
                         onClick={() => { setError(''); setStep('CREDENTIALS'); }}
                         className="flex-1 py-3 border border-blue-900/30 text-blue-900 rounded-xl font-bold hover:bg-blue-50/50 transition-colors flex justify-center items-center"
                     >
+<<<<<<< HEAD
                         {labels.cancel}
+=======
+                        Cancel
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
                     </button>
                     <button 
                         type="submit" 
                         disabled={isSubmitting}
                         className="flex-1 py-3 bg-gradient-to-r from-blue-800 to-indigo-900 text-white rounded-xl font-bold hover:from-blue-900 hover:to-indigo-950 transition-all shadow-lg shadow-blue-900/30 flex justify-center items-center border border-white/20"
                     >
+<<<<<<< HEAD
                         {isSubmitting ? <Loader2 className="animate-spin text-white/80" size={22} /> : labels.sendLink}
+=======
+                        {isSubmitting ? <Loader2 className="animate-spin text-white/80" size={22} /> : 'Send Link'}
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
                     </button>
                 </div>
             </form>

@@ -1,4 +1,7 @@
+<<<<<<< HEAD
 
+=======
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
 import React, { useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppContext } from '../App';
@@ -216,7 +219,11 @@ export default function Dashboard() {
               </p>
             </div>
             <div className="bg-white/10 backdrop-blur-sm px-6 py-3 rounded-xl border border-white/20">
+<<<<<<< HEAD
               <p className="text-xs text-blue-200 uppercase">{labels.shareCount}</p>
+=======
+              <p className="text-xs text-blue-200 uppercase">My Shares</p>
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
               <p className="text-2xl font-bold">{myMember.totalShares}</p>
             </div>
           </div>
@@ -234,7 +241,11 @@ export default function Dashboard() {
                 </p>
              </div>
              <p className="text-sm text-green-600 flex items-center">
+<<<<<<< HEAD
                 <TrendingUp size={14} className="mr-1" /> {labels.valuePerShare}: {Math.round(currentShareValue)} {labels.currency}
+=======
+                <TrendingUp size={14} className="mr-1" /> Value: {Math.round(currentShareValue)} {labels.currency} / share
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
              </p>
           </div>
 
@@ -253,7 +264,11 @@ export default function Dashboard() {
                   <Clock size={14} className="mr-1" /> Due: {new Date(myActiveLoan.dueDate).toLocaleDateString()}
                </p>
              ) : (
+<<<<<<< HEAD
                <p className="text-sm text-gray-400">{labels.noData}</p>
+=======
+               <p className="text-sm text-gray-400">No active loans</p>
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
              )}
           </div>
         </div>
@@ -269,6 +284,10 @@ export default function Dashboard() {
                  </div>
                  <AlertTriangle className={`${myFineTotal > 0 ? 'text-red-500' : 'text-gray-300'}`} size={24} />
               </div>
+<<<<<<< HEAD
+=======
+              {myFineTotal > 0 && <p className="text-xs text-red-600 mt-4">Please clear this with the treasurer.</p>}
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
            </div>
 
            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
@@ -308,6 +327,7 @@ export default function Dashboard() {
             </h1>
             <p className="mt-2 text-slate-300 max-w-xl text-sm leading-relaxed">
               {isAllGroups ? (
+<<<<<<< HEAD
                   <>{labels.aggregatePortfolio} ({groups.length}).</>
               ) : (
                   <>{labels.systemStatus}: <span className="text-green-400 font-medium">{labels.active}</span>.</>
@@ -315,6 +335,15 @@ export default function Dashboard() {
               {overdueLoanList.length > 0 
                 ? <span className="text-orange-300 font-semibold ml-1">{labels.overdue}: {overdueLoanList.length}</span> 
                 : <span className="text-green-300 font-semibold ml-1"> {labels.financialHealthGood}</span>
+=======
+                  <>You are viewing the <strong>Aggregate Portfolio</strong> for all {groups.length} groups.</>
+              ) : (
+                  <>System Status: <span className="text-green-400 font-medium">{labels.active}</span>.</>
+              )}
+              {overdueLoanList.length > 0 
+                ? <span className="text-orange-300 font-semibold ml-1">{labels.overdue}: {overdueLoanList.length}</span> 
+                : <span className="text-green-300 font-semibold ml-1"> Financial health is good.</span>
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
               }
             </p>
           </div>
@@ -345,7 +374,11 @@ export default function Dashboard() {
             title={labels.currentShareValue}
             value={`${Math.round(currentShareValue).toLocaleString()}`}
             // @ts-ignore
+<<<<<<< HEAD
             subValue={isAllGroups ? labels.avgUnitValue : `${labels.initialValue}: ${initialShareValue}`}
+=======
+            subValue={isAllGroups ? "Avg. Unit Value" : `${labels.initialValue}: ${initialShareValue}`}
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
             icon={<TrendingUp size={24} />}
             color="green"
             trend={!isAllGroups || initialShareValue > 0 ? `+${Math.round(shareGrowthPct)}%` : undefined}
@@ -395,7 +428,11 @@ export default function Dashboard() {
              <StatsCard 
                title={labels.totalGroups}
                value={groups.length.toString()}
+<<<<<<< HEAD
                subValue="Active"
+=======
+               subValue="Active Groups"
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
                icon={<Building size={24} />}
                color="purple"
                // @ts-ignore
@@ -415,7 +452,11 @@ export default function Dashboard() {
           <StatsCard 
             title={labels.members}
             value={totalMembers.toString()}
+<<<<<<< HEAD
             subValue="Active"
+=======
+            subValue="Active Members"
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
             icon={<Users size={24} />}
             color="indigo"
             // @ts-ignore
@@ -435,7 +476,11 @@ export default function Dashboard() {
             title={labels.contributionsMonth}
             value={contributionsMonth.toLocaleString()}
             // @ts-ignore
+<<<<<<< HEAD
             subValue={labels.thisMonth}
+=======
+            subValue="This Month"
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
             icon={<Calendar size={24} />}
             color="blue"
             // @ts-ignore
@@ -471,7 +516,11 @@ export default function Dashboard() {
           <StatsCard 
             title={labels.lastAttendance}
             value={`${lastMeetingPercent}%`}
+<<<<<<< HEAD
             subValue={labels.presence}
+=======
+            subValue="Presence"
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
             icon={<CheckCircle size={24} />}
             color={lastMeetingPercent < 75 ? "orange" : "blue"}
             // @ts-ignore
@@ -480,7 +529,11 @@ export default function Dashboard() {
           <StatsCard 
             title={labels.repeatedAbsence}
             value={repeatedAbsenceCount.toString()}
+<<<<<<< HEAD
             subValue={labels.members}
+=======
+            subValue="Members"
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
             icon={<UserX size={24} />}
             color={repeatedAbsenceCount > 0 ? "red" : "indigo"}
             // @ts-ignore
@@ -568,4 +621,8 @@ export default function Dashboard() {
       </div>
     </div>
   );
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a

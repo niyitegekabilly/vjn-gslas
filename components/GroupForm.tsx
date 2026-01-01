@@ -128,7 +128,11 @@ export const GroupForm: React.FC<GroupFormProps> = ({
                 required
                 value={formData.name}
                 onChange={e => setFormData({...formData, name: e.target.value})}
+<<<<<<< HEAD
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+=======
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
                 placeholder="e.g., Abakorerabushake"
               />
             </div>
@@ -139,7 +143,11 @@ export const GroupForm: React.FC<GroupFormProps> = ({
               <select 
                 value={formData.status}
                 onChange={e => setFormData({...formData, status: e.target.value as GroupStatus})}
+<<<<<<< HEAD
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
+=======
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white"
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
               >
                 {Object.values(GroupStatus).map(s => <option key={s} value={s}>{s}</option>)}
               </select>
@@ -152,7 +160,11 @@ export const GroupForm: React.FC<GroupFormProps> = ({
                     <input 
                         value={formData.district}
                         onChange={e => setFormData({...formData, district: e.target.value})}
+<<<<<<< HEAD
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
+=======
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
                         placeholder="e.g. Musanze"
                     />
                 </div>
@@ -161,7 +173,11 @@ export const GroupForm: React.FC<GroupFormProps> = ({
                     <input 
                         value={formData.sector}
                         onChange={e => setFormData({...formData, sector: e.target.value})}
+<<<<<<< HEAD
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
+=======
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
                         placeholder="e.g. Muhoza"
                     />
                 </div>
@@ -170,7 +186,11 @@ export const GroupForm: React.FC<GroupFormProps> = ({
                     <input 
                         value={formData.cell}
                         onChange={e => setFormData({...formData, cell: e.target.value})}
+<<<<<<< HEAD
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
+=======
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
                     />
                 </div>
                 <div>
@@ -178,7 +198,11 @@ export const GroupForm: React.FC<GroupFormProps> = ({
                     <input 
                         value={formData.village}
                         onChange={e => setFormData({...formData, village: e.target.value})}
+<<<<<<< HEAD
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
+=======
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
                     />
                 </div>
                 
@@ -222,7 +246,11 @@ export const GroupForm: React.FC<GroupFormProps> = ({
                <select 
                  value={formData.meetingDay}
                  onChange={e => setFormData({...formData, meetingDay: e.target.value})}
+<<<<<<< HEAD
                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
+=======
+                 className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white"
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
                >
                  {['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map(d => (
                    <option key={d} value={d}>{d}</option>
@@ -234,7 +262,11 @@ export const GroupForm: React.FC<GroupFormProps> = ({
                <select 
                  value={formData.meetingFrequency}
                  onChange={e => setFormData({...formData, meetingFrequency: e.target.value as MeetingFrequency})}
+<<<<<<< HEAD
                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
+=======
+                 className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white"
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
                >
                  {Object.values(MeetingFrequency).map(f => (
                    <option key={f} value={f}>{f}</option>
@@ -251,7 +283,11 @@ export const GroupForm: React.FC<GroupFormProps> = ({
                    step="50"
                    value={formData.shareValue}
                    onChange={e => setFormData({...formData, shareValue: parseInt(e.target.value)})}
+<<<<<<< HEAD
                    className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
+=======
+                   className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg"
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
                  />
                </div>
              </div>
@@ -262,7 +298,11 @@ export const GroupForm: React.FC<GroupFormProps> = ({
                  min="1"
                  value={formData.minShares}
                  onChange={e => setFormData({...formData, minShares: parseInt(e.target.value)})}
+<<<<<<< HEAD
                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
+=======
+                 className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
                />
              </div>
              <div className="col-span-1">
@@ -272,7 +312,11 @@ export const GroupForm: React.FC<GroupFormProps> = ({
                  min="1"
                  value={formData.maxShares}
                  onChange={e => setFormData({...formData, maxShares: parseInt(e.target.value)})}
+<<<<<<< HEAD
                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
+=======
+                 className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
                />
              </div>
              <div className="col-span-2 md:col-span-1">
@@ -285,7 +329,11 @@ export const GroupForm: React.FC<GroupFormProps> = ({
                         step="0.5"
                         value={formData.maxLoanMultiplier}
                         onChange={e => setFormData({...formData, maxLoanMultiplier: parseFloat(e.target.value)})}
+<<<<<<< HEAD
                         className="w-full pl-7 pr-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
+=======
+                        className="w-full pl-7 pr-4 py-2 border border-gray-300 rounded-lg"
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
                     />
                 </div>
              </div>
@@ -295,7 +343,11 @@ export const GroupForm: React.FC<GroupFormProps> = ({
                   <select 
                     value={formData.lateFeeType}
                     onChange={e => setFormData({...formData, lateFeeType: e.target.value as 'PERCENTAGE' | 'FIXED' })}
+<<<<<<< HEAD
                     className="w-1/3 px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
+=======
+                    className="w-1/3 px-4 py-2 border border-gray-300 rounded-lg bg-white"
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
                   >
                     <option value="PERCENTAGE">Percentage (%)</option>
                     <option value="FIXED">Fixed (RWF)</option>
@@ -306,7 +358,11 @@ export const GroupForm: React.FC<GroupFormProps> = ({
                     step={formData.lateFeeType === 'PERCENTAGE' ? 0.1 : 50}
                     value={formData.lateFeeAmount}
                     onChange={e => setFormData({...formData, lateFeeAmount: parseFloat(e.target.value)})}
+<<<<<<< HEAD
                     className="flex-1 px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
+=======
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg"
+>>>>>>> 7c17f3ba72aad7656a6b64c3bf0bfbc90a688a2a
                     placeholder="Fee amount"
                   />
                </div>
