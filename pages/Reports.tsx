@@ -362,7 +362,7 @@ export default function Reports() {
                         <tr>
                             {cols.map(key => (
                                 <th key={key} className="p-3 border-b border-gray-200 whitespace-nowrap">
-                                    {key.replace(/([A-Z])/g, ' $1').trim()}
+                                    {key.replace(/([A-Z])/g, ' $1').trim().replace(/^./, str => str.toUpperCase())}
                                 </th>
                             ))}
                         </tr>
@@ -393,4 +393,108 @@ export default function Reports() {
         <div className="absolute top-0 right-0 left-0 z-50 p-4 flex justify-center animate-in fade-in slide-in-from-top-4 duration-500 pointer-events-none">
             <div className="bg-green-600 text-white px-6 py-3 rounded-lg shadow-xl flex items-center gap-3">
                 <CheckCircle size={24} />
-                <span className="font-bold">{successMessage
+                <span className="font-bold">{successMessage}</span>
+            </div>
+        </div>
+      )}
+
+      {/* Main Content Area */}
+      <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gray-50/50">
+           <div>
+              {/* @ts-ignore */}
+              <h2 className="text-xl font-bold text-gray-800">{labels[REPORT_CONFIGS.find(r => r.id === activeReport)?.titleKey] || activeReport}</h2>
+              <p className="text-sm text-gray-500 mt-1">{group?.name} • {new Date().toLocaleDateString()}</p>
+           </div>
+           <div className="flex gap-2">
+              <button onClick={exportCSV} disabled={!data} className="flex items-center px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium disabled:opacity-50">
+                 <Download size={16} className="mr-2" /> {labels.exportCsv}
+              </button>
+              <button onClick={handlePrint} disabled={!data} className="flex items-center px-3 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 text-sm font-medium disabled:opacity-50 shadow-sm">
+                 <Printer size={16} className="mr-2" /> {labels.printPdf}
+              </button>
+           </div>
+        </div>
+        
+        {/* Scrollable Report Body */}
+        <div className="flex-1 overflow-y-auto p-6 bg-white custom-scrollbar print:overflow-visible">
+           {loading ? (
+              <div className="space-y-4">
+                 <Skeleton className="h-32 w-full rounded-xl" />
+                 <Skeleton className="h-64 w-full rounded-xl" />
+                 {[1,2,3].map(i => <TableRowSkeleton key={i} />)}
+              </div>
+           ) : (
+              <div className="animate-in fade-in duration-300">
+                 {renderSummaryCards()}
+                 {renderCharts()}
+                 {renderTable()}
+              </div>
+           )}
+        </div>
+      </div>
+
+      {/* Sidebar Report Selector */}
+      <div className="w-full lg:w-72 flex-shrink-0 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col print:hidden">
+         <div className="p-4 border-b border-gray-100 bg-gray-50 font-bold text-gray-700">
+            {labels.reportTypes}
+         </div>
+         <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
+            {REPORT_CONFIGS.map(report => (
+               <button
+                  key={report.id}
+                  onClick={() => setActiveReport(report.id)}
+                  className={`w-full flex items-center p-3 rounded-lg text-left transition-colors ${
+                     activeReport === report.id 
+                     ? 'bg-blue-50 text-blue-700 border border-blue-100 shadow-sm' 
+                     : 'text-gray-600 hover:bg-gray-50 border border-transparent'
+                  }`}
+               >
+                  <div className={`p-2 rounded-lg mr-3 ${activeReport === report.id ? 'bg-blue-200 text-blue-800' : 'bg-gray-100 text-gray-500'}`}>
+                     <report.icon size={18} />
+                  </div>
+                  <div>
+                     {/* @ts-ignore */}
+                     <p className="font-bold text-sm">{labels[report.titleKey] || report.id}</p>
+                     {/* @ts-ignore */}
+                     <p className="text-[10px] opacity-70 uppercase tracking-wide font-bold mt-0.5">{labels[report.categoryKey]}</p>
+                  </div>
+                  {activeReport === report.id && <ChevronRight size={16} className="ml-auto opacity-50" />}
+               </button>
+            ))}
+         </div>
+         
+         {/* Filters Panel */}
+         <div className="p-4 border-t border-gray-100 bg-gray-50 space-y-3">
+            <h4 className="text-xs font-bold text-gray-500 uppercase mb-2 flex items-center">
+               <Filter size={12} className="mr-1" /> Filters
+            </h4>
+            <div>
+               <label className="block text-xs font-medium text-gray-600 mb-1">{labels.date}</label>
+               <input 
+                  type="date" 
+                  className="w-full p-2 border border-gray-300 rounded bg-white text-xs"
+                  value={filters.endDate}
+                  onChange={e => setFilters({...filters, endDate: e.target.value})}
+               />
+            </div>
+            {/* Add Member Filter only for relevant reports */}
+            {['SAVINGS_SUMMARY', 'LOAN_PORTFOLIO'].includes(activeReport) && (
+               <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">{labels.members}</label>
+                  <select 
+                     className="w-full p-2 border border-gray-300 rounded bg-white text-xs"
+                     value={filters.memberId}
+                     onChange={e => setFilters({...filters, memberId: e.target.value})}
+                  >
+                     <option value="">All Members</option>
+                     {members.map(m => <option key={m.id} value={m.id}>{m.fullName}</option>)}
+                  </select>
+               </div>
+            )}
+         </div>
+      </div>
+    </div>
+  );
+}

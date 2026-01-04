@@ -356,7 +356,7 @@ export const LABELS = {
     scheduleNewMeeting: "Schedule New Meeting",
     regularWeekly: "Regular Weekly",
     specialEvent: "Special Event",
-    emergency: "Emergency",
+    meetingEmergency: "Emergency",
     recordingAttendance: "Recording Attendance",
     correctAttendance: "Correct Attendance",
     
@@ -738,7 +738,7 @@ export const LABELS = {
     addMember: "Ongeramo Umunyamuryango",
     editMember: "Hindura Umunyamuryango",
     removeMember: "Kuramo Umunyamuryango",
-    memberSearchPlaceholder: "Shakisha (Izina, Telefoni, ID)",
+    memberSearchPlaceholder: "Search (Name, Phone, ID)",
     loanBalance: "Ideni Risigaye",
     fullName: "Amazina Yombi",
     nationalId: "Indangamuntu",
@@ -863,7 +863,7 @@ export const LABELS = {
     scheduleNewMeeting: "Tegura Inama Nshya",
     regularWeekly: "Isanzwe ya Buri Cyumweru",
     specialEvent: "Igikorwa Cyihariye",
-    emergency: "Iyihutirwa",
+    meetingEmergency: "Iyihutirwa",
     recordingAttendance: "Kwandika Ubwitabire",
     correctAttendance: "Gukosora Ubwitabire",
 
