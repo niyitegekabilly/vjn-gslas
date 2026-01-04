@@ -168,29 +168,6 @@ export default function MeetingMode() {
     );
   }
 
-  // Not rendering success view anymore as we redirect, 
-  // but keeping it in code in case redirection is removed later or fails.
-  if (saved) {
-    return (
-      <div className="flex flex-col items-center justify-center h-96 bg-white rounded-xl shadow-sm animate-in fade-in zoom-in-95 duration-300">
-        <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6 shadow-sm">
-          <CheckCircle size={40} />
-        </div>
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">{labels.meetingSaved}</h2>
-        <p className="text-gray-500 mb-8 text-center max-w-md">{labels.meetingSavedDesc}</p>
-        
-        <div className="flex gap-4">
-            <button 
-            onClick={() => navigate('/reports')}
-            className="px-8 py-3 bg-slate-900 text-white rounded-xl hover:bg-slate-800 font-medium transition-transform hover:scale-105"
-            >
-            View Reports
-            </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="pb-24">
       {/* Header */}
@@ -240,7 +217,7 @@ export default function MeetingMode() {
               >
                 <s.icon size={18} />
               </div>
-              <span className={`text-xs mt-2 font-medium transition-colors ${step >= s.id ? 'text-green-700' : 'text-gray-400'}`}>
+              <span className={`text-xs mt-2 font-medium transition-colors hidden sm:block ${step >= s.id ? 'text-green-700' : 'text-gray-400'}`}>
                 {s.label}
               </span>
             </div>
@@ -259,210 +236,223 @@ export default function MeetingMode() {
                  <Users size={18} className="mr-2 text-blue-600" /> {labels.markAttendance}
                </h3>
                <div className="space-x-2">
-                 <button onClick={() => handleMarkAll(true)} className="text-xs bg-white border border-gray-300 px-2 py-1 rounded hover:bg-gray-50">{labels.allPresent}</button>
-                 <button onClick={() => handleMarkAll(false)} className="text-xs bg-white border border-gray-300 px-2 py-1 rounded hover:bg-gray-50">{labels.reset}</button>
+                 <button onClick={() => handleMarkAll(true)} className="text-xs bg-white border border-gray-300 px-3 py-1 rounded hover:bg-gray-50 font-medium">All Present</button>
+                 <button onClick={() => handleMarkAll(false)} className="text-xs bg-white border border-gray-300 px-3 py-1 rounded hover:bg-gray-50 font-medium">Reset</button>
                </div>
             </div>
-            <div className="divide-y divide-gray-100">
-              {entries.map((entry, idx) => (
-                <div key={entry.memberId} className={`p-4 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer ${!entry.present ? 'bg-red-50/30' : ''}`} onClick={() => handleEntryChange(idx, 'present', !entry.present)}>
-                   <div className="flex items-center">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-4 ${entry.present ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
-                         <span className="font-bold text-sm">{entry.fullName.charAt(0)}</span>
-                      </div>
-                      <div>
-                         <p className={`font-medium ${entry.present ? 'text-gray-900' : 'text-gray-500'}`}>{entry.fullName}</p>
-                         <p className="text-xs text-gray-400">ID: {entry.memberId.slice(0,6)}</p>
-                      </div>
-                   </div>
-                   <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${entry.present ? 'bg-green-500 border-green-500' : 'border-gray-300 bg-white'}`}>
-                      {entry.present && <CheckCircle size={16} className="text-white" />}
-                   </div>
-                </div>
-              ))}
+            
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto">
+               <table className="w-full text-left text-sm">
+                  <thead className="bg-white text-gray-500 font-bold uppercase text-xs border-b">
+                     <tr>
+                        <th className="p-4">{labels.fullName}</th>
+                        <th className="p-4 text-center">Status</th>
+                     </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                     {entries.map((entry, index) => (
+                        <tr key={entry.memberId} className={entry.present ? 'bg-blue-50/30' : ''}>
+                           <td className="p-4 font-medium">{entry.fullName}</td>
+                           <td className="p-4 text-center">
+                              <button 
+                                onClick={() => handleEntryChange(index, 'present', !entry.present)}
+                                className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${entry.present ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
+                              >
+                                 {entry.present ? labels.present : labels.absent}
+                              </button>
+                           </td>
+                        </tr>
+                     ))}
+                  </tbody>
+               </table>
+            </div>
+
+            {/* Mobile List */}
+            <div className="md:hidden divide-y divide-gray-100">
+               {entries.map((entry, index) => (
+                  <div key={entry.memberId} className="p-4 flex items-center justify-between">
+                     <span className="font-medium text-gray-900">{entry.fullName}</span>
+                     <button 
+                       onClick={() => handleEntryChange(index, 'present', !entry.present)}
+                       className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${entry.present ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
+                     >
+                        {entry.present ? labels.present : labels.absent}
+                     </button>
+                  </div>
+               ))}
             </div>
           </div>
         )}
 
-        {/* STEP 2: SAVINGS */}
-        {step === 2 && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="p-4 border-b border-gray-100 bg-gray-50">
-               <h3 className="font-bold text-gray-800 flex items-center">
-                 <PiggyBank size={18} className="mr-2 text-green-600" /> {labels.collectSavings}
-               </h3>
-               <p className="text-xs text-gray-500 mt-1">{labels.onlyPresent}</p>
-            </div>
-            <div className="divide-y divide-gray-100">
-              {entries.filter(e => e.present).map((entry) => {
-                const idx = entries.findIndex(e => e.memberId === entry.memberId);
-                return (
-                  <div key={entry.memberId} className="p-4 flex items-center justify-between hover:bg-gray-50">
-                     <div className="flex-1">
-                        <p className="font-medium text-gray-900">{entry.fullName}</p>
-                        <p className="text-xs text-green-600 font-medium">
-                           Total: {(entry.shares * (currentGroup?.shareValue || 0)).toLocaleString()} {labels.currency}
-                        </p>
-                     </div>
-                     <div className="flex items-center gap-3">
-                        <label className="text-xs font-bold text-gray-400 uppercase hidden sm:block">{labels.shareCount}</label>
-                        <input 
-                          type="number"
-                          min="0"
-                          max={currentGroup?.maxShares}
-                          value={entry.shares}
-                          onChange={(e) => handleEntryChange(idx, 'shares', parseInt(e.target.value) || 0)}
-                          className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-center font-bold text-gray-900 focus:ring-2 focus:ring-green-500 outline-none"
-                        />
-                     </div>
-                  </div>
-                );
-              })}
-              {entries.filter(e => e.present).length === 0 && (
-                <div className="p-8 text-center text-gray-500">{labels.noData}</div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* STEP 3: LOANS & FINES */}
-        {step === 3 && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="p-4 border-b border-gray-100 bg-gray-50">
-               <h3 className="font-bold text-gray-800 flex items-center">
-                 <Banknote size={18} className="mr-2 text-orange-600" /> {labels.loansFines}
-               </h3>
-            </div>
-            <div className="divide-y divide-gray-100">
-              {entries.filter(e => e.present).map((entry) => {
-                const idx = entries.findIndex(e => e.memberId === entry.memberId);
-                const hasLoan = entry.expectedLoan > 0;
-                
-                return (
-                  <div key={entry.memberId} className={`p-4 hover:bg-gray-50 ${hasLoan ? 'bg-blue-50/20' : ''}`}>
-                     <div className="mb-2">
-                        <div className="flex justify-between items-center">
-                           <p className="font-medium text-gray-900">{entry.fullName}</p>
-                           {hasLoan && (
-                             <span className="text-xs bg-orange-100 text-orange-800 px-2 py-0.5 rounded-full font-bold flex items-center">
-                                <AlertCircle size={10} className="mr-1" /> Due: {entry.expectedLoan.toLocaleString()}
-                             </span>
-                           )}
-                        </div>
-                     </div>
-                     <div className="grid grid-cols-2 gap-4">
-                        <div>
-                           <label className={`block text-xs font-bold mb-1 ${hasLoan ? 'text-blue-700' : 'text-gray-400'}`}>{labels.loanRepayments}</label>
-                           <input 
-                             type="number"
-                             min="0"
-                             disabled={!hasLoan}
-                             placeholder={!hasLoan ? '-' : '0'}
-                             value={entry.loanRepayment || ''}
-                             onChange={(e) => handleEntryChange(idx, 'loanRepayment', parseInt(e.target.value) || 0)}
-                             className={`w-full px-3 py-2 border rounded-lg text-sm ${hasLoan ? 'border-blue-300 focus:ring-blue-500' : 'bg-gray-50 border-gray-200 cursor-not-allowed'}`}
-                           />
-                        </div>
-                        <div>
-                           <label className="block text-xs font-bold text-gray-500 mb-1">{labels.fines}</label>
-                           <input 
-                             type="number"
-                             min="0"
-                             value={entry.fines || ''}
-                             placeholder="0"
-                             onChange={(e) => handleEntryChange(idx, 'fines', parseInt(e.target.value) || 0)}
-                             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-red-500 outline-none"
-                           />
-                        </div>
-                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+        {/* STEPS 2 & 3: FINANCIALS */}
+        {(step === 2 || step === 3) && (
+           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="p-4 border-b border-gray-100 bg-gray-50 flex flex-col sm:flex-row justify-between items-center gap-2">
+                 <h3 className="font-bold text-gray-800 flex items-center">
+                    {step === 2 ? <PiggyBank size={18} className="mr-2 text-green-600" /> : <Banknote size={18} className="mr-2 text-blue-600" />}
+                    {step === 2 ? labels.collectSavings : labels.loansFines}
+                 </h3>
+                 <span className="text-xs text-gray-500 italic bg-white px-2 py-1 rounded border border-gray-200">{labels.onlyPresent}</span>
+              </div>
+              
+              <div className="overflow-x-auto">
+                 <table className="w-full text-left text-sm">
+                    <thead className="bg-white text-gray-500 font-bold uppercase text-xs border-b">
+                       <tr>
+                          <th className="p-4 w-1/3">{labels.fullName}</th>
+                          {step === 2 ? (
+                             <th className="p-4">{labels.shareCount}</th>
+                          ) : (
+                             <>
+                                <th className="p-4">{labels.loanRepayments}</th>
+                                <th className="p-4">{labels.finesCollected}</th>
+                             </>
+                          )}
+                       </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                       {entries.filter(e => e.present).map((entry) => {
+                          const originalIndex = entries.findIndex(e => e.memberId === entry.memberId);
+                          return (
+                             <tr key={entry.memberId} className="hover:bg-gray-50">
+                                <td className="p-4 font-medium text-gray-900">
+                                   {entry.fullName}
+                                   {step === 3 && entry.expectedLoan > 0 && (
+                                      <div className="text-xs text-red-500 font-normal mt-1">Due: {entry.expectedLoan.toLocaleString()}</div>
+                                   )}
+                                </td>
+                                {step === 2 ? (
+                                   <td className="p-4">
+                                      <div className="flex items-center">
+                                         <button 
+                                            onClick={() => handleEntryChange(originalIndex, 'shares', Math.max(0, entry.shares - 1))}
+                                            className="w-8 h-8 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-l-lg font-bold text-gray-600"
+                                         >-</button>
+                                         <input 
+                                            type="number" 
+                                            className="w-16 h-8 text-center border-y border-gray-200 outline-none font-bold"
+                                            value={entry.shares}
+                                            onChange={(e) => handleEntryChange(originalIndex, 'shares', parseInt(e.target.value) || 0)}
+                                         />
+                                         <button 
+                                            onClick={() => handleEntryChange(originalIndex, 'shares', entry.shares + 1)}
+                                            className="w-8 h-8 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-r-lg font-bold text-gray-600"
+                                         >+</button>
+                                         <span className="ml-3 text-gray-500 text-xs hidden sm:inline">
+                                            = {(entry.shares * (currentGroup?.shareValue || 0)).toLocaleString()} {labels.currency}
+                                         </span>
+                                      </div>
+                                   </td>
+                                ) : (
+                                   <>
+                                      <td className="p-4">
+                                         <input 
+                                            type="number"
+                                            className="w-24 px-2 py-1 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                                            placeholder="0"
+                                            value={entry.loanRepayment || ''}
+                                            onChange={(e) => handleEntryChange(originalIndex, 'loanRepayment', parseInt(e.target.value) || 0)}
+                                         />
+                                      </td>
+                                      <td className="p-4">
+                                         <input 
+                                            type="number"
+                                            className="w-24 px-2 py-1 border rounded focus:ring-2 focus:ring-orange-500 outline-none"
+                                            placeholder="0"
+                                            value={entry.fines || ''}
+                                            onChange={(e) => handleEntryChange(originalIndex, 'fines', parseInt(e.target.value) || 0)}
+                                         />
+                                      </td>
+                                   </>
+                                )}
+                             </tr>
+                          );
+                       })}
+                    </tbody>
+                 </table>
+              </div>
+           </div>
         )}
 
         {/* STEP 4: SUMMARY */}
         {step === 4 && (
-          <div className="space-y-6">
-             <div className="bg-slate-900 text-white rounded-2xl p-6 shadow-lg">
-                <h3 className="text-lg font-bold mb-6 text-center text-slate-200 uppercase tracking-widest">{labels.meetingSummary}</h3>
-                <div className="grid grid-cols-2 gap-y-6 gap-x-4">
-                   <div className="text-center p-4 bg-white/5 rounded-xl border border-white/10">
-                      <p className="text-xs text-slate-400 uppercase font-bold mb-1">{labels.sharesCollected}</p>
-                      <p className="text-2xl font-bold text-green-400">{totals.shares.toLocaleString()}</p>
-                   </div>
-                   <div className="text-center p-4 bg-white/5 rounded-xl border border-white/10">
-                      <p className="text-xs text-slate-400 uppercase font-bold mb-1">{labels.repayments}</p>
-                      <p className="text-2xl font-bold text-blue-400">{totals.repay.toLocaleString()}</p>
-                   </div>
-                   <div className="text-center p-4 bg-white/5 rounded-xl border border-white/10">
-                      <p className="text-xs text-slate-400 uppercase font-bold mb-1">{labels.finesCollected}</p>
-                      <p className="text-2xl font-bold text-red-400">{totals.fines.toLocaleString()}</p>
-                   </div>
-                   <div className="text-center p-4 bg-white/5 rounded-xl border border-white/10">
-                      <p className="text-xs text-slate-400 uppercase font-bold mb-1">{labels.attendance}</p>
-                      <p className="text-2xl font-bold">{totals.presentCount} <span className="text-sm font-normal text-slate-400">/ {entries.length}</span></p>
-                   </div>
-                </div>
-                <div className="mt-8 pt-6 border-t border-white/10 text-center">
-                   <p className="text-sm text-slate-400 mb-2">{labels.totalCashIn}</p>
-                   <p className="text-4xl font-black text-white">{totalCashIn.toLocaleString()} <span className="text-lg font-medium text-slate-500">{labels.currency}</span></p>
-                </div>
-             </div>
+           <div className="space-y-6">
+              <div className="bg-slate-900 text-white p-6 rounded-xl shadow-lg">
+                 <h3 className="text-lg font-bold mb-4 flex items-center">
+                    <ClipboardCheck className="mr-2" /> {labels.meetingSummary}
+                 </h3>
+                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                    <div>
+                       <p className="text-slate-400 text-xs uppercase font-bold">{labels.attendance}</p>
+                       <p className="text-2xl font-bold">{totals.presentCount} <span className="text-sm font-normal text-slate-400">/ {entries.length}</span></p>
+                    </div>
+                    <div>
+                       <p className="text-slate-400 text-xs uppercase font-bold">{labels.sharesCollected}</p>
+                       <p className="text-2xl font-bold text-green-400">{totals.shares.toLocaleString()}</p>
+                    </div>
+                    <div>
+                       <p className="text-slate-400 text-xs uppercase font-bold">{labels.repayments}</p>
+                       <p className="text-2xl font-bold text-blue-400">{totals.repay.toLocaleString()}</p>
+                    </div>
+                    <div>
+                       <p className="text-slate-400 text-xs uppercase font-bold">{labels.totalCashIn}</p>
+                       <p className="text-3xl font-bold text-white border-t border-slate-700 pt-1 mt-1">{totalCashIn.toLocaleString()} <span className="text-sm">RWF</span></p>
+                    </div>
+                 </div>
+              </div>
 
-             <div className="bg-white p-4 rounded-xl border border-gray-200">
-                <h4 className="font-bold text-gray-800 mb-2">{labels.reviewTx}</h4>
-                <p className="text-sm text-gray-500">
-                   {labels.saveDesc}
-                </p>
-                {!isOnline && (
-                  <div className="mt-3 p-3 bg-red-50 text-red-700 text-sm font-bold rounded-lg flex items-center">
-                    <AlertCircle size={16} className="mr-2" />
-                    You are offline. Reconnect to save data.
-                  </div>
-                )}
-             </div>
-          </div>
+              <div className="bg-white p-6 rounded-xl border border-gray-200">
+                 <h4 className="font-bold text-gray-800 mb-2">{labels.reviewTx}</h4>
+                 <p className="text-sm text-gray-500 mb-4">{labels.saveDesc}</p>
+                 <div className="flex items-start bg-orange-50 p-3 rounded-lg border border-orange-100 text-orange-800 text-sm">
+                    <AlertCircle size={18} className="mr-2 mt-0.5 flex-shrink-0" />
+                    Ensure all cash collected matches the <strong>Total Cash In</strong> before saving.
+                 </div>
+              </div>
+           </div>
         )}
-
       </div>
 
-      {/* Sticky Footer Navigation */}
-      <div className="fixed bottom-0 left-0 lg:left-64 right-0 p-4 pr-24 bg-white border-t border-gray-200 shadow-lg z-30 flex justify-between items-center print:hidden">
-         <button 
-           onClick={prevStep}
-           disabled={step === 1 || submitting}
-           className={`px-6 py-3 rounded-xl font-medium flex items-center transition-colors ${step === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-100'}`}
-         >
-           <ChevronLeft size={20} className="mr-1" /> {labels.back}
-         </button>
-
-         <div className="text-xs font-bold text-gray-400 uppercase tracking-widest hidden sm:block">
-            {labels.step} {step} {labels.of} {totalSteps}
+      {/* Navigation Footer */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-40 lg:pl-64 transition-all duration-300">
+         <div className="max-w-5xl mx-auto flex justify-between items-center">
+            <button 
+               onClick={prevStep}
+               disabled={step === 1}
+               className="px-6 py-2 rounded-lg font-bold text-gray-600 hover:bg-gray-100 disabled:opacity-30 flex items-center"
+            >
+               <ChevronLeft size={20} className="mr-1" /> {labels.back}
+            </button>
+            
+            {step < totalSteps ? (
+               <button 
+                  onClick={nextStep}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 flex items-center shadow-md"
+               >
+                  {labels.next} <ChevronRight size={20} className="ml-1" />
+               </button>
+            ) : (
+               <div className="flex gap-2">
+                  <button 
+                     onClick={handleBulkSMS}
+                     disabled={sendingSMS}
+                     className="hidden sm:flex px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg font-bold hover:bg-gray-50 items-center"
+                  >
+                     {sendingSMS ? <Loader2 className="animate-spin mr-2" size={18}/> : <MessageSquare className="mr-2" size={18} />}
+                     Send SMS
+                  </button>
+                  <button 
+                     onClick={handleSubmit}
+                     disabled={submitting}
+                     className="px-8 py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 flex items-center shadow-lg"
+                  >
+                     {submitting ? <Loader2 className="animate-spin mr-2" size={20} /> : <Save className="mr-2" size={20} />}
+                     {labels.saveMeeting}
+                  </button>
+               </div>
+            )}
          </div>
-
-         {step < totalSteps ? (
-           <button 
-             onClick={nextStep}
-             className="px-8 py-3 bg-slate-800 text-white rounded-xl font-bold shadow-lg hover:bg-slate-900 flex items-center transition-transform active:scale-95"
-           >
-             {labels.next} <ChevronRight size={20} className="ml-1" />
-           </button>
-         ) : (
-           <button 
-             onClick={handleSubmit}
-             disabled={submitting || !isOnline}
-             className={`px-8 py-3 rounded-xl font-bold shadow-lg flex items-center transition-transform active:scale-95 ${
-               isOnline 
-                 ? 'bg-green-600 text-white hover:bg-green-700' 
-                 : 'bg-gray-400 text-gray-100 cursor-not-allowed'
-             }`}
-           >
-             {submitting ? <Loader2 className="animate-spin mr-2" size={20} /> : <Save size={20} className="mr-2" />}
-             {labels.saveMeeting}
-           </button>
-         )}
       </div>
     </div>
   );

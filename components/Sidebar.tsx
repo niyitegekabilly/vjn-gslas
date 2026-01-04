@@ -1,7 +1,7 @@
 
 import React, { useContext } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { X, LogOut } from 'lucide-react';
+import { X, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
 import { AppContext } from '../App';
 import { useAuth } from '../contexts/AuthContext';
 import { MENU_ITEMS, LABELS } from '../constants';
@@ -10,9 +10,11 @@ import { UserRole } from '../types';
 interface SidebarProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
+  isCollapsed: boolean;
+  setIsCollapsed: (isCollapsed: boolean) => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen, isCollapsed, setIsCollapsed }) => {
   const { user, logout } = useAuth();
   const { lang } = useContext(AppContext);
   const location = useLocation();
@@ -53,55 +55,113 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
   if (!user) return null;
 
   return (
-    <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-white transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 flex flex-col h-full ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-      <div className="flex items-center justify-between h-16 px-6 bg-slate-950 border-b border-slate-800 flex-shrink-0">
-        <div className="flex items-center gap-3">
-           <div className="bg-white p-1 rounded-md shadow-sm">
-              <img 
-                src="https://odiukwlqorbjuipntmzj.supabase.co/storage/v1/object/public/images/logo.png" 
-                alt="VJN Logo" 
-                className="w-6 h-6 object-contain" 
-              />
-           </div>
-           <span className="text-lg font-bold tracking-wider">VJN GSLA</span>
-        </div>
-        <button onClick={() => setIsOpen(false)} className="lg:hidden text-gray-400 hover:text-white">
-          <X size={24} />
-        </button>
-      </div>
-      
-      <nav className="flex-1 overflow-y-auto py-4">
-        <ul className="space-y-1 px-3">
-          {MENU_ITEMS.filter(item => isMenuVisible(item.id)).map((item) => (
-            <li key={item.id}>
-              <Link 
-                to={item.path}
-                onClick={() => setIsOpen(false)}
-                className={`flex items-center px-4 py-3 rounded-lg transition-colors ${location.pathname === item.path ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
-              >
-                {item.icon}
-                <span className="ml-3 font-medium">{item.label[lang]}</span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
+    <>
+      {/* Mobile Backdrop */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden backdrop-blur-sm transition-opacity"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
 
-      <div className="p-4 border-t border-slate-800 flex-shrink-0">
-        <div className="flex items-center gap-3 mb-4 px-2">
-           <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center font-bold text-blue-400">
-              {user.fullName.charAt(0)}
-           </div>
-           <div className="overflow-hidden">
-              <p className="text-sm font-medium truncate">{user.fullName}</p>
-              <p className="text-xs text-slate-400 truncate">{user.role}</p>
-           </div>
+      <aside className={`
+        fixed inset-y-0 left-0 z-50 bg-slate-900 text-white transform transition-all duration-300 ease-in-out 
+        flex flex-col h-full
+        ${isOpen ? 'translate-x-0' : '-translate-x-full'} 
+        lg:translate-x-0 lg:static 
+        ${isCollapsed ? 'lg:w-20' : 'lg:w-64'}
+      `}>
+        {/* Header */}
+        <div className={`flex items-center h-16 bg-slate-950 border-b border-slate-800 flex-shrink-0 ${isCollapsed ? 'justify-center px-0' : 'justify-between px-6'}`}>
+          <div className="flex items-center gap-3 overflow-hidden">
+             <div className="bg-white p-1 rounded-md shadow-sm flex-shrink-0">
+                <img 
+                  src="https://odiukwlqorbjuipntmzj.supabase.co/storage/v1/object/public/images/logo.png" 
+                  alt="VJN Logo" 
+                  className="w-6 h-6 object-contain" 
+                />
+             </div>
+             {!isCollapsed && <span className="text-lg font-bold tracking-wider whitespace-nowrap">VJN GSLA</span>}
+          </div>
+          
+          {/* Mobile Close */}
+          <button onClick={() => setIsOpen(false)} className="lg:hidden text-gray-400 hover:text-white">
+            <X size={24} />
+          </button>
+
+          {/* Desktop Collapse Toggle */}
+          <button 
+            onClick={() => setIsCollapsed(!isCollapsed)} 
+            className="hidden lg:flex text-slate-500 hover:text-white transition-colors"
+            title={isCollapsed ? "Expand" : "Collapse"}
+          >
+             {isCollapsed ? null : <ChevronLeft size={20} />}
+          </button>
         </div>
-        <button onClick={logout} className="flex items-center w-full px-4 py-2 text-sm text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
-          <LogOut size={18} className="mr-3" />
-          {labels.logout}
-        </button>
-      </div>
-    </aside>
+        
+        {/* Nav Items */}
+        <nav className="flex-1 overflow-y-auto py-4 overflow-x-hidden">
+          <ul className="space-y-1 px-3">
+            {MENU_ITEMS.filter(item => isMenuVisible(item.id)).map((item) => {
+              const isActive = location.pathname === item.path;
+              return (
+                <li key={item.id}>
+                  <Link 
+                    to={item.path}
+                    onClick={() => setIsOpen(false)}
+                    title={isCollapsed ? item.label[lang] : ''}
+                    className={`
+                      flex items-center py-3 rounded-lg transition-colors
+                      ${isCollapsed ? 'justify-center px-0' : 'px-4'}
+                      ${isActive ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}
+                    `}
+                  >
+                    <div className="flex-shrink-0">{item.icon}</div>
+                    {!isCollapsed && <span className="ml-3 font-medium whitespace-nowrap">{item.label[lang]}</span>}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+
+        {/* Footer */}
+        <div className={`border-t border-slate-800 flex-shrink-0 ${isCollapsed ? 'p-2' : 'p-4'}`}>
+          {!isCollapsed && (
+            <div className="flex items-center gap-3 mb-4 px-2">
+               <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center font-bold text-blue-400 flex-shrink-0">
+                  {user.fullName.charAt(0)}
+               </div>
+               <div className="overflow-hidden">
+                  <p className="text-sm font-medium truncate">{user.fullName}</p>
+                  <p className="text-xs text-slate-400 truncate">{user.role}</p>
+               </div>
+            </div>
+          )}
+          
+          <button 
+            onClick={logout} 
+            className={`
+              flex items-center w-full rounded-lg transition-colors text-slate-400 hover:text-white hover:bg-slate-800
+              ${isCollapsed ? 'justify-center py-3' : 'px-4 py-2 text-sm'}
+            `}
+            title={isCollapsed ? labels.logout : ''}
+          >
+            <LogOut size={18} className={isCollapsed ? '' : 'mr-3'} />
+            {!isCollapsed && labels.logout}
+          </button>
+          
+          {/* Toggle button moved to bottom center if collapsed for easier access? No, kept in header for consistency */}
+          {isCollapsed && (
+             <button 
+               onClick={() => setIsCollapsed(false)} 
+               className="hidden lg:flex w-full justify-center mt-2 text-slate-600 hover:text-slate-400"
+             >
+                <ChevronRight size={16} />
+             </button>
+          )}
+        </div>
+      </aside>
+    </>
   );
 };

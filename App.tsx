@@ -60,6 +60,7 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
   const { user, isLoading } = useAuth();
   const { lang, setLang, activeGroupId, setActiveGroupId, groups, showHelpAssistant, setShowHelpAssistant } = React.useContext(AppContext);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false); // Desktop collapse state
   const location = useLocation();
   const navigate = useNavigate();
   const labels = LABELS[lang];
@@ -113,10 +114,15 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
 
   return (
     <div className="flex h-screen bg-gray-100 overflow-hidden font-sans">
-      <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
+      <Sidebar 
+        isOpen={sidebarOpen} 
+        setIsOpen={setSidebarOpen} 
+        isCollapsed={sidebarCollapsed}
+        setIsCollapsed={setSidebarCollapsed}
+      />
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden h-full">
+      <div className="flex-1 flex flex-col overflow-hidden h-full transition-all duration-300">
         <header className="h-16 bg-white shadow-sm flex items-center justify-between px-6 z-10 flex-shrink-0">
           <div className="flex items-center gap-3">
             <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-gray-500 hover:text-gray-700">

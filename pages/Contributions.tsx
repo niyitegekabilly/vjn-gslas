@@ -1,3 +1,4 @@
+
 import React, { useContext, useEffect, useState } from 'react';
 import { AppContext } from '../App';
 import { api } from '../api/client';
@@ -151,7 +152,7 @@ export default function Contributions() {
         </h2>
         <button 
           onClick={() => setIsAddOpen(true)}
-          className="flex items-center px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 shadow-sm transition-colors"
+          className="flex items-center px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 shadow-sm transition-colors w-full sm:w-auto justify-center"
         >
           <Plus size={18} className="mr-2" /> {labels.newContribution}
         </button>
@@ -183,55 +184,103 @@ export default function Contributions() {
                {[...Array(5)].map((_, i) => <TableRowSkeleton key={i} />)}
             </div>
          ) : (
-            <div className="overflow-x-auto">
-               <table className="w-full text-left text-sm">
-                  <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs border-b border-gray-200">
-                     <tr>
-                        <th className="p-4">{labels.date}</th>
-                        <th className="p-4">{labels.members}</th>
-                        <th className="p-4 text-center">{labels.shareCount}</th>
-                        <th className="p-4 text-right">{labels.amount}</th>
-                        <th className="p-4 text-right">{labels.solidarity}</th>
-                        <th className="p-4">{labels.status}</th>
-                        <th className="p-4 text-right">{labels.actions}</th>
-                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                     {filtered.length === 0 ? (
-                        <tr><td colSpan={7} className="p-8 text-center text-gray-500">{labels.noData}</td></tr>
-                     ) : (
-                        filtered.map(tx => (
-                           <tr key={tx.id} className={`hover:bg-gray-50 ${tx.isVoid ? 'bg-red-50/50 opacity-60' : ''}`}>
-                              <td className="p-4 text-gray-600 font-medium">{tx.date}</td>
-                              <td className="p-4 font-bold text-gray-900">{getMemberName(tx.memberId)}</td>
-                              <td className="p-4 text-center">
-                                 <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded font-bold text-xs">{tx.shareCount}</span>
-                              </td>
-                              <td className="p-4 text-right font-mono font-medium">{tx.amount.toLocaleString()}</td>
-                              <td className="p-4 text-right text-gray-500">{tx.solidarityAmount?.toLocaleString() || '-'}</td>
-                              <td className="p-4">
-                                 {tx.isVoid ? (
-                                    <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded font-bold">VOID</span>
-                                 ) : (
-                                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded font-bold flex items-center w-fit">
-                                       <CheckCircle size={12} className="mr-1"/> OK
-                                    </span>
-                                 )}
-                              </td>
-                              <td className="p-4 text-right">
-                                 {!tx.isVoid && (
-                                    <div className="flex justify-end gap-2">
-                                       <button onClick={() => openEdit(tx)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title={labels.edit}><Edit size={16}/></button>
-                                       <button onClick={() => openVoid(tx)} className="p-1.5 text-red-600 hover:bg-red-50 rounded" title={labels.void}><Ban size={16}/></button>
-                                    </div>
-                                 )}
-                              </td>
-                           </tr>
-                        ))
-                     )}
-                  </tbody>
-               </table>
-            </div>
+            <>
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
+                 <table className="w-full text-left text-sm">
+                    <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs border-b border-gray-200">
+                       <tr>
+                          <th className="p-4">{labels.date}</th>
+                          <th className="p-4">{labels.members}</th>
+                          <th className="p-4 text-center">{labels.shareCount}</th>
+                          <th className="p-4 text-right">{labels.amount}</th>
+                          <th className="p-4 text-right">{labels.solidarity}</th>
+                          <th className="p-4">{labels.status}</th>
+                          <th className="p-4 text-right">{labels.actions}</th>
+                       </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                       {filtered.length === 0 ? (
+                          <tr><td colSpan={7} className="p-8 text-center text-gray-500">{labels.noData}</td></tr>
+                       ) : (
+                          filtered.map(tx => (
+                             <tr key={tx.id} className={`hover:bg-gray-50 ${tx.isVoid ? 'bg-red-50/50 opacity-60' : ''}`}>
+                                <td className="p-4 text-gray-600 font-medium">{tx.date}</td>
+                                <td className="p-4 font-bold text-gray-900">{getMemberName(tx.memberId)}</td>
+                                <td className="p-4 text-center">
+                                   <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded font-bold text-xs">{tx.shareCount}</span>
+                                </td>
+                                <td className="p-4 text-right font-mono font-medium">{tx.amount.toLocaleString()}</td>
+                                <td className="p-4 text-right text-gray-500">{tx.solidarityAmount?.toLocaleString() || '-'}</td>
+                                <td className="p-4">
+                                   {tx.isVoid ? (
+                                      <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded font-bold">VOID</span>
+                                   ) : (
+                                      <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded font-bold flex items-center w-fit">
+                                         <CheckCircle size={12} className="mr-1"/> OK
+                                      </span>
+                                   )}
+                                </td>
+                                <td className="p-4 text-right">
+                                   {!tx.isVoid && (
+                                      <div className="flex justify-end gap-2">
+                                         <button onClick={() => openEdit(tx)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title={labels.edit}><Edit size={16}/></button>
+                                         <button onClick={() => openVoid(tx)} className="p-1.5 text-red-600 hover:bg-red-50 rounded" title={labels.void}><Ban size={16}/></button>
+                                      </div>
+                                   )}
+                                </td>
+                             </tr>
+                          ))
+                       )}
+                    </tbody>
+                 </table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="md:hidden divide-y divide-gray-100">
+                 {filtered.length === 0 ? (
+                    <div className="p-8 text-center text-gray-500">{labels.noData}</div>
+                 ) : (
+                    filtered.map(tx => (
+                       <div key={tx.id} className={`p-4 ${tx.isVoid ? 'bg-red-50/50 opacity-60' : ''}`}>
+                          <div className="flex justify-between items-start mb-2">
+                             <div>
+                                <p className="font-bold text-gray-900">{getMemberName(tx.memberId)}</p>
+                                <p className="text-xs text-gray-500 flex items-center mt-1">
+                                   <Calendar size={12} className="mr-1" /> {tx.date}
+                                </p>
+                             </div>
+                             {tx.isVoid ? (
+                                <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded font-bold">VOID</span>
+                             ) : (
+                                <div className="flex gap-1">
+                                   <button onClick={() => openEdit(tx)} className="p-1.5 text-blue-600 bg-blue-50 rounded"><Edit size={16}/></button>
+                                   <button onClick={() => openVoid(tx)} className="p-1.5 text-red-600 bg-red-50 rounded"><Ban size={16}/></button>
+                                </div>
+                             )}
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-2 mt-3">
+                             <div className="bg-gray-50 p-2 rounded border border-gray-100">
+                                <p className="text-xs text-gray-500 uppercase">{labels.amount}</p>
+                                <p className="font-mono font-bold text-gray-800">{tx.amount.toLocaleString()} RWF</p>
+                             </div>
+                             <div className="bg-gray-50 p-2 rounded border border-gray-100">
+                                <p className="text-xs text-gray-500 uppercase">{labels.shareCount}</p>
+                                <p className="font-bold text-blue-600">{tx.shareCount}</p>
+                             </div>
+                             {tx.solidarityAmount > 0 && (
+                                <div className="col-span-2 bg-gray-50 p-2 rounded border border-gray-100 flex justify-between items-center">
+                                   <span className="text-xs text-gray-500 uppercase">{labels.solidarity}</span>
+                                   <span className="font-bold text-gray-700">{tx.solidarityAmount.toLocaleString()} RWF</span>
+                                </div>
+                             )}
+                          </div>
+                       </div>
+                    ))
+                 )}
+              </div>
+            </>
          )}
       </div>
 

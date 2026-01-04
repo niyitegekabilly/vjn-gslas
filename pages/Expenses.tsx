@@ -1,9 +1,10 @@
+
 import React, { useContext, useEffect, useState } from 'react';
 import { AppContext } from '../App';
 import { api } from '../api/client';
 import { LABELS } from '../constants';
 import { Transaction, ExpenseCategory } from '../types';
-import { Receipt, Plus, Search, Edit, Ban, Settings as SettingsIcon, Loader2, AlertTriangle, X, CheckCircle } from 'lucide-react';
+import { Receipt, Plus, Search, Edit, Ban, Settings as SettingsIcon, Loader2, AlertTriangle, X, CheckCircle, Calendar } from 'lucide-react';
 import { TableRowSkeleton } from '../components/Skeleton';
 import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog';
 
@@ -169,16 +170,16 @@ export default function Expenses() {
         <h2 className="text-2xl font-bold text-gray-800 flex items-center">
           <Receipt className="mr-3 text-red-600" /> {labels.expenseManagement}
         </h2>
-        <div className="flex gap-2">
+        <div className="flex gap-2 w-full sm:w-auto">
           <button 
             onClick={() => setIsCategoryOpen(true)}
-            className="flex items-center px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 shadow-sm"
+            className="flex-1 sm:flex-none flex items-center justify-center px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 shadow-sm whitespace-nowrap"
           >
             <SettingsIcon size={18} className="mr-2" /> Categories
           </button>
           <button 
             onClick={() => setIsCreateOpen(true)}
-            className="flex items-center px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 shadow-sm"
+            className="flex-1 sm:flex-none flex items-center justify-center px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 shadow-sm whitespace-nowrap"
           >
             <Plus size={18} className="mr-2" /> {labels.addExpense}
           </button>
@@ -213,46 +214,83 @@ export default function Expenses() {
                {[...Array(5)].map((_, i) => <TableRowSkeleton key={i} />)}
             </div>
          ) : (
-            <div className="overflow-x-auto">
-               <table className="w-full text-left text-sm">
-                  <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs border-b border-gray-200">
-                     <tr>
-                        <th className="p-4">{labels.date}</th>
-                        <th className="p-4">{labels.description}</th>
-                        <th className="p-4">{labels.expenseCategory}</th>
-                        <th className="p-4 text-right">{labels.amount}</th>
-                        <th className="p-4">{labels.recordedBy}</th>
-                        <th className="p-4 text-right">{labels.actions}</th>
-                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                     {filtered.length === 0 ? (
-                        <tr><td colSpan={6} className="p-8 text-center text-gray-500">{labels.noData}</td></tr>
-                     ) : (
-                        filtered.map(exp => (
-                           <tr key={exp.id} className={`hover:bg-gray-50 ${exp.isVoid ? 'bg-red-50/50 opacity-60' : ''}`}>
-                              <td className="p-4 text-gray-600">{exp.date}</td>
-                              <td className="p-4 text-gray-900 font-medium">{exp.description}</td>
-                              <td className="p-4">
-                                 <span className="bg-gray-100 px-2 py-1 rounded text-xs font-medium text-gray-700">{getCategoryName(exp.categoryId)}</span>
-                              </td>
-                              <td className="p-4 text-right font-mono font-bold text-red-600">-{exp.amount.toLocaleString()}</td>
-                              <td className="p-4 text-gray-500 text-xs">{exp.recordedBy || '-'}</td>
-                              <td className="p-4 text-right">
-                                 {!exp.isVoid && (
-                                    <div className="flex justify-end gap-2">
-                                       <button onClick={() => openEdit(exp)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"><Edit size={16}/></button>
-                                       <button onClick={() => openVoid(exp)} className="p-1.5 text-red-600 hover:bg-red-50 rounded"><Ban size={16}/></button>
-                                    </div>
-                                 )}
-                                 {exp.isVoid && <span className="text-xs font-bold text-red-700 bg-red-100 px-2 py-1 rounded">VOID</span>}
-                              </td>
-                           </tr>
-                        ))
-                     )}
-                  </tbody>
-               </table>
-            </div>
+            <>
+              {/* Desktop View */}
+              <div className="hidden md:block overflow-x-auto">
+                 <table className="w-full text-left text-sm">
+                    <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs border-b border-gray-200">
+                       <tr>
+                          <th className="p-4">{labels.date}</th>
+                          <th className="p-4">{labels.description}</th>
+                          <th className="p-4">{labels.expenseCategory}</th>
+                          <th className="p-4 text-right">{labels.amount}</th>
+                          <th className="p-4">{labels.recordedBy}</th>
+                          <th className="p-4 text-right">{labels.actions}</th>
+                       </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                       {filtered.length === 0 ? (
+                          <tr><td colSpan={6} className="p-8 text-center text-gray-500">{labels.noData}</td></tr>
+                       ) : (
+                          filtered.map(exp => (
+                             <tr key={exp.id} className={`hover:bg-gray-50 ${exp.isVoid ? 'bg-red-50/50 opacity-60' : ''}`}>
+                                <td className="p-4 text-gray-600">{exp.date}</td>
+                                <td className="p-4 text-gray-900 font-medium">{exp.description}</td>
+                                <td className="p-4">
+                                   <span className="bg-gray-100 px-2 py-1 rounded text-xs font-medium text-gray-700">{getCategoryName(exp.categoryId)}</span>
+                                </td>
+                                <td className="p-4 text-right font-mono font-bold text-red-600">-{exp.amount.toLocaleString()}</td>
+                                <td className="p-4 text-gray-500 text-xs">{exp.recordedBy || '-'}</td>
+                                <td className="p-4 text-right">
+                                   {!exp.isVoid && (
+                                      <div className="flex justify-end gap-2">
+                                         <button onClick={() => openEdit(exp)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"><Edit size={16}/></button>
+                                         <button onClick={() => openVoid(exp)} className="p-1.5 text-red-600 hover:bg-red-50 rounded"><Ban size={16}/></button>
+                                      </div>
+                                   )}
+                                   {exp.isVoid && <span className="text-xs font-bold text-red-700 bg-red-100 px-2 py-1 rounded">VOID</span>}
+                                </td>
+                             </tr>
+                          ))
+                       )}
+                    </tbody>
+                 </table>
+              </div>
+
+              {/* Mobile View */}
+              <div className="md:hidden divide-y divide-gray-100">
+                 {filtered.length === 0 ? (
+                    <div className="p-8 text-center text-gray-500">{labels.noData}</div>
+                 ) : (
+                    filtered.map(exp => (
+                       <div key={exp.id} className={`p-4 ${exp.isVoid ? 'bg-red-50/50 opacity-60' : ''}`}>
+                          <div className="flex justify-between items-start mb-2">
+                             <div>
+                                <p className="font-bold text-gray-900">{exp.description}</p>
+                                <p className="text-xs text-gray-500 flex items-center mt-1">
+                                   <Calendar size={12} className="mr-1" /> {exp.date}
+                                </p>
+                             </div>
+                             <div className="text-right">
+                                <p className="font-mono font-bold text-red-600">-{exp.amount.toLocaleString()}</p>
+                                {exp.isVoid && <span className="text-xs bg-red-100 text-red-800 px-1 py-0.5 rounded font-bold">VOID</span>}
+                             </div>
+                          </div>
+                          
+                          <div className="flex justify-between items-center mt-3">
+                             <span className="bg-gray-100 px-2 py-1 rounded text-xs font-medium text-gray-700">{getCategoryName(exp.categoryId)}</span>
+                             {!exp.isVoid && (
+                                <div className="flex gap-1">
+                                   <button onClick={() => openEdit(exp)} className="p-2 text-blue-600 bg-blue-50 rounded-lg"><Edit size={16}/></button>
+                                   <button onClick={() => openVoid(exp)} className="p-2 text-red-600 bg-red-50 rounded-lg"><Ban size={16}/></button>
+                                </div>
+                             )}
+                          </div>
+                       </div>
+                    ))
+                 )}
+              </div>
+            </>
          )}
       </div>
 

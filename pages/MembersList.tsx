@@ -1,9 +1,10 @@
+
 import React, { useContext, useEffect, useState } from 'react';
 import { AppContext } from '../App';
 import { api } from '../api/client';
 import { LABELS } from '../constants';
 import { Member, MemberStatus, UserRole } from '../types';
-import { Users, Plus, Search, Edit, Trash2, Filter, Loader2, X, CheckCircle, AlertCircle } from 'lucide-react';
+import { Users, Plus, Search, Edit, Trash2, Filter, Loader2, X, CheckCircle, AlertCircle, Phone } from 'lucide-react';
 import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog';
 import { CsvImporter } from '../components/CsvImporter';
 import { TableRowSkeleton } from '../components/Skeleton';
@@ -142,15 +143,16 @@ export default function MembersList() {
         <h2 className="text-2xl font-bold text-gray-800 flex items-center">
           <Users className="mr-3 text-blue-600" /> {labels.members}
         </h2>
-        <div className="flex gap-2">
+        <div className="flex gap-2 w-full sm:w-auto">
           <CsvImporter 
             entityName="Members"
             fields={importFields}
             onImport={handleImport}
+            className="flex-1 sm:flex-none"
           />
           <button 
             onClick={() => handleOpenModal()}
-            className="flex items-center px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 shadow-sm transition-colors"
+            className="flex-1 sm:flex-none flex items-center justify-center px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 shadow-sm transition-colors whitespace-nowrap"
           >
             <Plus size={18} className="mr-2" /> {labels.addMember}
           </button>
@@ -174,7 +176,7 @@ export default function MembersList() {
               <select 
                 value={statusFilter}
                 onChange={e => setStatusFilter(e.target.value as any)}
-                className="border border-gray-300 rounded-lg px-3 py-2 bg-white text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                className="border border-gray-300 rounded-lg px-3 py-2 bg-white text-sm outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
               >
                  <option value="ALL">{labels.allStatus}</option>
                  <option value={MemberStatus.ACTIVE}>{labels.active}</option>
@@ -189,72 +191,132 @@ export default function MembersList() {
               {[...Array(5)].map((_, i) => <TableRowSkeleton key={i} />)}
            </div>
         ) : (
-           <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                 <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs border-b border-gray-200">
-                    <tr>
-                       <th className="p-4">{labels.fullName}</th>
-                       <th className="p-4">{labels.nationalId}</th>
-                       <th className="p-4">{labels.phoneNumber}</th>
-                       <th className="p-4">{labels.role}</th>
-                       <th className="p-4">{labels.status}</th>
-                       <th className="p-4 text-right">{labels.actions}</th>
-                    </tr>
-                 </thead>
-                 <tbody className="divide-y divide-gray-100">
-                    {filteredMembers.length === 0 ? (
-                       <tr><td colSpan={6} className="p-8 text-center text-gray-500">{labels.noData}</td></tr>
-                    ) : (
-                       filteredMembers.map(member => (
-                          <tr key={member.id} className="hover:bg-gray-50 group">
-                             <td className="p-4 font-medium text-gray-900">
-                                <div className="flex items-center gap-3">
-                                   <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-xs">
-                                      {member.fullName.charAt(0)}
-                                   </div>
-                                   {member.fullName}
-                                </div>
-                             </td>
-                             <td className="p-4 text-gray-600 font-mono text-xs">{member.nationalId}</td>
-                             <td className="p-4 text-gray-600">{member.phone}</td>
-                             <td className="p-4">
-                                <span className={`px-2 py-1 rounded text-xs font-bold ${member.role === UserRole.GROUP_LEADER ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'}`}>
-                                   {member.role === UserRole.GROUP_LEADER ? labels.groupLeader : labels.memberUser}
-                                </span>
-                             </td>
-                             <td className="p-4">
-                                <span className={`flex items-center w-fit px-2 py-1 rounded-full text-xs font-bold ${
+           <>
+             {/* Desktop Table View */}
+             <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                   <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs border-b border-gray-200">
+                      <tr>
+                         <th className="p-4">{labels.fullName}</th>
+                         <th className="p-4">{labels.nationalId}</th>
+                         <th className="p-4">{labels.phoneNumber}</th>
+                         <th className="p-4">{labels.role}</th>
+                         <th className="p-4">{labels.status}</th>
+                         <th className="p-4 text-right">{labels.actions}</th>
+                      </tr>
+                   </thead>
+                   <tbody className="divide-y divide-gray-100">
+                      {filteredMembers.length === 0 ? (
+                         <tr><td colSpan={6} className="p-8 text-center text-gray-500">{labels.noData}</td></tr>
+                      ) : (
+                         filteredMembers.map(member => (
+                            <tr key={member.id} className="hover:bg-gray-50 group">
+                               <td className="p-4 font-medium text-gray-900">
+                                  <div className="flex items-center gap-3">
+                                     <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-xs">
+                                        {member.fullName.charAt(0)}
+                                     </div>
+                                     {member.fullName}
+                                  </div>
+                               </td>
+                               <td className="p-4 text-gray-600 font-mono text-xs">{member.nationalId}</td>
+                               <td className="p-4 text-gray-600">{member.phone}</td>
+                               <td className="p-4">
+                                  <span className={`px-2 py-1 rounded text-xs font-bold ${member.role === UserRole.GROUP_LEADER ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'}`}>
+                                     {member.role === UserRole.GROUP_LEADER ? labels.groupLeader : labels.memberUser}
+                                  </span>
+                               </td>
+                               <td className="p-4">
+                                  <span className={`flex items-center w-fit px-2 py-1 rounded-full text-xs font-bold ${
+                                     member.status === MemberStatus.ACTIVE ? 'bg-green-100 text-green-700' : 
+                                     member.status === MemberStatus.SUSPENDED ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'
+                                  }`}>
+                                     {member.status === MemberStatus.ACTIVE ? <CheckCircle size={12} className="mr-1" /> : <AlertCircle size={12} className="mr-1" />}
+                                     {member.status}
+                                  </span>
+                               </td>
+                               <td className="p-4 text-right">
+                                  <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                     <button 
+                                       onClick={() => handleOpenModal(member)}
+                                       className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
+                                       title={labels.edit}
+                                     >
+                                        <Edit size={16} />
+                                     </button>
+                                     <button 
+                                       onClick={() => setDeletingId(member.id)}
+                                       className="p-1.5 text-red-600 hover:bg-red-50 rounded"
+                                       title={labels.delete}
+                                     >
+                                        <Trash2 size={16} />
+                                     </button>
+                                  </div>
+                               </td>
+                            </tr>
+                         ))
+                      )}
+                   </tbody>
+                </table>
+             </div>
+
+             {/* Mobile Card View */}
+             <div className="md:hidden divide-y divide-gray-100">
+               {filteredMembers.length === 0 ? (
+                  <div className="p-8 text-center text-gray-500">{labels.noData}</div>
+               ) : (
+                  filteredMembers.map(member => (
+                    <div key={member.id} className="p-4 flex flex-col gap-3">
+                       <div className="flex justify-between items-start">
+                          <div className="flex items-center gap-3">
+                             <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold">
+                                {member.fullName.charAt(0)}
+                             </div>
+                             <div>
+                                <h4 className="font-bold text-gray-900">{member.fullName}</h4>
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold mt-1 ${
                                    member.status === MemberStatus.ACTIVE ? 'bg-green-100 text-green-700' : 
-                                   member.status === MemberStatus.SUSPENDED ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'
+                                   'bg-red-100 text-red-700'
                                 }`}>
-                                   {member.status === MemberStatus.ACTIVE ? <CheckCircle size={12} className="mr-1" /> : <AlertCircle size={12} className="mr-1" />}
                                    {member.status}
                                 </span>
-                             </td>
-                             <td className="p-4 text-right">
-                                <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                   <button 
-                                     onClick={() => handleOpenModal(member)}
-                                     className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
-                                     title={labels.edit}
-                                   >
-                                      <Edit size={16} />
-                                   </button>
-                                   <button 
-                                     onClick={() => setDeletingId(member.id)}
-                                     className="p-1.5 text-red-600 hover:bg-red-50 rounded"
-                                     title={labels.delete}
-                                   >
-                                      <Trash2 size={16} />
-                                   </button>
-                                </div>
-                             </td>
-                          </tr>
-                       ))
-                    )}
-                 </tbody>
-              </table>
-           </div>
+                             </div>
+                          </div>
+                          <div className="flex gap-1">
+                             <button 
+                               onClick={() => handleOpenModal(member)}
+                               className="p-2 text-blue-600 bg-blue-50 rounded-lg"
+                             >
+                                <Edit size={18} />
+                             </button>
+                             <button 
+                               onClick={() => setDeletingId(member.id)}
+                               className="p-2 text-red-600 bg-red-50 rounded-lg"
+                             >
+                                <Trash2 size={18} />
+                             </button>
+                          </div>
+                       </div>
+                       
+                       <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div className="bg-gray-50 p-2 rounded border border-gray-100">
+                             <p className="text-xs text-gray-500 uppercase">{labels.role}</p>
+                             <p className="font-medium text-gray-800">{member.role === UserRole.GROUP_LEADER ? labels.groupLeader : labels.memberUser}</p>
+                          </div>
+                          <div className="bg-gray-50 p-2 rounded border border-gray-100">
+                             <p className="text-xs text-gray-500 uppercase">{labels.nationalId}</p>
+                             <p className="font-mono text-gray-800 truncate">{member.nationalId}</p>
+                          </div>
+                          <div className="col-span-2 flex items-center text-gray-600 bg-gray-50 p-2 rounded border border-gray-100">
+                             <Phone size={14} className="mr-2 text-gray-400" />
+                             {member.phone}
+                          </div>
+                       </div>
+                    </div>
+                  ))
+               )}
+             </div>
+           </>
         )}
       </div>
 

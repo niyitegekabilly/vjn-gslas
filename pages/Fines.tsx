@@ -1,3 +1,4 @@
+
 import React, { useContext, useEffect, useState } from 'react';
 import { AppContext } from '../App';
 import { api } from '../api/client';
@@ -192,16 +193,16 @@ export default function Fines() {
         <h2 className="text-2xl font-bold text-gray-800 flex items-center">
           <Gavel className="mr-3 text-orange-600" /> {labels.fines}
         </h2>
-        <div className="flex gap-2">
+        <div className="flex gap-2 w-full sm:w-auto">
           <button 
             onClick={() => setIsCategoryOpen(true)}
-            className="flex items-center px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 shadow-sm"
+            className="flex-1 sm:flex-none flex items-center justify-center px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 shadow-sm whitespace-nowrap"
           >
             <SettingsIcon size={18} className="mr-2" /> {labels.manageCategories}
           </button>
           <button 
             onClick={() => setIsCreateOpen(true)}
-            className="flex items-center px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 shadow-sm"
+            className="flex-1 sm:flex-none flex items-center justify-center px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 shadow-sm whitespace-nowrap"
           >
             <Plus size={18} className="mr-2" /> {labels.recordFine}
           </button>
@@ -219,7 +220,7 @@ export default function Fines() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-         <div className="p-4 border-b border-gray-100 flex gap-4">
+         <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1">
                <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
                <input 
@@ -233,7 +234,7 @@ export default function Fines() {
             <select 
                value={statusFilter}
                onChange={e => setStatusFilter(e.target.value as any)}
-               className="border border-gray-300 rounded-lg px-3 py-2 bg-white text-sm outline-none"
+               className="border border-gray-300 rounded-lg px-3 py-2 bg-white text-sm outline-none w-full sm:w-auto"
             >
                <option value="ALL">{labels.all}</option>
                <option value="UNPAID">{labels.outstandingFines}</option>
@@ -246,56 +247,103 @@ export default function Fines() {
                {[...Array(5)].map((_, i) => <TableRowSkeleton key={i} />)}
             </div>
          ) : (
-            <div className="overflow-x-auto">
-               <table className="w-full text-left text-sm">
-                  <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs border-b border-gray-200">
-                     <tr>
-                        <th className="p-4">{labels.date}</th>
-                        <th className="p-4">{labels.members}</th>
-                        <th className="p-4">{labels.type}</th>
-                        <th className="p-4 text-right">{labels.amount}</th>
-                        <th className="p-4 text-right">Paid</th>
-                        <th className="p-4">{labels.status}</th>
-                        <th className="p-4 text-right">{labels.actions}</th>
-                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                     {filteredFines.length === 0 ? (
-                        <tr><td colSpan={7} className="p-8 text-center text-gray-500">{labels.noData}</td></tr>
-                     ) : (
-                        filteredFines.map(fine => (
-                           <tr key={fine.id} className={`hover:bg-gray-50 ${fine.status === 'VOID' ? 'bg-red-50/50 opacity-60' : ''}`}>
-                              <td className="p-4 text-gray-600">{fine.date}</td>
-                              <td className="p-4 font-bold text-gray-900">{getMemberName(fine.memberId)}</td>
-                              <td className="p-4">
-                                 <span className="bg-gray-100 px-2 py-1 rounded text-xs font-medium text-gray-700">{getCategoryName(fine.categoryId)}</span>
-                              </td>
-                              <td className="p-4 text-right font-mono">{fine.amount.toLocaleString()}</td>
-                              <td className="p-4 text-right text-green-600 font-medium">{fine.paidAmount.toLocaleString()}</td>
-                              <td className="p-4">
-                                 <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                                    fine.status === 'PAID' ? 'bg-green-100 text-green-700' : 
-                                    fine.status === 'VOID' ? 'bg-gray-200 text-gray-700' :
-                                    'bg-red-100 text-red-700'
-                                 }`}>
-                                    {fine.status}
-                                 </span>
-                              </td>
-                              <td className="p-4 text-right">
-                                 {fine.status !== 'VOID' && fine.status !== 'PAID' && (
-                                    <div className="flex justify-end gap-2">
-                                       <button onClick={() => openPay(fine)} className="p-1.5 bg-green-50 text-green-600 hover:bg-green-100 rounded font-bold text-xs">Pay</button>
-                                       <button onClick={() => openEdit(fine)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"><Edit size={16}/></button>
-                                       <button onClick={() => openVoid(fine)} className="p-1.5 text-red-600 hover:bg-red-50 rounded"><Ban size={16}/></button>
-                                    </div>
-                                 )}
-                              </td>
-                           </tr>
-                        ))
-                     )}
-                  </tbody>
-               </table>
-            </div>
+            <>
+              {/* Desktop View */}
+              <div className="hidden md:block overflow-x-auto">
+                 <table className="w-full text-left text-sm">
+                    <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs border-b border-gray-200">
+                       <tr>
+                          <th className="p-4">{labels.date}</th>
+                          <th className="p-4">{labels.members}</th>
+                          <th className="p-4">{labels.type}</th>
+                          <th className="p-4 text-right">{labels.amount}</th>
+                          <th className="p-4 text-right">Paid</th>
+                          <th className="p-4">{labels.status}</th>
+                          <th className="p-4 text-right">{labels.actions}</th>
+                       </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                       {filteredFines.length === 0 ? (
+                          <tr><td colSpan={7} className="p-8 text-center text-gray-500">{labels.noData}</td></tr>
+                       ) : (
+                          filteredFines.map(fine => (
+                             <tr key={fine.id} className={`hover:bg-gray-50 ${fine.status === 'VOID' ? 'bg-red-50/50 opacity-60' : ''}`}>
+                                <td className="p-4 text-gray-600">{fine.date}</td>
+                                <td className="p-4 font-bold text-gray-900">{getMemberName(fine.memberId)}</td>
+                                <td className="p-4">
+                                   <span className="bg-gray-100 px-2 py-1 rounded text-xs font-medium text-gray-700">{getCategoryName(fine.categoryId)}</span>
+                                </td>
+                                <td className="p-4 text-right font-mono">{fine.amount.toLocaleString()}</td>
+                                <td className="p-4 text-right text-green-600 font-medium">{fine.paidAmount.toLocaleString()}</td>
+                                <td className="p-4">
+                                   <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                                      fine.status === 'PAID' ? 'bg-green-100 text-green-700' : 
+                                      fine.status === 'VOID' ? 'bg-gray-200 text-gray-700' :
+                                      'bg-red-100 text-red-700'
+                                   }`}>
+                                      {fine.status}
+                                   </span>
+                                </td>
+                                <td className="p-4 text-right">
+                                   {fine.status !== 'VOID' && fine.status !== 'PAID' && (
+                                      <div className="flex justify-end gap-2">
+                                         <button onClick={() => openPay(fine)} className="p-1.5 bg-green-50 text-green-600 hover:bg-green-100 rounded font-bold text-xs">Pay</button>
+                                         <button onClick={() => openEdit(fine)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"><Edit size={16}/></button>
+                                         <button onClick={() => openVoid(fine)} className="p-1.5 text-red-600 hover:bg-red-50 rounded"><Ban size={16}/></button>
+                                      </div>
+                                   )}
+                                </td>
+                             </tr>
+                          ))
+                       )}
+                    </tbody>
+                 </table>
+              </div>
+
+              {/* Mobile View */}
+              <div className="md:hidden divide-y divide-gray-100">
+                 {filteredFines.length === 0 ? (
+                    <div className="p-8 text-center text-gray-500">{labels.noData}</div>
+                 ) : (
+                    filteredFines.map(fine => (
+                       <div key={fine.id} className={`p-4 ${fine.status === 'VOID' ? 'bg-red-50/50 opacity-60' : ''}`}>
+                          <div className="flex justify-between items-start mb-2">
+                             <div>
+                                <p className="font-bold text-gray-900">{getMemberName(fine.memberId)}</p>
+                                <p className="text-xs text-gray-500 mt-1">{fine.date}</p>
+                             </div>
+                             <div className="text-right">
+                                <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
+                                   fine.status === 'PAID' ? 'bg-green-100 text-green-700' : 
+                                   fine.status === 'VOID' ? 'bg-gray-200 text-gray-700' :
+                                   'bg-red-100 text-red-700'
+                                }`}>
+                                   {fine.status}
+                                </span>
+                             </div>
+                          </div>
+                          
+                          <div className="flex justify-between items-center my-3 bg-gray-50 p-2 rounded border border-gray-100">
+                             <div className="text-xs text-gray-500 font-bold uppercase">{getCategoryName(fine.categoryId)}</div>
+                             <div className="font-mono font-bold text-gray-800">{fine.amount.toLocaleString()} RWF</div>
+                          </div>
+
+                          {fine.paidAmount > 0 && (
+                             <div className="text-xs text-green-600 font-bold mb-3">Paid: {fine.paidAmount.toLocaleString()}</div>
+                          )}
+
+                          {fine.status !== 'VOID' && fine.status !== 'PAID' && (
+                             <div className="flex gap-2">
+                                <button onClick={() => openPay(fine)} className="flex-1 py-2 bg-green-50 text-green-700 rounded-lg text-sm font-bold">Pay Now</button>
+                                <button onClick={() => openEdit(fine)} className="p-2 text-blue-600 bg-blue-50 rounded-lg"><Edit size={18}/></button>
+                                <button onClick={() => openVoid(fine)} className="p-2 text-red-600 bg-red-50 rounded-lg"><Ban size={18}/></button>
+                             </div>
+                          )}
+                       </div>
+                    ))
+                 )}
+              </div>
+            </>
          )}
       </div>
 

@@ -1,3 +1,4 @@
+
 import React, { useContext, useEffect, useState } from 'react';
 import { AppContext } from '../App';
 import { api } from '../api/client';
@@ -114,7 +115,7 @@ export default function Attendance() {
         </h2>
         <button 
           onClick={() => setIsCreateOpen(true)}
-          className="flex items-center px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 shadow-sm"
+          className="flex items-center px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 shadow-sm w-full sm:w-auto justify-center"
         >
           <Plus size={18} className="mr-2" /> {labels.scheduleNewMeeting}
         </button>
@@ -130,54 +131,92 @@ export default function Attendance() {
                {[...Array(5)].map((_, i) => <TableRowSkeleton key={i} />)}
             </div>
          ) : (
-            <div className="overflow-x-auto">
-               <table className="w-full text-left text-sm">
-                  <thead className="bg-white text-gray-500 font-bold uppercase text-xs border-b border-gray-200">
-                     <tr>
-                        <th className="p-4">{labels.date}</th>
-                        <th className="p-4">{labels.type}</th>
-                        <th className="p-4">Stats (Present/Total)</th>
-                        <th className="p-4 text-right">Attendance Rate</th>
-                        <th className="p-4 text-right">{labels.actions}</th>
-                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                     {meetings.length === 0 ? (
-                        <tr><td colSpan={5} className="p-8 text-center text-gray-500">{labels.noData}</td></tr>
-                     ) : (
-                        meetings.map(m => {
-                           const stats = getAttendanceStats(m.id);
-                           return (
-                              <tr key={m.id} className="hover:bg-gray-50">
-                                 <td className="p-4 font-medium text-gray-900 flex items-center">
-                                    <Calendar size={16} className="mr-2 text-gray-400" />
-                                    {m.date}
-                                 </td>
-                                 <td className="p-4">
-                                    <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-bold">{m.type}</span>
-                                 </td>
-                                 <td className="p-4 text-gray-600">
-                                    {stats.present} / {stats.total}
-                                 </td>
-                                 <td className="p-4 text-right">
-                                    <div className="flex items-center justify-end gap-2">
-                                       <div className="w-24 bg-gray-200 rounded-full h-2">
-                                          <div className="bg-green-500 h-2 rounded-full" style={{ width: `${stats.rate}%` }}></div>
-                                       </div>
-                                       <span className="text-xs font-bold">{stats.rate}%</span>
-                                    </div>
-                                 </td>
-                                 <td className="p-4 text-right">
-                                    {/* Action to view details or edit would go here */}
-                                    <button className="text-blue-600 hover:underline text-xs">View Details</button>
-                                 </td>
-                              </tr>
-                           );
-                        })
-                     )}
-                  </tbody>
-               </table>
-            </div>
+            <>
+              {/* Desktop Table */}
+              <div className="hidden md:block overflow-x-auto">
+                 <table className="w-full text-left text-sm">
+                    <thead className="bg-white text-gray-500 font-bold uppercase text-xs border-b border-gray-200">
+                       <tr>
+                          <th className="p-4">{labels.date}</th>
+                          <th className="p-4">{labels.type}</th>
+                          <th className="p-4">Stats (Present/Total)</th>
+                          <th className="p-4 text-right">Attendance Rate</th>
+                          <th className="p-4 text-right">{labels.actions}</th>
+                       </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                       {meetings.length === 0 ? (
+                          <tr><td colSpan={5} className="p-8 text-center text-gray-500">{labels.noData}</td></tr>
+                       ) : (
+                          meetings.map(m => {
+                             const stats = getAttendanceStats(m.id);
+                             return (
+                                <tr key={m.id} className="hover:bg-gray-50">
+                                   <td className="p-4 font-medium text-gray-900 flex items-center">
+                                      <Calendar size={16} className="mr-2 text-gray-400" />
+                                      {m.date}
+                                   </td>
+                                   <td className="p-4">
+                                      <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-bold">{m.type}</span>
+                                   </td>
+                                   <td className="p-4 text-gray-600">
+                                      {stats.present} / {stats.total}
+                                   </td>
+                                   <td className="p-4 text-right">
+                                      <div className="flex items-center justify-end gap-2">
+                                         <div className="w-24 bg-gray-200 rounded-full h-2">
+                                            <div className="bg-green-500 h-2 rounded-full" style={{ width: `${stats.rate}%` }}></div>
+                                         </div>
+                                         <span className="text-xs font-bold">{stats.rate}%</span>
+                                      </div>
+                                   </td>
+                                   <td className="p-4 text-right">
+                                      {/* Action to view details or edit would go here */}
+                                      <button className="text-blue-600 hover:underline text-xs">View Details</button>
+                                   </td>
+                                </tr>
+                             );
+                          })
+                       )}
+                    </tbody>
+                 </table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="md:hidden divide-y divide-gray-100">
+                 {meetings.length === 0 ? (
+                    <div className="p-8 text-center text-gray-500">{labels.noData}</div>
+                 ) : (
+                    meetings.map(m => {
+                       const stats = getAttendanceStats(m.id);
+                       return (
+                          <div key={m.id} className="p-4">
+                             <div className="flex justify-between items-start mb-2">
+                                <div>
+                                   <p className="font-bold text-gray-900 flex items-center">
+                                      <Calendar size={16} className="mr-2 text-gray-500" />
+                                      {m.date}
+                                   </p>
+                                   <span className="inline-block mt-1 bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-[10px] font-bold">{m.type}</span>
+                                </div>
+                                <button className="text-blue-600 text-xs font-bold bg-blue-50 px-2 py-1 rounded">Details</button>
+                             </div>
+                             
+                             <div className="mt-3">
+                                <div className="flex justify-between text-xs text-gray-500 mb-1">
+                                   <span>Attendance</span>
+                                   <span className="font-bold text-gray-900">{stats.present}/{stats.total} ({stats.rate}%)</span>
+                                </div>
+                                <div className="w-full bg-gray-200 rounded-full h-2">
+                                   <div className="bg-green-500 h-2 rounded-full" style={{ width: `${stats.rate}%` }}></div>
+                                </div>
+                             </div>
+                          </div>
+                       );
+                    })
+                 )}
+              </div>
+            </>
          )}
       </div>
 
