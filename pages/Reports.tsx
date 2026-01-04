@@ -163,19 +163,19 @@ export default function Reports() {
         return (
             <div className="grid grid-cols-3 gap-6 mb-8 print:grid-cols-3">
                 <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100 flex flex-col">
-                    <span className="text-xs font-bold text-emerald-600 uppercase mb-1">Total Inflow</span>
+                    <span className="text-xs font-bold text-emerald-600 uppercase mb-1">{labels.totalInflow}</span>
                     <span className="text-2xl font-bold text-emerald-900 flex items-center">
                         <ArrowUpRight size={20} className="mr-1"/> {totalIn.toLocaleString()}
                     </span>
                 </div>
                 <div className="bg-red-50 p-4 rounded-xl border border-red-100 flex flex-col">
-                    <span className="text-xs font-bold text-red-600 uppercase mb-1">Total Outflow</span>
+                    <span className="text-xs font-bold text-red-600 uppercase mb-1">{labels.totalOutflow}</span>
                     <span className="text-2xl font-bold text-red-900 flex items-center">
                         <ArrowDownRight size={20} className="mr-1"/> {totalOut.toLocaleString()}
                     </span>
                 </div>
                 <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex flex-col">
-                    <span className="text-xs font-bold text-blue-600 uppercase mb-1">Net Cash Position</span>
+                    <span className="text-xs font-bold text-blue-600 uppercase mb-1">{labels.netPosition}</span>
                     <span className="text-2xl font-bold text-blue-900">{data.netCash.toLocaleString()}</span>
                 </div>
             </div>
@@ -186,19 +186,19 @@ export default function Reports() {
         return (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 print:grid-cols-4">
                 <div className="bg-slate-900 text-white p-4 rounded-xl">
-                    <span className="text-xs text-slate-400 uppercase">Net Worth</span>
+                    <span className="text-xs text-slate-400 uppercase">{labels.netWorth}</span>
                     <p className="text-2xl font-bold">{data.summary.netWorth.toLocaleString()}</p>
                 </div>
                 <div className="bg-white border border-gray-200 p-4 rounded-xl">
-                    <span className="text-xs text-gray-500 uppercase">Value / Share</span>
+                    <span className="text-xs text-gray-500 uppercase">{labels.valuePerShare}</span>
                     <p className="text-2xl font-bold text-green-600">{Math.round(data.summary.valuePerShare).toLocaleString()}</p>
                 </div>
                 <div className="bg-white border border-gray-200 p-4 rounded-xl">
-                    <span className="text-xs text-gray-500 uppercase">Outstanding Loans</span>
+                    <span className="text-xs text-gray-500 uppercase">{labels.outstandingLoans}</span>
                     <p className="text-2xl font-bold text-blue-600">{data.summary.outstandingLoans.toLocaleString()}</p>
                 </div>
                 <div className="bg-white border border-gray-200 p-4 rounded-xl">
-                    <span className="text-xs text-gray-500 uppercase">Cash on Hand</span>
+                    <span className="text-xs text-gray-500 uppercase">{labels.cashBalance}</span>
                     <p className="text-2xl font-bold text-gray-800">{data.summary.cashOnHand.toLocaleString()}</p>
                 </div>
             </div>
@@ -213,13 +213,13 @@ export default function Reports() {
 
         if (activeReport === 'SAVINGS_SUMMARY') {
             total = data.reduce((acc: number, curr: any) => acc + (curr["Total Savings"] || 0), 0);
-            label = "Total Savings";
+            label = labels.totalSavings;
         } else if (activeReport === 'LOAN_PORTFOLIO') {
             total = data.reduce((acc: number, curr: any) => acc + (curr["Balance"] || 0), 0);
-            label = "Portfolio Balance";
+            label = labels.loanBalance;
         } else if (activeReport === 'FINE_REPORT') {
             total = data.reduce((acc: number, curr: any) => acc + (curr["Balance"] || 0), 0);
-            label = "Unpaid Fines";
+            label = labels.outstandingFines;
         }
 
         if (total > 0) {
@@ -248,7 +248,7 @@ export default function Reports() {
         const chartData = [...data].sort((a,b) => b["Total Savings"] - a["Total Savings"]).slice(0, 10);
         return (
             <div className="h-64 mb-8 print:h-48">
-                <h3 className="text-sm font-bold text-gray-500 uppercase mb-4">Top 10 Savers</h3>
+                <h3 className="text-sm font-bold text-gray-500 uppercase mb-4">{labels.topSavers}</h3>
                 <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={chartData}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -277,7 +277,7 @@ export default function Reports() {
         return (
             <div className="h-64 mb-8 print:h-48 flex flex-col md:flex-row items-center gap-8">
                 <div className="flex-1 w-full h-full">
-                    <h3 className="text-sm font-bold text-gray-500 uppercase mb-2 text-center">Portfolio Health (Count)</h3>
+                    <h3 className="text-sm font-bold text-gray-500 uppercase mb-2 text-center">{labels.portfolioHealth}</h3>
                     <ResponsiveContainer width="100%" height="100%">
                         <RePieChart>
                             <Pie data={chartData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} fill="#8884d8" paddingAngle={5} dataKey="value">
@@ -302,7 +302,7 @@ export default function Reports() {
         ];
         return (
             <div className="h-64 mb-8 print:h-48">
-                <h3 className="text-sm font-bold text-gray-500 uppercase mb-4">Flow Comparison</h3>
+                <h3 className="text-sm font-bold text-gray-500 uppercase mb-4">{labels.flowComparison}</h3>
                 <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={chartData} layout="vertical">
                         <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
@@ -393,154 +393,4 @@ export default function Reports() {
         <div className="absolute top-0 right-0 left-0 z-50 p-4 flex justify-center animate-in fade-in slide-in-from-top-4 duration-500 pointer-events-none">
             <div className="bg-green-600 text-white px-6 py-3 rounded-lg shadow-xl flex items-center gap-3">
                 <CheckCircle size={24} />
-                <span className="font-bold">{successMessage}</span>
-            </div>
-        </div>
-      )}
-
-      {/* SIDEBAR NAVIGATION */}
-      <div className="w-full lg:w-64 flex-shrink-0 bg-white rounded-xl shadow-sm border border-gray-200 overflow-y-auto print:hidden flex flex-col">
-        <div className="p-4 border-b border-gray-100">
-          <h2 className="font-bold text-gray-800 flex items-center">
-             <BarChart2 size={20} className="mr-2 text-blue-600"/> {labels.reportTypes}
-          </h2>
-        </div>
-        <div className="p-2 space-y-6 flex-1">
-          {['financial', 'operational', 'endOfCycle'].map(catKey => (
-            <div key={catKey}>
-              <h3 className="px-3 text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">{labels[catKey as keyof typeof labels]}</h3>
-              <div className="space-y-1">
-                {REPORT_CONFIGS.filter(r => r.categoryKey === catKey).map(report => (
-                  <button
-                    key={report.id}
-                    onClick={() => setActiveReport(report.id)}
-                    className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors text-left group ${
-                      activeReport === report.id 
-                      ? 'bg-blue-50 text-blue-700' 
-                      : 'text-gray-600 hover:bg-gray-50'
-                    }`}
-                  >
-                    <report.icon size={18} className={`mr-3 flex-shrink-0 ${activeReport === report.id ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-500'}`} />
-                    <span className="truncate">
-                        {/* @ts-ignore */}
-                        {labels[report.titleKey]}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* MAIN REPORT AREA */}
-      <div className="flex-1 flex flex-col bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden print:border-none print:shadow-none print:overflow-visible print:h-auto">
-        
-        {/* Toolbar (Filters) */}
-        <div className="p-4 border-b border-gray-200 bg-gray-50 flex flex-wrap gap-4 items-center justify-between print:hidden">
-           <div className="flex items-center gap-2 flex-wrap">
-              {/* Date Filters */}
-              <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-gray-200 shadow-sm text-sm">
-                 <Calendar size={16} className="text-gray-400" />
-                 <input 
-                   type="date" 
-                   className="outline-none text-gray-700 font-medium"
-                   value={filters.startDate}
-                   onChange={e => setFilters({...filters, startDate: e.target.value})}
-                 />
-                 <span className="text-gray-300 mx-1">→</span>
-                 <input 
-                   type="date" 
-                   className="outline-none text-gray-700 font-medium"
-                   value={filters.endDate}
-                   onChange={e => setFilters({...filters, endDate: e.target.value})}
-                 />
-              </div>
-
-              {/* Member Filter (Conditional) */}
-              {activeReport !== 'CASH_FLOW' && activeReport !== 'EXPENSE_REPORT' && activeReport !== 'SHARE_OUT' && (
-                <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-gray-200 shadow-sm text-sm">
-                   <Users size={16} className="text-gray-400" />
-                   <select 
-                     className="outline-none text-gray-700 bg-transparent w-32"
-                     value={filters.memberId}
-                     onChange={e => setFilters({...filters, memberId: e.target.value})}
-                   >
-                      <option value="">All Members</option>
-                      {members.map(m => <option key={m.id} value={m.id}>{m.fullName}</option>)}
-                   </select>
-                </div>
-              )}
-           </div>
-
-           <div className="flex gap-2">
-              <button onClick={exportCSV} className="flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm transition-colors">
-                 <Download size={16} className="mr-2" /> {labels.exportCsv}
-              </button>
-              <button onClick={handlePrint} className="flex items-center px-4 py-2 bg-slate-800 text-white rounded-lg text-sm font-medium hover:bg-slate-900 shadow-sm transition-colors">
-                 <Printer size={16} className="mr-2" /> {labels.printPdf}
-              </button>
-           </div>
-        </div>
-
-        {/* Report Content */}
-        <div className="flex-1 overflow-auto bg-white p-8 print:p-0 print:overflow-visible">
-           <div className="max-w-5xl mx-auto min-h-full print:max-w-none">
-              
-              {/* Report Header */}
-              <div className="mb-8 border-b border-gray-100 pb-6">
-                 <div className="flex justify-between items-start">
-                    <div>
-                        {/* @ts-ignore */}
-                       <h1 className="text-3xl font-bold text-gray-900 tracking-tight">{labels[REPORT_CONFIGS.find(r => r.id === activeReport)?.titleKey]}</h1>
-                       <p className="text-gray-500 mt-2 flex items-center">
-                          <span className="font-semibold text-gray-700 mr-2">{group?.name}</span>
-                          <span className="w-1 h-1 bg-gray-300 rounded-full mr-2"></span>
-                          <span>{group?.district}</span>
-                       </p>
-                       <p className="text-xs text-gray-400 mt-1 print:hidden">
-                          {REPORT_CONFIGS.find(r => r.id === activeReport)?.description}
-                       </p>
-                    </div>
-                    <div className="text-right">
-                       <p className="text-sm font-bold text-gray-900">{labels.generated}: {new Date().toLocaleDateString()}</p>
-                       <p className="text-xs text-gray-500 mt-1">Cycle: {cycle?.startDate || 'Active'} — {cycle?.endDate || 'Present'}</p>
-                    </div>
-                 </div>
-              </div>
-
-              {loading ? (
-                 <div className="space-y-8">
-                    <div className="grid grid-cols-3 gap-6">
-                        <Skeleton className="h-24 rounded-lg" />
-                        <Skeleton className="h-24 rounded-lg" />
-                        <Skeleton className="h-24 rounded-lg" />
-                    </div>
-                    <Skeleton className="h-64 w-full rounded-xl" />
-                    <div className="space-y-4">
-                        {[...Array(5)].map((_, i) => <TableRowSkeleton key={i} />)}
-                    </div>
-                 </div>
-              ) : (
-                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-                    {/* 1. Summary Cards */}
-                    {renderSummaryCards()}
-
-                    {/* 2. Visualizations */}
-                    {renderCharts()}
-
-                    {/* 3. Data Table */}
-                    {renderTable()}
-                 </div>
-              )}
-              
-              <div className="mt-16 pt-8 border-t border-gray-200 text-xs text-gray-400 text-center flex flex-col gap-1">
-                 <p className="font-bold uppercase tracking-wider">Vision Jeunesse Nouvelle</p>
-                 <p>GSLA Management System • Confidential Report</p>
-              </div>
-           </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+                <span className="font-bold">{successMessage

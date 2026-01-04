@@ -46,7 +46,7 @@ export default function Fines() {
 
   const [payAmount, setPayAmount] = useState(0);
   const [newCatName, setNewCatName] = useState('');
-  const [newCatAmount, setNewCatAmount] = useState(500);
+  const [newCatAmount, setNewCatAmount] = useState<number | ''>(500);
 
   useEffect(() => {
     if (activeGroupId) fetchData();
@@ -99,7 +99,8 @@ export default function Fines() {
     e.preventDefault();
     if (!newCatName) return;
     try {
-      await api.addFineCategory(activeGroupId, newCatName, newCatAmount);
+      const amount = newCatAmount === '' ? 0 : newCatAmount;
+      await api.addFineCategory(activeGroupId, newCatName, amount);
       setNewCatName('');
       setNewCatAmount(500);
       const c = await api.getFineCategories(activeGroupId);
@@ -357,31 +358,56 @@ export default function Fines() {
                </div>
                
                <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
-                   <form onSubmit={handleAddCategory} className="flex gap-2 mb-4 sticky top-0 bg-white z-10 pb-2">
-                      <input 
-                         className="flex-1 p-2 border rounded-lg bg-white" 
-                         placeholder={labels.categoryName}
-                         value={newCatName}
-                         onChange={e => setNewCatName(e.target.value)}
-                         required
-                      />
-                      <input 
-                         type="number"
-                         className="w-24 p-2 border rounded-lg bg-white" 
-                         placeholder="Amt"
-                         value={newCatAmount}
-                         onChange={e => setNewCatAmount(parseInt(e.target.value))}
-                         required
-                      />
-                      <button className="px-3 bg-slate-800 text-white rounded-lg text-sm font-bold">Add</button>
-                   </form>
+                   {/* Improved Form */}
+                   <div className="mb-6 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                       <h4 className="text-xs font-bold text-gray-500 uppercase mb-3">Add New Category</h4>
+                       <form onSubmit={handleAddCategory} className="space-y-3">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">{labels.categoryName}</label>
+                            <input 
+                               className="w-full p-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-orange-500" 
+                               placeholder="e.g. No Uniform"
+                               value={newCatName}
+                               onChange={e => setNewCatName(e.target.value)}
+                               required
+                            />
+                          </div>
+                          <div className="flex gap-3">
+                            <div className="flex-1">
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Default Amount ({labels.currency})</label>
+                                <input 
+                                   type="number"
+                                   className="w-full p-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-orange-500" 
+                                   placeholder="500"
+                                   value={newCatAmount}
+                                   onChange={e => setNewCatAmount(e.target.value ? parseInt(e.target.value) : '')}
+                                   required
+                                />
+                            </div>
+                            <div className="flex items-end">
+                                <button className="px-4 py-2 bg-slate-800 text-white rounded-lg text-sm font-bold shadow-sm hover:bg-slate-900 transition-colors h-[38px]">
+                                    Add
+                                </button>
+                            </div>
+                          </div>
+                          <p className="text-[10px] text-gray-500 italic">
+                            * The amount is a default suggestion and can be changed when recording the fine.
+                          </p>
+                       </form>
+                   </div>
+
                    <div className="space-y-2">
+                      <h4 className="text-xs font-bold text-gray-500 uppercase mb-2">Existing Categories</h4>
                       {categories.map(c => (
-                         <div key={c.id} className="flex justify-between items-center p-2 bg-gray-50 rounded border border-gray-100">
-                            <span className="font-medium">{c.name}</span>
-                            <span className="text-sm text-gray-500">{c.defaultAmount.toLocaleString()} RWF</span>
+                         <div key={c.id} className="flex justify-between items-center p-3 bg-white rounded-lg border border-gray-100 shadow-sm">
+                            <span className="font-medium text-gray-800">{c.name}</span>
+                            <div className="flex items-center gap-3">
+                                <span className="text-sm font-mono text-gray-600 bg-gray-50 px-2 py-1 rounded">{c.defaultAmount.toLocaleString()} RWF</span>
+                                {c.active && <CheckCircle size={16} className="text-green-500" />}
+                            </div>
                          </div>
                       ))}
+                      {categories.length === 0 && <p className="text-sm text-gray-400 text-center py-4">No categories defined.</p>}
                    </div>
                </div>
             </div>

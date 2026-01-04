@@ -166,10 +166,10 @@ export default function Seasons() {
   if (!group) return <div className="p-8 text-center">{labels.noData}</div>;
 
   const steps = [
-      { id: 1, label: 'Timeline', icon: Calendar },
-      { id: 2, label: 'Savings', icon: DollarSign },
-      { id: 3, label: 'Loans', icon: Briefcase },
-      { id: 4, label: 'Confirm', icon: CheckCircle }
+      { id: 1, label: labels.wizStartTimeline, icon: Calendar },
+      { id: 2, label: labels.wizStartSavings, icon: DollarSign },
+      { id: 3, label: labels.wizStartLoans, icon: Briefcase },
+      { id: 4, label: labels.wizStartReview, icon: CheckCircle }
   ];
 
   return (
@@ -211,7 +211,7 @@ export default function Seasons() {
                         onClick={initiateCloseWizard}
                         className="w-full py-2 bg-red-600 text-white rounded-lg text-sm font-bold shadow-md hover:bg-red-700 flex items-center justify-center transition-all"
                     >
-                        <Lock size={16} className="mr-2" /> End Current Season
+                        <Lock size={16} className="mr-2" /> {labels.closeSeason}
                     </button>
                 </div>
             </div>
@@ -237,8 +237,8 @@ export default function Seasons() {
                   <div className="p-6 border-b border-gray-100 bg-gray-50 rounded-t-xl flex-none">
                       <div className="flex justify-between items-start mb-6">
                           <div>
-                              <h3 className="text-xl font-bold text-gray-800">Close Season Wizard</h3>
-                              <p className="text-sm text-gray-500 mt-1">Calculating final positions for {group.name}</p>
+                              <h3 className="text-xl font-bold text-gray-800">{labels.closeWizardTitle}</h3>
+                              <p className="text-sm text-gray-500 mt-1">{labels.calculatingPositions} {group.name}</p>
                           </div>
                           <button onClick={() => setShowCloseWizard(false)}><X className="text-gray-400 hover:text-gray-600" /></button>
                       </div>
@@ -246,10 +246,10 @@ export default function Seasons() {
                       {/* Progress Indicators */}
                       <div className="flex items-center w-full px-4">
                           {[
-                              { step: 1, label: 'Health Check' },
-                              { step: 2, label: 'Financials' },
-                              { step: 3, label: 'Payouts' },
-                              { step: 4, label: 'Confirm' }
+                              { step: 1, label: labels.wizStepHealth },
+                              { step: 2, label: labels.wizStepFinancials },
+                              { step: 3, label: labels.wizStepPayouts },
+                              { step: 4, label: labels.wizStepConfirm }
                           ].map((s, idx) => (
                               <React.Fragment key={s.step}>
                                   <div className="flex flex-col items-center relative z-10">
@@ -291,32 +291,31 @@ export default function Seasons() {
                           <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-300">
                               <h4 className="text-lg font-bold text-gray-800 flex items-center">
                                   <ActivityIndicator isValid={calcData.summary.outstandingLoans === 0} />
-                                  Outstanding Loans Check
+                                  {labels.outstandingCheck}
                               </h4>
                               {calcData.summary.outstandingLoans > 0 ? (
                                   <div className="bg-red-50 border border-red-200 p-4 rounded-lg flex items-start">
                                       <AlertTriangle className="text-red-600 mr-3 mt-1 flex-shrink-0" />
                                       <div>
-                                          <p className="font-bold text-red-800">Warning: Unpaid Loans Detected</p>
+                                          <p className="font-bold text-red-800">{labels.loansWarningTitle}</p>
                                           <p className="text-sm text-red-700 mt-1">
-                                              There is <strong>{calcData.summary.outstandingLoans.toLocaleString()} RWF</strong> in outstanding loans. 
-                                              Closing the season now means this amount is counted as an asset (Net Worth) but you do not have the cash to pay it out.
+                                              {labels.loansWarningDesc.replace('{amount}', calcData.summary.outstandingLoans.toLocaleString() + ' RWF')}
                                           </p>
-                                          <p className="text-sm font-bold mt-2">Recommendation: Recover all loans before closing.</p>
+                                          <p className="text-sm font-bold mt-2">{labels.recoverRecommendation}</p>
                                       </div>
                                   </div>
                               ) : (
                                   <div className="bg-green-50 border border-green-200 p-4 rounded-lg flex items-center">
                                       <CheckCircle className="text-green-600 mr-3" />
-                                      <span className="text-green-800 font-medium">All loans cleared. Good to go!</span>
+                                      <span className="text-green-800 font-medium">{labels.loansCleared}</span>
                                   </div>
                               )}
 
                               <h4 className="text-lg font-bold text-gray-800 flex items-center mt-6">
                                   <ActivityIndicator isValid={true} />
-                                  Fines Reconciliation
+                                  {labels.finesReconciliation}
                               </h4>
-                              <p className="text-sm text-gray-600 ml-8">Ensure all fines are collected or written off.</p>
+                              <p className="text-sm text-gray-600 ml-8">{labels.finesDesc}</p>
                           </div>
                       )}
 
@@ -324,22 +323,22 @@ export default function Seasons() {
                       {wizardStep === 2 && (
                           <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-300">
                               <div className="grid grid-cols-2 gap-4">
-                                  <SummaryCard label="Total Share Contributions" value={calcData.summary.breakdown.contributions} color="blue" />
-                                  <SummaryCard label="Total Profits (Interest + Fines)" value={calcData.summary.breakdown.interest + calcData.summary.breakdown.investmentProfits + calcData.summary.breakdown.shareEligibleFines} color="green" />
-                                  <SummaryCard label="Expenses & Losses" value={calcData.summary.breakdown.expenses + calcData.summary.breakdown.investmentLosses} color="red" isNegative />
-                                  <SummaryCard label="Net Distributable" value={calcData.summary.totalDistributable} color="indigo" size="lg" />
+                                  <SummaryCard label={labels.totalShareContrib} value={calcData.summary.breakdown.contributions} color="blue" />
+                                  <SummaryCard label={labels.totalProfits} value={calcData.summary.breakdown.interest + calcData.summary.breakdown.investmentProfits + calcData.summary.breakdown.shareEligibleFines} color="green" />
+                                  <SummaryCard label={labels.expensesLosses} value={calcData.summary.breakdown.expenses + calcData.summary.breakdown.investmentLosses} color="red" isNegative />
+                                  <SummaryCard label={labels.netDistributable} value={calcData.summary.totalDistributable} color="indigo" size="lg" />
                               </div>
                               
                               <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm mt-4">
                                   <div className="flex justify-between items-center">
                                       <div>
-                                          <p className="text-sm text-gray-500 uppercase font-bold">Final Share Value</p>
+                                          <p className="text-sm text-gray-500 uppercase font-bold">{labels.finalShareValue}</p>
                                           <p className="text-3xl font-bold text-gray-900">{Math.round(calcData.summary.valuePerShare).toLocaleString()} RWF</p>
                                       </div>
                                       <div className="text-right">
-                                          <p className="text-sm text-gray-500">Initial Value: {group.shareValue} RWF</p>
+                                          <p className="text-sm text-gray-500">{labels.initialValue}: {group.shareValue} RWF</p>
                                           <p className="text-green-600 font-bold">
-                                              +{((calcData.summary.valuePerShare - group.shareValue) / group.shareValue * 100).toFixed(1)}% Growth
+                                              +{((calcData.summary.valuePerShare - group.shareValue) / group.shareValue * 100).toFixed(1)}% {labels.growth}
                                           </p>
                                       </div>
                                   </div>
@@ -351,20 +350,20 @@ export default function Seasons() {
                       {wizardStep === 3 && (
                           <div className="space-y-4 animate-in fade-in slide-in-from-right-8 duration-300">
                               <div className="flex justify-between items-center">
-                                  <h4 className="font-bold text-gray-800">Member Payout Schedule</h4>
+                                  <h4 className="font-bold text-gray-800">{labels.memberPayoutSchedule}</h4>
                                   <button onClick={handlePrintReport} className="flex items-center text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg text-gray-700 transition-colors">
-                                      <Printer size={16} className="mr-2"/> Print Report
+                                      <Printer size={16} className="mr-2"/> {labels.printReport}
                                   </button>
                               </div>
                               <div className="bg-white border border-gray-200 rounded-lg overflow-hidden max-h-96 overflow-y-auto shadow-sm">
                                   <table className="w-full text-sm text-left">
                                       <thead className="bg-gray-100 text-gray-600 font-bold sticky top-0">
                                           <tr>
-                                              <th className="p-3">Member</th>
-                                              <th className="p-3 text-right">Shares</th>
-                                              <th className="p-3 text-right">Saved</th>
-                                              <th className="p-3 text-right">Profit</th>
-                                              <th className="p-3 text-right bg-blue-50 text-blue-900">Total Payout</th>
+                                              <th className="p-3">{labels.members}</th>
+                                              <th className="p-3 text-right">{labels.shareCount}</th>
+                                              <th className="p-3 text-right">{labels.invested}</th>
+                                              <th className="p-3 text-right">{labels.profit}</th>
+                                              <th className="p-3 text-right bg-blue-50 text-blue-900">{labels.totalPayout}</th>
                                           </tr>
                                       </thead>
                                       <tbody className="divide-y divide-gray-100">
@@ -389,17 +388,16 @@ export default function Seasons() {
                               <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center text-red-600 mb-2 animate-bounce">
                                   <AlertCircle size={40} />
                               </div>
-                              <h3 className="text-2xl font-bold text-gray-900">Are you absolutely sure?</h3>
+                              <h3 className="text-2xl font-bold text-gray-900">{labels.confirmCloseTitle}</h3>
                               <p className="text-gray-600 max-w-md">
-                                  This action will <strong>archive the current season</strong> and lock all financial records. 
-                                  Make sure all cash has been distributed to members according to the Payout Schedule.
+                                  {labels.confirmCloseDesc}
                               </p>
                               
                               <div className="bg-gray-100 p-4 rounded-lg text-left w-full max-w-md mt-4">
                                   <ul className="space-y-2 text-sm text-gray-700">
-                                      <li className="flex items-center"><CheckCircle size={16} className="text-green-600 mr-2"/> Share Value finalized at {Math.round(calcData.summary.valuePerShare)} RWF</li>
-                                      <li className="flex items-center"><CheckCircle size={16} className="text-green-600 mr-2"/> {calcData.members.length} members calculated</li>
-                                      <li className="flex items-center"><CheckCircle size={16} className="text-green-600 mr-2"/> Cycle history preserved</li>
+                                      <li className="flex items-center"><CheckCircle size={16} className="text-green-600 mr-2"/> {labels.shareValueFinalized} {Math.round(calcData.summary.valuePerShare)} RWF</li>
+                                      <li className="flex items-center"><CheckCircle size={16} className="text-green-600 mr-2"/> {calcData.members.length} {labels.membersCalculated}</li>
+                                      <li className="flex items-center"><CheckCircle size={16} className="text-green-600 mr-2"/> {labels.historyPreserved}</li>
                                   </ul>
                               </div>
 
@@ -411,7 +409,7 @@ export default function Seasons() {
                                           checked={acknowledgeRisk}
                                           onChange={e => setAcknowledgeRisk(e.target.checked)}
                                       />
-                                      <span className="ml-3 font-bold text-gray-800">I confirm that all payouts are complete.</span>
+                                      <span className="ml-3 font-bold text-gray-800">{labels.confirmPayouts}</span>
                                   </label>
                               </div>
                           </div>
@@ -426,7 +424,7 @@ export default function Seasons() {
                           disabled={wizardStep === 1 || finalizing}
                           className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 disabled:opacity-50 flex items-center transition-colors"
                       >
-                          <ChevronLeft size={18} className="mr-1" /> Back
+                          <ChevronLeft size={18} className="mr-1" /> {labels.back}
                       </button>
 
                       {wizardStep < 4 ? (
@@ -434,7 +432,7 @@ export default function Seasons() {
                               onClick={() => setWizardStep(wizardStep + 1)}
                               className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 shadow-md flex items-center transition-colors"
                           >
-                              Next Step <ChevronRight size={18} className="ml-1" />
+                              {labels.next} <ChevronRight size={18} className="ml-1" />
                           </button>
                       ) : (
                           <button 
@@ -443,7 +441,7 @@ export default function Seasons() {
                               className="px-8 py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 shadow-lg flex items-center disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                           >
                               {finalizing ? <Loader2 className="animate-spin mr-2" size={20}/> : <Lock className="mr-2" size={20}/>}
-                              Close Season
+                              {labels.closeSeason}
                           </button>
                       )}
                   </div>
@@ -506,13 +504,13 @@ export default function Seasons() {
                                   <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 flex items-start mb-4">
                                       <Calendar className="text-blue-600 mr-3 mt-1" size={20} />
                                       <div>
-                                          <h4 className="font-bold text-blue-900 text-sm">Season Timeline</h4>
-                                          <p className="text-xs text-blue-700 mt-1">Define the operating period for this cycle.</p>
+                                          <h4 className="font-bold text-blue-900 text-sm">{labels.seasonTimeline}</h4>
+                                          <p className="text-xs text-blue-700 mt-1">{labels.timelineDesc}</p>
                                       </div>
                                   </div>
                                   
                                   <div>
-                                      <label className="block text-sm font-bold text-gray-700 mb-1">Season Name <span className="text-red-500">*</span></label>
+                                      <label className="block text-sm font-bold text-gray-700 mb-1">{labels.seasonName} <span className="text-red-500">*</span></label>
                                       <input 
                                           type="text" 
                                           value={formData.seasonName}
@@ -524,7 +522,7 @@ export default function Seasons() {
                                   </div>
                                   <div className="grid grid-cols-2 gap-4">
                                       <div>
-                                          <label className="block text-sm font-medium text-gray-700 mb-1">Start Date <span className="text-red-500">*</span></label>
+                                          <label className="block text-sm font-medium text-gray-700 mb-1">{labels.startDate} <span className="text-red-500">*</span></label>
                                           <input 
                                               type="date"
                                               value={formData.startDate}
@@ -533,7 +531,7 @@ export default function Seasons() {
                                           />
                                       </div>
                                       <div>
-                                          <label className="block text-sm font-medium text-gray-700 mb-1">Expected End</label>
+                                          <label className="block text-sm font-medium text-gray-700 mb-1">{labels.expectedEnd}</label>
                                           <input 
                                               type="date"
                                               value={formData.endDate}
@@ -551,15 +549,15 @@ export default function Seasons() {
                                   <div className="bg-green-50 p-4 rounded-lg border border-green-100 flex items-start">
                                       <DollarSign className="text-green-600 mr-3 mt-1" size={20} />
                                       <div>
-                                          <h4 className="font-bold text-green-900 text-sm">Contribution Rules</h4>
-                                          <p className="text-xs text-green-700 mt-1">Set the value of shares and contribution limits.</p>
+                                          <h4 className="font-bold text-green-900 text-sm">{labels.contributionRules}</h4>
+                                          <p className="text-xs text-green-700 mt-1">{labels.contributionDesc}</p>
                                       </div>
                                   </div>
 
                                   <div>
-                                      <label className="block text-sm font-bold text-gray-700 mb-1">Share Price (RWF) <span className="text-red-500">*</span></label>
+                                      <label className="block text-sm font-bold text-gray-700 mb-1">{labels.sharePrice} ({labels.currency}) <span className="text-red-500">*</span></label>
                                       <div className="relative">
-                                          <span className="absolute left-4 top-3 text-gray-400 font-bold">RWF</span>
+                                          <span className="absolute left-4 top-3 text-gray-400 font-bold">{labels.currency}</span>
                                           <input 
                                               type="number"
                                               min="50"
@@ -569,12 +567,12 @@ export default function Seasons() {
                                               className="w-full pl-14 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white font-bold text-lg text-gray-900 shadow-sm"
                                           />
                                       </div>
-                                      <p className="text-xs text-gray-500 mt-1">The value of a single stamp/share.</p>
+                                      <p className="text-xs text-gray-500 mt-1">{labels.sharePriceDesc}</p>
                                   </div>
 
                                   <div className="grid grid-cols-2 gap-4 bg-white p-4 rounded-lg border border-gray-200">
                                       <div>
-                                          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Min Shares</label>
+                                          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">{labels.minShares}</label>
                                           <input 
                                               type="number" min="1"
                                               value={formData.minShares}
@@ -583,7 +581,7 @@ export default function Seasons() {
                                           />
                                       </div>
                                       <div>
-                                          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Max Shares</label>
+                                          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">{labels.maxShares}</label>
                                           <input 
                                               type="number" min="1"
                                               value={formData.maxShares}
@@ -594,7 +592,7 @@ export default function Seasons() {
                                   </div>
 
                                   <div>
-                                      <label className="block text-sm font-medium text-gray-700 mb-1">Social Fund (RWF/Meeting)</label>
+                                      <label className="block text-sm font-medium text-gray-700 mb-1">{labels.socialFundFee} ({labels.currency}/Meeting)</label>
                                       <input 
                                           type="number" min="0"
                                           value={formData.socialFundFee}
@@ -611,14 +609,14 @@ export default function Seasons() {
                                   <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100 flex items-start">
                                       <Briefcase className="text-indigo-600 mr-3 mt-1" size={20} />
                                       <div>
-                                          <h4 className="font-bold text-indigo-900 text-sm">Loan Configuration</h4>
-                                          <p className="text-xs text-indigo-700 mt-1">Define interest rates and credit limits.</p>
+                                          <h4 className="font-bold text-indigo-900 text-sm">{labels.loanConfig}</h4>
+                                          <p className="text-xs text-indigo-700 mt-1">{labels.loanConfigDesc}</p>
                                       </div>
                                   </div>
 
                                   <div className="grid grid-cols-2 gap-6">
                                       <div>
-                                          <label className="block text-sm font-bold text-gray-700 mb-1">Interest Rate (%)</label>
+                                          <label className="block text-sm font-bold text-gray-700 mb-1">{labels.interestRatePercent}</label>
                                           <div className="relative">
                                               <input 
                                                   type="number" step="0.1"
@@ -628,10 +626,10 @@ export default function Seasons() {
                                               />
                                               <span className="absolute right-4 top-3.5 text-gray-400 font-bold">%</span>
                                           </div>
-                                          <p className="text-xs text-gray-500 mt-1">Per month</p>
+                                          <p className="text-xs text-gray-500 mt-1">{labels.perMonth}</p>
                                       </div>
                                       <div>
-                                          <label className="block text-sm font-bold text-gray-700 mb-1">Loan Limit (x)</label>
+                                          <label className="block text-sm font-bold text-gray-700 mb-1">{labels.loanLimitMultiplier}</label>
                                           <div className="relative">
                                               <span className="absolute left-4 top-3.5 text-gray-400 font-bold">x</span>
                                               <input 
@@ -641,20 +639,20 @@ export default function Seasons() {
                                                   className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white font-bold text-lg"
                                               />
                                           </div>
-                                          <p className="text-xs text-gray-500 mt-1">Multiplier of savings</p>
+                                          <p className="text-xs text-gray-500 mt-1">{labels.multiplierDesc}</p>
                                       </div>
                                   </div>
 
                                   <div className="border-t border-gray-200 pt-4">
-                                      <label className="block text-sm font-medium text-gray-700 mb-2">Late Payment Penalty</label>
+                                      <label className="block text-sm font-medium text-gray-700 mb-2">{labels.latePenalty}</label>
                                       <div className="flex gap-3">
                                           <select 
                                               value={formData.lateFeeType}
                                               onChange={(e) => setFormData({...formData, lateFeeType: e.target.value as any})}
                                               className="w-1/3 px-3 py-2 border rounded-lg bg-white text-sm"
                                           >
-                                              <option value="PERCENTAGE">Percentage %</option>
-                                              <option value="FIXED">Fixed Amount</option>
+                                              <option value="PERCENTAGE">{labels.penaltyPercent}</option>
+                                              <option value="FIXED">{labels.penaltyFixed}</option>
                                           </select>
                                           <input 
                                               type="number" min="0"
@@ -673,30 +671,29 @@ export default function Seasons() {
                               <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
                                   <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-4">
                                       <div className="flex justify-between border-b border-gray-100 pb-2">
-                                          <span className="text-sm text-gray-500">Season Name</span>
+                                          <span className="text-sm text-gray-500">{labels.seasonName}</span>
                                           <span className="font-bold text-gray-900">{formData.seasonName}</span>
                                       </div>
                                       <div className="flex justify-between border-b border-gray-100 pb-2">
-                                          <span className="text-sm text-gray-500">Share Value</span>
+                                          <span className="text-sm text-gray-500">{labels.sharePrice}</span>
                                           <span className="font-bold text-green-600">{formData.shareValue} RWF</span>
                                       </div>
                                       <div className="flex justify-between border-b border-gray-100 pb-2">
-                                          <span className="text-sm text-gray-500">Loan Interest</span>
-                                          <span className="font-bold text-indigo-600">{formData.interestRate}% / month</span>
+                                          <span className="text-sm text-gray-500">{labels.interestRatePercent}</span>
+                                          <span className="font-bold text-indigo-600">{formData.interestRate}% / {labels.months}</span>
                                       </div>
                                       <div className="flex justify-between pb-2">
-                                          <span className="text-sm text-gray-500">Max Loan</span>
-                                          <span className="font-bold text-gray-900">{formData.maxLoanMultiplier}x Savings</span>
+                                          <span className="text-sm text-gray-500">{labels.maxEligible}</span>
+                                          <span className="font-bold text-gray-900">{formData.maxLoanMultiplier}x {labels.stepSavings}</span>
                                       </div>
                                   </div>
 
                                   <div className="bg-orange-50 border border-orange-100 p-4 rounded-lg flex gap-3">
                                       <AlertTriangle className="text-orange-600 flex-shrink-0" size={24} />
                                       <div>
-                                          <h5 className="font-bold text-orange-900 text-sm">Final Check</h5>
+                                          <h5 className="font-bold text-orange-900 text-sm">{labels.finalCheck}</h5>
                                           <p className="text-xs text-orange-800 mt-1">
-                                              Starting a new season creates an immutable financial ledger. 
-                                              Ensure all members agree to these rules (Interest: {formData.interestRate}%, Share: {formData.shareValue}).
+                                              {labels.finalCheckDesc}
                                           </p>
                                       </div>
                                   </div>
@@ -708,7 +705,7 @@ export default function Seasons() {
                                           checked={confirmChecked}
                                           onChange={(e) => setConfirmChecked(e.target.checked)} 
                                       />
-                                      <span className="ml-3 font-bold text-gray-800 text-sm">I confirm these settings are correct.</span>
+                                      <span className="ml-3 font-bold text-gray-800 text-sm">{labels.confirmSettings}</span>
                                   </label>
                               </div>
                           )}
@@ -721,7 +718,7 @@ export default function Seasons() {
                           onClick={() => startStep > 1 ? setStartStep(startStep - 1) : setShowStartModal(false)}
                           className="px-6 py-2.5 border border-gray-300 bg-white text-gray-700 rounded-lg font-bold hover:bg-gray-50 transition-colors"
                       >
-                          {startStep === 1 ? 'Cancel' : 'Back'}
+                          {startStep === 1 ? labels.cancel : labels.back}
                       </button>
                       
                       {startStep < 4 ? (
@@ -730,7 +727,7 @@ export default function Seasons() {
                               disabled={!formData.seasonName && startStep === 1}
                               className="px-8 py-2.5 bg-slate-900 text-white rounded-lg font-bold hover:bg-slate-800 flex items-center shadow-md disabled:opacity-50"
                           >
-                              Next <ChevronRight size={18} className="ml-2" />
+                              {labels.next} <ChevronRight size={18} className="ml-2" />
                           </button>
                       ) : (
                           <button 
@@ -739,7 +736,7 @@ export default function Seasons() {
                               className="px-8 py-2.5 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 flex justify-center items-center shadow-md disabled:opacity-50 transition-all"
                           >
                               {isStarting ? <Loader2 className="animate-spin mr-2" size={20}/> : <Play className="mr-2" size={20} />}
-                              Launch Season
+                              {labels.launchSeason}
                           </button>
                       )}
                   </div>

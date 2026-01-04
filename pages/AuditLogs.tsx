@@ -24,10 +24,10 @@ export default function AuditLogs() {
         <table className="w-full text-left text-sm">
           <thead className="bg-slate-50 text-slate-500 font-medium">
             <tr>
-              <th className="p-4">Timestamp</th>
-              <th className="p-4">User</th>
-              <th className="p-4">Action</th>
-              <th className="p-4">Details</th>
+              <th className="p-4">{labels.timestamp}</th>
+              <th className="p-4">{labels.userLog}</th>
+              <th className="p-4">{labels.actionLog}</th>
+              <th className="p-4">{labels.detailsLog}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">

@@ -1,6 +1,8 @@
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useContext } from 'react';
 import { Upload, Loader2, AlertCircle, CheckCircle, FileSpreadsheet, X } from 'lucide-react';
+import { AppContext } from '../App';
+import { LABELS } from '../constants';
 
 interface Field {
   key: string;
@@ -24,6 +26,8 @@ export const CsvImporter: React.FC<CsvImporterProps> = ({
   templateFileName,
   className
 }) => {
+  const { lang } = useContext(AppContext);
+  const labels = LABELS[lang];
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<{ type: 'success' | 'error', message: string } | null>(null);
@@ -107,7 +111,7 @@ export const CsvImporter: React.FC<CsvImporterProps> = ({
         title={`Download ${entityName} CSV Template`}
       >
         <FileSpreadsheet size={16} className="mr-2 text-green-600" />
-        Template
+        {labels.template}
       </button>
       
       <div className="relative">
@@ -124,7 +128,7 @@ export const CsvImporter: React.FC<CsvImporterProps> = ({
             className="flex items-center px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium transition shadow-sm whitespace-nowrap disabled:opacity-50"
         >
             {importing ? <Loader2 size={16} className="animate-spin mr-2"/> : <Upload size={16} className="mr-2"/>}
-            Import CSV
+            {labels.importCsv}
         </button>
         
         {/* Result Toast */}
