@@ -333,7 +333,7 @@ export default function Seasons() {
                                   <div className="flex justify-between items-center">
                                       <div>
                                           <p className="text-sm text-gray-500 uppercase font-bold">{labels.finalShareValue}</p>
-                                          <p className="text-3xl font-bold text-gray-900">{Math.round(calcData.summary.valuePerShare).toLocaleString()} RWF</p>
+                                          <p className="text-3xl font-bold text-gray-900">{Math.round(calcData.summary.valuePerShare).toLocaleString() + ' RWF'}</p>
                                       </div>
                                       <div className="text-right">
                                           <p className="text-sm text-gray-500">{labels.initialValue}: {group.shareValue} RWF</p>
@@ -523,21 +523,27 @@ export default function Seasons() {
                                   <div className="grid grid-cols-2 gap-4">
                                       <div>
                                           <label className="block text-sm font-medium text-gray-700 mb-1">{labels.startDate} <span className="text-red-500">*</span></label>
-                                          <input 
-                                              type="date"
-                                              value={formData.startDate}
-                                              onChange={(e) => setFormData({...formData, startDate: e.target.value})}
-                                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 bg-white"
-                                          />
+                                          <div className="relative">
+                                              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
+                                              <input 
+                                                  type="date"
+                                                  value={formData.startDate}
+                                                  onChange={(e) => setFormData({...formData, startDate: e.target.value})}
+                                                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 bg-white"
+                                              />
+                                          </div>
                                       </div>
                                       <div>
                                           <label className="block text-sm font-medium text-gray-700 mb-1">{labels.expectedEnd}</label>
-                                          <input 
-                                              type="date"
-                                              value={formData.endDate}
-                                              onChange={(e) => setFormData({...formData, endDate: e.target.value})}
-                                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 bg-white"
-                                          />
+                                          <div className="relative">
+                                              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
+                                              <input 
+                                                  type="date"
+                                                  value={formData.endDate}
+                                                  onChange={(e) => setFormData({...formData, endDate: e.target.value})}
+                                                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 bg-white"
+                                              />
+                                          </div>
                                       </div>
                                   </div>
                               </div>

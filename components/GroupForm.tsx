@@ -227,7 +227,7 @@ export const GroupForm: React.FC<GroupFormProps> = ({
                    className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
                  >
                    {['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map(d => (
-                     <option key={d} value={d}>{d}</option>
+                     <option key={d} value={d}>{labels[d.toLowerCase()] || d}</option>
                    ))}
                  </select>
                </div>
@@ -239,7 +239,7 @@ export const GroupForm: React.FC<GroupFormProps> = ({
                    className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
                  >
                    {Object.values(MeetingFrequency).map(f => (
-                     <option key={f} value={f}>{f}</option>
+                     <option key={f} value={f}>{labels[f.toLowerCase()] || f}</option>
                    ))}
                  </select>
                </div>

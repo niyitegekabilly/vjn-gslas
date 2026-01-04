@@ -85,6 +85,15 @@ export const LABELS = {
     verifyCode: "Verify Code",
     invalidCode: "Invalid code",
     
+    // Days of Week
+    monday: "Monday",
+    tuesday: "Tuesday",
+    wednesday: "Wednesday",
+    thursday: "Thursday",
+    friday: "Friday",
+    saturday: "Saturday",
+    sunday: "Sunday",
+
     // Notifications & Messaging
     composeBroadcast: "Compose Broadcast",
     sendMessage: "Send Message",
@@ -572,6 +581,25 @@ export const LABELS = {
     categories: "Ubwoko",
     viewDetails: "Reba Birambuye",
     quickTips: "Inama z'Ingenzi",
+
+    // Auth & Greetings
+    goodMorning: "Mwaramutse",
+    goodAfternoon: "Mwiriwe",
+    goodEvening: "Umugoroba mwiza",
+    signIn: "Kwinjira",
+    emailAddr: "Imeyili",
+    password: "Ijambo ry'ibanga",
+    securePortal: "Urubuga Rwizewe",
+    unauthMsg: "Kwinjira utabifitiye uburenganzira birabujijwe. Ibikorwa byose biragenzurwa.",
+
+    // Days of Week
+    monday: "Kuwa Mbere",
+    tuesday: "Kuwa Kabiri",
+    wednesday: "Kuwa Gatatu",
+    thursday: "Kuwa Kane",
+    friday: "Kuwa Gatanu",
+    saturday: "Kuwa Gatandatu",
+    sunday: "Kuwa Cyumweru",
 
     // Notifications & Messaging
     composeBroadcast: "Andika Itangazo",

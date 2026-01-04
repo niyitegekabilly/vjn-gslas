@@ -223,7 +223,7 @@ export default function UserManagement() {
                   {formData.role === UserRole.GROUP_LEADER && (
                      <div>
                         <label className="block text-sm font-medium mb-1">{labels.assignedGroup}</label>
-                        <select multiple className="w-full p-2 border rounded-lg h-24" value={formData.managedGroupIds} onChange={e => setFormData({...formData, managedGroupIds: Array.from(e.target.selectedOptions, o => o.value)})}>
+                        <select multiple className="w-full p-2 border rounded-lg h-24" value={formData.managedGroupIds} onChange={e => setFormData({...formData, managedGroupIds: Array.from(e.target.selectedOptions, (o: HTMLOptionElement) => o.value)})}>
                            {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
                         </select>
                      </div>
