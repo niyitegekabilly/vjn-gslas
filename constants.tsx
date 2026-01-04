@@ -283,9 +283,9 @@ export const LABELS = {
     feesApplied: "Fees Applied Successfully",
     principal: "Principal",
     repaid: "Repaid",
-    balance: "Balance",
-    progress: "Progress",
-    dueDate: "Due Date",
+    lblBalance: "Balance",
+    lblProgress: "Progress",
+    lblDueDate: "Due Date",
     
     // Meeting Mode
     startMeeting: "Start Meeting Recording",
@@ -790,9 +790,9 @@ export const LABELS = {
     feesApplied: "Ibihano byatanzwe neza",
     principal: "Igishoro",
     repaid: "Ayishyuwe",
-    balance: "Asigaye",
-    progress: "Ibikomeje",
-    dueDate: "Igihe Ntarengwa",
+    lblBalance: "Asigaye",
+    lblProgress: "Ibikomeje",
+    lblDueDate: "Igihe Ntarengwa",
 
     // Meeting Mode
     startMeeting: "Tangira Kwandika Inama",

@@ -222,9 +222,9 @@ export default function LoanManager() {
                           <th className="p-4 cursor-pointer hover:bg-gray-100 group" onClick={() => handleSort('principal')}>
                              <div className="flex items-center">{labels.principal} <SortIcon field="principal" /></div>
                           </th>
-                          <th className="p-4">{labels.balance}</th>
+                          <th className="p-4">{labels.lblBalance}</th>
                           <th className="p-4 text-center">{labels.status}</th>
-                          <th className="p-4">{labels.progress}</th>
+                          <th className="p-4">{labels.lblProgress}</th>
                           <th className="p-4 text-right">{labels.actions}</th>
                        </tr>
                     </thead>
@@ -303,7 +303,7 @@ export default function LoanManager() {
                              <p className="font-mono font-bold text-gray-800">{loan.principal.toLocaleString()}</p>
                           </div>
                           <div className="text-right">
-                             <p className="text-xs text-gray-500 uppercase">{labels.balance}</p>
+                             <p className="text-xs text-gray-500 uppercase">{labels.lblBalance}</p>
                              <p className="font-mono font-bold text-blue-600">{loan.balance.toLocaleString()}</p>
                           </div>
                        </div>
