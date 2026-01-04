@@ -206,6 +206,10 @@ export const HelpAssistant: React.FC<HelpAssistantProps> = ({ lang, activeGroupI
     setIsTyping(true);
 
     try {
+      if (!process.env.API_KEY) {
+        throw new Error("API Configuration Missing");
+      }
+
       // Initialize Gemini
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       
@@ -250,14 +254,20 @@ export const HelpAssistant: React.FC<HelpAssistantProps> = ({ lang, activeGroupI
       };
 
       setMessages(prev => [...prev, botMsg]);
-    } catch (error) {
-      console.error(error);
+    } catch (error: any) {
+      console.error('Gemini Error:', error);
+      let friendlyError = lang === 'en' 
+          ? "I'm having trouble connecting to the brain. Please try again later or check the Help page." 
+          : "Hari ikibazo cya tekiniki. Ongera ugerageze cyangwa urebe ahanditse Ubufasha.";
+      
+      if (error.message === "API Configuration Missing") {
+          friendlyError = "System Error: API Key not configured. Please contact admin.";
+      }
+
       const errorMsg: Message = {
         id: (Date.now() + 1).toString(),
         sender: 'bot',
-        text: lang === 'en' 
-          ? "I'm having trouble connecting to the brain. Please try again later or check the Help page." 
-          : "Hari ikibazo cya tekiniki. Ongera ugerageze cyangwa urebe ahanditse Ubufasha.",
+        text: friendlyError,
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMsg]);
