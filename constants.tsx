@@ -177,8 +177,6 @@ export const LABELS = {
     recordContribution: "Record Contribution",
     recordRepayment: "Record Repayment",
     recordNewFine: "Record New Fine",
-    attendance: "Attendance",
-    expenses: "Expenses",
     lastAttendance: "Last Meeting Attendance",
     repeatedAbsence: "Repeated Absence",
     contributionsSeason: "Contributions (Season)",
@@ -339,6 +337,7 @@ export const LABELS = {
     backToList: "Back to List",
     
     // Expenses
+    expenses: "Expenses",
     totalExpenses: "Total Expenses (Season)",
     addExpense: "Add Expense",
     expenseManagement: "Expense Management",
@@ -352,6 +351,7 @@ export const LABELS = {
     whyChange: "Why is this being changed?",
     
     // Attendance
+    attendance: "Attendance",
     attendanceManagement: "Attendance Management",
     scheduleNewMeeting: "Schedule New Meeting",
     regularWeekly: "Regular Weekly",
@@ -684,8 +684,6 @@ export const LABELS = {
     recordContribution: "Andika Ubwizigame",
     recordRepayment: "Andika Ubwishyu",
     recordNewFine: "Andika Amande Mashya",
-    attendance: "Ubwitabire",
-    expenses: "Amafaranga Yasohotse",
     lastAttendance: "Ubwitabire bw'Inama Iheruka",
     repeatedAbsence: "Abasiba Kenshi",
     contributionsSeason: "Ubwizigame (Igihembwe)",
@@ -846,6 +844,7 @@ export const LABELS = {
     backToList: "Subira ku Rutonde",
 
     // Expenses
+    expenses: "Amafaranga Yasohotse",
     totalExpenses: "Amafaranga yose yasohotse (Igihembwe)",
     addExpense: "Ongeramo Ayasohotse",
     expenseManagement: "Gucunga Ayasohotse",
@@ -859,6 +858,7 @@ export const LABELS = {
     whyChange: "Kuki ugiye kubihindura?",
 
     // Attendance
+    attendance: "Ubwitabire",
     attendanceManagement: "Gucunga Ubwitabire",
     scheduleNewMeeting: "Tegura Inama Nshya",
     regularWeekly: "Isanzwe ya Buri Cyumweru",
