@@ -287,76 +287,85 @@ export default function Contributions() {
       {/* Add Modal */}
       {isAddOpen && (
          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in zoom-in-95 duration-200">
-            <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6">
-               <div className="flex justify-between items-center mb-6 border-b border-gray-100 pb-4">
+            <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden">
+               <div className="flex justify-between items-center p-6 border-b border-gray-100 flex-none bg-white">
                   <h3 className="text-lg font-bold text-gray-800">{labels.newContribution}</h3>
-                  <button onClick={() => setIsAddOpen(false)}><X className="text-gray-400 hover:text-gray-600" /></button>
+                  <button onClick={() => setIsAddOpen(false)} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
                </div>
-               <form onSubmit={handleAddSubmit} className="space-y-4">
-                  <div>
-                     <label className="block text-sm font-medium text-gray-700 mb-1">{labels.members}</label>
-                     <select 
-                        required
-                        value={formData.memberId}
-                        onChange={e => setFormData({...formData, memberId: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 bg-white"
-                     >
-                        <option value="">-- {labels.selectMember} --</option>
-                        {members.filter(m => m.status === 'ACTIVE').map(m => (
-                           <option key={m.id} value={m.id}>{m.fullName}</option>
-                        ))}
-                     </select>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{labels.shareCount}</label>
+               
+               <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                  <form id="add-contribution-form" onSubmit={handleAddSubmit} className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{labels.members}</label>
+                        <select 
+                            required
+                            value={formData.memberId}
+                            onChange={e => setFormData({...formData, memberId: e.target.value})}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 bg-white"
+                        >
+                            <option value="">-- {labels.selectMember} --</option>
+                            {members.filter(m => m.status === 'ACTIVE').map(m => (
+                              <option key={m.id} value={m.id}>{m.fullName}</option>
+                            ))}
+                        </select>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">{labels.shareCount}</label>
+                            <input 
+                              type="number"
+                              min="1"
+                              max={group?.maxShares}
+                              required
+                              value={formData.shareCount}
+                              onChange={e => setFormData({...formData, shareCount: parseInt(e.target.value) || 0})}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 bg-white"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">Value: {(formData.shareCount * (group?.shareValue || 0)).toLocaleString()} {labels.currency}</p>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">{labels.solidarity}</label>
+                            <input 
+                              type="number"
+                              min="0"
+                              value={formData.solidarityAmount}
+                              onChange={e => setFormData({...formData, solidarityAmount: parseInt(e.target.value) || 0})}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 bg-white"
+                            />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{labels.date}</label>
                         <input 
-                           type="number"
-                           min="1"
-                           max={group?.maxShares}
-                           required
-                           value={formData.shareCount}
-                           onChange={e => setFormData({...formData, shareCount: parseInt(e.target.value) || 0})}
-                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 bg-white"
+                            type="date"
+                            required
+                            value={formData.date}
+                            onChange={e => setFormData({...formData, date: e.target.value})}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 bg-white"
                         />
-                        <p className="text-xs text-gray-500 mt-1">Value: {(formData.shareCount * (group?.shareValue || 0)).toLocaleString()} {labels.currency}</p>
-                     </div>
-                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{labels.solidarity}</label>
-                        <input 
-                           type="number"
-                           min="0"
-                           value={formData.solidarityAmount}
-                           onChange={e => setFormData({...formData, solidarityAmount: parseInt(e.target.value) || 0})}
-                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 bg-white"
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{labels.notes}</label>
+                        <textarea 
+                            rows={3}
+                            value={formData.notes}
+                            onChange={e => setFormData({...formData, notes: e.target.value})}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 bg-white"
                         />
-                     </div>
-                  </div>
-                  <div>
-                     <label className="block text-sm font-medium text-gray-700 mb-1">{labels.date}</label>
-                     <input 
-                        type="date"
-                        required
-                        value={formData.date}
-                        onChange={e => setFormData({...formData, date: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 bg-white"
-                     />
-                  </div>
-                  <div>
-                     <label className="block text-sm font-medium text-gray-700 mb-1">{labels.notes}</label>
-                     <textarea 
-                        rows={2}
-                        value={formData.notes}
-                        onChange={e => setFormData({...formData, notes: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 bg-white"
-                     />
-                  </div>
-                  <div className="pt-2">
-                     <button type="submit" disabled={submitting} className="w-full py-3 bg-slate-800 text-white rounded-lg font-bold hover:bg-slate-900 flex justify-center items-center">
-                        {submitting ? <Loader2 className="animate-spin" size={20}/> : labels.save}
-                     </button>
-                  </div>
-               </form>
+                      </div>
+                  </form>
+               </div>
+
+               <div className="p-4 border-t border-gray-100 bg-gray-50 flex-none">
+                  <button 
+                    type="submit" 
+                    form="add-contribution-form"
+                    disabled={submitting} 
+                    className="w-full py-3 bg-slate-800 text-white rounded-lg font-bold hover:bg-slate-900 flex justify-center items-center shadow-sm"
+                  >
+                     {submitting ? <Loader2 className="animate-spin" size={20}/> : labels.save}
+                  </button>
+               </div>
             </div>
          </div>
       )}
@@ -364,44 +373,52 @@ export default function Contributions() {
       {/* Edit Modal */}
       {isEditOpen && (
          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in zoom-in-95 duration-200">
-            <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
-               <h3 className="text-lg font-bold text-gray-800 mb-4">{labels.edit}</h3>
-               <form onSubmit={handleEditSubmit} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{labels.shareCount}</label>
-                        <input 
-                           type="number" min="1"
-                           value={editData.shareCount}
-                           onChange={e => setEditData({...editData, shareCount: parseInt(e.target.value) || 0})}
-                           className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
+            <div className="bg-white rounded-xl shadow-xl max-w-sm w-full max-h-[90vh] flex flex-col overflow-hidden">
+               <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-white flex-none">
+                  <h3 className="text-lg font-bold text-gray-800">{labels.edit}</h3>
+                  <button onClick={() => setIsEditOpen(false)} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
+               </div>
+               
+               <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                  <form id="edit-contribution-form" onSubmit={handleEditSubmit} className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">{labels.shareCount}</label>
+                            <input 
+                              type="number" min="1"
+                              value={editData.shareCount}
+                              onChange={e => setEditData({...editData, shareCount: parseInt(e.target.value) || 0})}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">{labels.solidarity}</label>
+                            <input 
+                              type="number" min="0"
+                              value={editData.solidarityAmount}
+                              onChange={e => setEditData({...editData, solidarityAmount: parseInt(e.target.value) || 0})}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
+                            />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{labels.reason} <span className="text-red-500">*</span></label>
+                        <textarea 
+                            required
+                            value={editData.reason}
+                            onChange={e => setEditData({...editData, reason: e.target.value})}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-amber-500 outline-none"
+                            placeholder="Audit reason..."
+                            rows={3}
                         />
-                     </div>
-                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{labels.solidarity}</label>
-                        <input 
-                           type="number" min="0"
-                           value={editData.solidarityAmount}
-                           onChange={e => setEditData({...editData, solidarityAmount: parseInt(e.target.value) || 0})}
-                           className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
-                        />
-                     </div>
-                  </div>
-                  <div>
-                     <label className="block text-sm font-medium text-gray-700 mb-1">{labels.reason} <span className="text-red-500">*</span></label>
-                     <textarea 
-                        required
-                        value={editData.reason}
-                        onChange={e => setEditData({...editData, reason: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-amber-500 outline-none"
-                        placeholder="Audit reason..."
-                     />
-                  </div>
-                  <div className="flex gap-2 pt-2">
-                     <button type="button" onClick={() => setIsEditOpen(false)} className="flex-1 py-2 border rounded-lg hover:bg-gray-50">{labels.cancel}</button>
-                     <button type="submit" disabled={submitting} className="flex-1 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-bold">{labels.save}</button>
-                  </div>
-               </form>
+                      </div>
+                  </form>
+               </div>
+
+               <div className="p-4 border-t border-gray-100 bg-gray-50 flex-none flex gap-2">
+                  <button type="button" onClick={() => setIsEditOpen(false)} className="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium text-gray-700">{labels.cancel}</button>
+                  <button type="submit" form="edit-contribution-form" disabled={submitting} className="flex-1 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-bold shadow-sm">{labels.save}</button>
+               </div>
             </div>
          </div>
       )}

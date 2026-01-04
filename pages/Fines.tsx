@@ -349,37 +349,40 @@ export default function Fines() {
 
       {/* Category Manager Modal */}
       {isCategoryOpen && (
-         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in zoom-in-95">
-            <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-               <div className="flex justify-between mb-4">
+         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[80vh] flex flex-col overflow-hidden">
+               <div className="flex justify-between items-center p-4 border-b border-gray-100 flex-none bg-white">
                   <h3 className="font-bold text-lg">{labels.manageCategories}</h3>
-                  <button onClick={() => setIsCategoryOpen(false)}><X className="text-gray-400" /></button>
+                  <button onClick={() => setIsCategoryOpen(false)} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
                </div>
-               <form onSubmit={handleAddCategory} className="flex gap-2 mb-4">
-                  <input 
-                     className="flex-1 p-2 border rounded-lg bg-white" 
-                     placeholder={labels.categoryName}
-                     value={newCatName}
-                     onChange={e => setNewCatName(e.target.value)}
-                     required
-                  />
-                  <input 
-                     type="number"
-                     className="w-24 p-2 border rounded-lg bg-white" 
-                     placeholder="Amt"
-                     value={newCatAmount}
-                     onChange={e => setNewCatAmount(parseInt(e.target.value))}
-                     required
-                  />
-                  <button className="px-3 bg-slate-800 text-white rounded-lg text-sm font-bold">Add</button>
-               </form>
-               <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {categories.map(c => (
-                     <div key={c.id} className="flex justify-between items-center p-2 bg-gray-50 rounded border border-gray-100">
-                        <span className="font-medium">{c.name}</span>
-                        <span className="text-sm text-gray-500">{c.defaultAmount.toLocaleString()} RWF</span>
-                     </div>
-                  ))}
+               
+               <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+                   <form onSubmit={handleAddCategory} className="flex gap-2 mb-4 sticky top-0 bg-white z-10 pb-2">
+                      <input 
+                         className="flex-1 p-2 border rounded-lg bg-white" 
+                         placeholder={labels.categoryName}
+                         value={newCatName}
+                         onChange={e => setNewCatName(e.target.value)}
+                         required
+                      />
+                      <input 
+                         type="number"
+                         className="w-24 p-2 border rounded-lg bg-white" 
+                         placeholder="Amt"
+                         value={newCatAmount}
+                         onChange={e => setNewCatAmount(parseInt(e.target.value))}
+                         required
+                      />
+                      <button className="px-3 bg-slate-800 text-white rounded-lg text-sm font-bold">Add</button>
+                   </form>
+                   <div className="space-y-2">
+                      {categories.map(c => (
+                         <div key={c.id} className="flex justify-between items-center p-2 bg-gray-50 rounded border border-gray-100">
+                            <span className="font-medium">{c.name}</span>
+                            <span className="text-sm text-gray-500">{c.defaultAmount.toLocaleString()} RWF</span>
+                         </div>
+                      ))}
+                   </div>
                </div>
             </div>
          </div>
@@ -387,151 +390,173 @@ export default function Fines() {
 
       {/* Create Modal */}
       {isCreateOpen && (
-         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in zoom-in-95">
-            <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6">
-               <h3 className="font-bold text-lg mb-4">{labels.recordFine}</h3>
-               <form onSubmit={handleCreate} className="space-y-4">
-                  <div>
-                     <label className="block text-sm font-medium text-gray-700 mb-1">{labels.members}</label>
-                     <select 
-                        required
-                        className="w-full p-2 border rounded-lg bg-white"
-                        value={createData.memberId}
-                        onChange={e => setCreateData({...createData, memberId: e.target.value})}
-                     >
-                        <option value="">-- Select --</option>
-                        {members.filter(m => m.status === 'ACTIVE').map(m => (
-                           <option key={m.id} value={m.id}>{m.fullName}</option>
-                        ))}
-                     </select>
-                  </div>
-                  <div>
-                     <label className="block text-sm font-medium text-gray-700 mb-1">{labels.type}</label>
-                     <select 
-                        required
-                        className="w-full p-2 border rounded-lg bg-white"
-                        value={createData.categoryId}
-                        onChange={e => {
-                           const c = categories.find(cat => cat.id === e.target.value);
-                           setCreateData({...createData, categoryId: e.target.value, amount: c ? c.defaultAmount : 0});
-                        }}
-                     >
-                        <option value="">-- Select --</option>
-                        {categories.map(c => <option key={c.id} value={c.id}>{c.name} ({c.defaultAmount})</option>)}
-                     </select>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{labels.amount}</label>
-                        <input 
-                           type="number"
-                           className="w-full p-2 border rounded-lg bg-white"
-                           value={createData.amount}
-                           onChange={e => setCreateData({...createData, amount: parseInt(e.target.value) || 0})}
-                        />
-                     </div>
-                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{labels.date}</label>
-                        <input 
-                           type="date"
-                           className="w-full p-2 border rounded-lg bg-white"
-                           value={createData.date}
-                           onChange={e => setCreateData({...createData, date: e.target.value})}
-                        />
-                     </div>
-                  </div>
-                  <div>
-                     <label className="block text-sm font-medium text-gray-700 mb-1">{labels.reason} / Details</label>
-                     <input 
-                        className="w-full p-2 border rounded-lg bg-white"
-                        value={createData.reason}
-                        onChange={e => setCreateData({...createData, reason: e.target.value})}
-                     />
-                  </div>
-                  <div className="flex gap-3 pt-2">
-                     <button type="button" onClick={() => setIsCreateOpen(false)} className="flex-1 py-2 border rounded-lg">{labels.cancel}</button>
-                     <button type="submit" disabled={submitting} className="flex-1 py-2 bg-slate-800 text-white rounded-lg font-bold flex justify-center items-center">
-                        {submitting ? <Loader2 className="animate-spin" size={18}/> : labels.save}
-                     </button>
-                  </div>
-               </form>
+         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden">
+               <div className="flex justify-between items-center p-6 border-b border-gray-100 flex-none bg-white">
+                  <h3 className="font-bold text-lg">{labels.recordFine}</h3>
+                  <button onClick={() => setIsCreateOpen(false)} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
+               </div>
+               
+               <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                  <form id="create-fine-form" onSubmit={handleCreate} className="space-y-4">
+                      <div>
+                         <label className="block text-sm font-medium text-gray-700 mb-1">{labels.members}</label>
+                         <select 
+                            required
+                            className="w-full p-2 border rounded-lg bg-white"
+                            value={createData.memberId}
+                            onChange={e => setCreateData({...createData, memberId: e.target.value})}
+                         >
+                            <option value="">-- Select --</option>
+                            {members.filter(m => m.status === 'ACTIVE').map(m => (
+                               <option key={m.id} value={m.id}>{m.fullName}</option>
+                            ))}
+                         </select>
+                      </div>
+                      <div>
+                         <label className="block text-sm font-medium text-gray-700 mb-1">{labels.type}</label>
+                         <select 
+                            required
+                            className="w-full p-2 border rounded-lg bg-white"
+                            value={createData.categoryId}
+                            onChange={e => {
+                               const c = categories.find(cat => cat.id === e.target.value);
+                               setCreateData({...createData, categoryId: e.target.value, amount: c ? c.defaultAmount : 0});
+                            }}
+                         >
+                            <option value="">-- Select --</option>
+                            {categories.map(c => <option key={c.id} value={c.id}>{c.name} ({c.defaultAmount})</option>)}
+                         </select>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                         <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">{labels.amount}</label>
+                            <input 
+                               type="number"
+                               className="w-full p-2 border rounded-lg bg-white"
+                               value={createData.amount}
+                               onChange={e => setCreateData({...createData, amount: parseInt(e.target.value) || 0})}
+                            />
+                         </div>
+                         <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">{labels.date}</label>
+                            <input 
+                               type="date"
+                               className="w-full p-2 border rounded-lg bg-white"
+                               value={createData.date}
+                               onChange={e => setCreateData({...createData, date: e.target.value})}
+                            />
+                         </div>
+                      </div>
+                      <div>
+                         <label className="block text-sm font-medium text-gray-700 mb-1">{labels.reason} / Details</label>
+                         <input 
+                            className="w-full p-2 border rounded-lg bg-white"
+                            value={createData.reason}
+                            onChange={e => setCreateData({...createData, reason: e.target.value})}
+                         />
+                      </div>
+                  </form>
+               </div>
+
+               <div className="p-4 border-t border-gray-100 bg-gray-50 flex-none flex gap-3">
+                  <button type="button" onClick={() => setIsCreateOpen(false)} className="flex-1 py-2 border rounded-lg font-medium text-gray-700">{labels.cancel}</button>
+                  <button type="submit" form="create-fine-form" disabled={submitting} className="flex-1 py-2 bg-slate-800 text-white rounded-lg font-bold flex justify-center items-center shadow-sm">
+                     {submitting ? <Loader2 className="animate-spin" size={18}/> : labels.save}
+                  </button>
+               </div>
             </div>
          </div>
       )}
 
       {/* Pay Modal */}
       {isPayOpen && selectedFine && (
-         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in zoom-in-95">
-            <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
-               <h3 className="font-bold text-lg mb-4">{labels.payFine}</h3>
-               <p className="text-sm text-gray-600 mb-4">Member: <span className="font-bold">{getMemberName(selectedFine.memberId)}</span></p>
-               <form onSubmit={handlePay} className="space-y-4">
-                  <div>
-                     <label className="block text-sm font-medium text-gray-700 mb-1">{labels.amount} (Due: {(selectedFine.amount - selectedFine.paidAmount).toLocaleString()})</label>
-                     <input 
-                        type="number"
-                        className="w-full p-3 border rounded-lg bg-white text-lg font-bold"
-                        max={selectedFine.amount - selectedFine.paidAmount}
-                        value={payAmount}
-                        onChange={e => setPayAmount(parseInt(e.target.value) || 0)}
-                        autoFocus
-                     />
-                  </div>
-                  <div className="flex gap-3 pt-2">
-                     <button type="button" onClick={() => setIsPayOpen(false)} className="flex-1 py-2 border rounded-lg">{labels.cancel}</button>
-                     <button type="submit" disabled={submitting} className="flex-1 py-2 bg-green-600 text-white rounded-lg font-bold flex justify-center items-center">
-                        {submitting ? <Loader2 className="animate-spin" size={18}/> : 'Confirm Payment'}
-                     </button>
-                  </div>
-               </form>
+         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-white rounded-xl shadow-xl max-w-sm w-full max-h-[80vh] flex flex-col overflow-hidden">
+               <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-white flex-none">
+                  <h3 className="font-bold text-lg">{labels.payFine}</h3>
+                  <button onClick={() => setIsPayOpen(false)} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
+               </div>
+               
+               <div className="p-6 flex-1 overflow-y-auto custom-scrollbar">
+                   <p className="text-sm text-gray-600 mb-4">Member: <span className="font-bold">{getMemberName(selectedFine.memberId)}</span></p>
+                   <form id="pay-fine-form" onSubmit={handlePay} className="space-y-4">
+                      <div>
+                         <label className="block text-sm font-medium text-gray-700 mb-1">{labels.amount} (Due: {(selectedFine.amount - selectedFine.paidAmount).toLocaleString()})</label>
+                         <input 
+                            type="number"
+                            className="w-full p-3 border rounded-lg bg-white text-lg font-bold"
+                            max={selectedFine.amount - selectedFine.paidAmount}
+                            value={payAmount}
+                            onChange={e => setPayAmount(parseInt(e.target.value) || 0)}
+                            autoFocus
+                         />
+                      </div>
+                   </form>
+               </div>
+
+               <div className="p-4 border-t border-gray-100 bg-gray-50 flex-none flex gap-3">
+                  <button type="button" onClick={() => setIsPayOpen(false)} className="flex-1 py-2 border rounded-lg font-medium text-gray-700">{labels.cancel}</button>
+                  <button type="submit" form="pay-fine-form" disabled={submitting} className="flex-1 py-2 bg-green-600 text-white rounded-lg font-bold flex justify-center items-center shadow-sm">
+                     {submitting ? <Loader2 className="animate-spin" size={18}/> : 'Confirm Payment'}
+                  </button>
+               </div>
             </div>
          </div>
       )}
 
       {/* Edit Modal */}
       {isEditOpen && selectedFine && (
-         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in zoom-in-95">
-            <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-               <h3 className="font-bold text-lg mb-4">{labels.edit}</h3>
-               <form onSubmit={handleEdit} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{labels.type}</label>
-                        <select 
-                           className="w-full p-2 border rounded-lg bg-white"
-                           value={editData.categoryId}
-                           onChange={e => setEditData({...editData, categoryId: e.target.value})}
-                        >
-                           {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                        </select>
-                     </div>
-                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{labels.amount}</label>
-                        <input 
-                           type="number"
-                           className="w-full p-2 border rounded-lg bg-white"
-                           value={editData.amount}
-                           onChange={e => setEditData({...editData, amount: parseInt(e.target.value) || 0})}
-                        />
-                     </div>
-                  </div>
-                  <div>
-                     <label className="block text-sm font-medium text-gray-700 mb-1">{labels.reason} <span className="text-red-500">*</span></label>
-                     <textarea 
-                        required
-                        className="w-full p-2 border rounded-lg bg-white focus:ring-2 focus:ring-amber-500 outline-none"
-                        value={editData.reason}
-                        onChange={e => setEditData({...editData, reason: e.target.value})}
-                        placeholder="Audit reason..."
-                     />
-                  </div>
-                  <div className="flex gap-3 pt-2">
-                     <button type="button" onClick={() => setIsEditOpen(false)} className="flex-1 py-2 border rounded-lg">{labels.cancel}</button>
-                     <button type="submit" disabled={submitting} className="flex-1 py-2 bg-blue-600 text-white rounded-lg font-bold flex justify-center items-center">
-                        {submitting ? <Loader2 className="animate-spin" size={18}/> : labels.save}
-                     </button>
-                  </div>
-               </form>
+         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] flex flex-col overflow-hidden">
+               <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-white flex-none">
+                  <h3 className="font-bold text-lg">{labels.edit}</h3>
+                  <button onClick={() => setIsEditOpen(false)} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
+               </div>
+               
+               <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                  <form id="edit-fine-form" onSubmit={handleEdit} className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                         <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">{labels.type}</label>
+                            <select 
+                               className="w-full p-2 border rounded-lg bg-white"
+                               value={editData.categoryId}
+                               onChange={e => setEditData({...editData, categoryId: e.target.value})}
+                            >
+                               {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            </select>
+                         </div>
+                         <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">{labels.amount}</label>
+                            <input 
+                               type="number"
+                               className="w-full p-2 border rounded-lg bg-white"
+                               value={editData.amount}
+                               onChange={e => setEditData({...editData, amount: parseInt(e.target.value) || 0})}
+                            />
+                         </div>
+                      </div>
+                      <div>
+                         <label className="block text-sm font-medium text-gray-700 mb-1">{labels.reason} <span className="text-red-500">*</span></label>
+                         <textarea 
+                            required
+                            className="w-full p-2 border rounded-lg bg-white focus:ring-2 focus:ring-amber-500 outline-none"
+                            value={editData.reason}
+                            onChange={e => setEditData({...editData, reason: e.target.value})}
+                            placeholder="Audit reason..."
+                            rows={3}
+                         />
+                      </div>
+                  </form>
+               </div>
+
+               <div className="p-4 border-t border-gray-100 bg-gray-50 flex-none flex gap-3">
+                  <button type="button" onClick={() => setIsEditOpen(false)} className="flex-1 py-2 border rounded-lg font-medium text-gray-700">{labels.cancel}</button>
+                  <button type="submit" form="edit-fine-form" disabled={submitting} className="flex-1 py-2 bg-blue-600 text-white rounded-lg font-bold flex justify-center items-center shadow-sm">
+                     {submitting ? <Loader2 className="animate-spin" size={18}/> : labels.save}
+                  </button>
+               </div>
             </div>
          </div>
       )}

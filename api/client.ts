@@ -12,6 +12,7 @@ export const api = {
   getUser: async (id: string) => { await delay(); return service.getUser(id); },
   createUser: async (user: any, creatorId: string) => { await delay(); return service.createUser(user, creatorId); },
   updateUser: async (id: string, updates: any) => { await delay(); return service.updateUser(id, updates); },
+  deleteUser: async (id: string) => { await delay(); return service.deleteUser(id); },
   importUsers: async (data: any[], creatorId: string) => { await delay(); return service.importUsers(data, creatorId); },
   
   // Auth
@@ -79,6 +80,7 @@ export const api = {
 
   // Cycles
   getCycle: async (id: string) => { await delay(); return service.getCycle(id); },
+  startCycle: async (groupId: string, config: any) => { await delay(); return service.startCycle(groupId, config); },
   closeCycle: async (id: string, snapshot: ShareOutSnapshot) => { await delay(); return service.closeCycle(id, snapshot); },
 
   // Notifications

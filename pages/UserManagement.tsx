@@ -4,10 +4,11 @@ import { AppContext } from '../App';
 import { api } from '../api/client';
 import { LABELS } from '../constants';
 import { User, UserRole, UserStatus, GSLAGroup } from '../types';
-import { Users, Search, Plus, Shield, CheckCircle, XCircle, AlertTriangle, Lock, Edit, UserCheck, Loader2, X, CheckSquare, Square } from 'lucide-react';
+import { Users, Search, Plus, Shield, CheckCircle, XCircle, AlertTriangle, Lock, Edit, UserCheck, Loader2, X, CheckSquare, Square, Save, Trash2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { TableRowSkeleton } from '../components/Skeleton';
 import { CsvImporter } from '../components/CsvImporter';
+import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog';
 
 export default function UserManagement() {
   const { lang, groups } = useContext(AppContext);
@@ -33,6 +34,9 @@ export default function UserManagement() {
   });
   
   const [submitting, setSubmitting] = useState(false);
+  
+  // Delete State
+  const [deletingUser, setDeletingUser] = useState<User | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -127,6 +131,20 @@ export default function UserManagement() {
       fetchUsers();
     } catch (error: any) {
       alert(error.message || 'An error occurred while saving the user.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deletingUser) return;
+    setSubmitting(true);
+    try {
+      await api.deleteUser(deletingUser.id);
+      setDeletingUser(null);
+      fetchUsers();
+    } catch (error: any) {
+      alert(error.message || 'Failed to delete user.');
     } finally {
       setSubmitting(false);
     }
@@ -289,12 +307,22 @@ export default function UserManagement() {
                               {user.lastLogin ? new Date(user.lastLogin).toLocaleString() : labels.never}
                            </td>
                            <td className="p-4 text-right">
-                              <button 
-                                onClick={() => handleOpenModal(user)}
-                                className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded"
-                              >
-                                 <Edit size={16} />
-                              </button>
+                              <div className="flex justify-end gap-2">
+                                <button 
+                                    onClick={() => handleOpenModal(user)}
+                                    className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded"
+                                    title={labels.editUser}
+                                >
+                                    <Edit size={16} />
+                                </button>
+                                <button 
+                                    onClick={() => setDeletingUser(user)}
+                                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
+                                    title={labels.removeUser}
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                              </div>
                            </td>
                         </tr>
                      ))}
@@ -305,115 +333,132 @@ export default function UserManagement() {
       </div>
 
       {isModalOpen && (
-         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm animate-in fade-in zoom-in-95 duration-200">
-            <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
-               <div className="flex justify-between items-center mb-6 border-b border-gray-100 pb-4">
+         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-white rounded-xl shadow-xl max-w-lg w-full h-auto max-h-[90vh] flex flex-col overflow-hidden">
+               {/* Sticky Header */}
+               <div className="flex justify-between items-center p-6 border-b border-gray-100 flex-none bg-white">
                   <h3 className="text-lg font-bold text-gray-800">
                      {editingUser ? labels.editUser : labels.createUser}
                   </h3>
                   <button onClick={() => setIsModalOpen(false)}><X className="text-gray-400 hover:text-gray-600" /></button>
                </div>
                
-               <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{labels.fullName}</label>
-                        <input 
-                           required
-                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 outline-none bg-white text-gray-900"
-                           value={formData.fullName}
-                           onChange={e => setFormData({...formData, fullName: e.target.value})}
-                        />
-                     </div>
-                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{labels.emailAddr}</label>
-                        <input 
-                           type="email"
-                           required
-                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 outline-none bg-white text-gray-900"
-                           value={formData.email}
-                           onChange={e => setFormData({...formData, email: e.target.value})}
-                        />
-                     </div>
-                  </div>
-
-                  <div>
-                     <label className="block text-sm font-medium text-gray-700 mb-1">{labels.phoneNumber}</label>
-                     <input 
-                        required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 outline-none bg-white text-gray-900"
-                        value={formData.phone}
-                        onChange={e => setFormData({...formData, phone: e.target.value})}
-                     />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{labels.role}</label>
-                        <select 
-                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 outline-none bg-white text-gray-900"
-                           value={formData.role}
-                           onChange={e => setFormData({...formData, role: e.target.value as UserRole})}
-                        >
-                           <option value={UserRole.MEMBER_USER}>{labels.memberUser}</option>
-                           <option value={UserRole.GROUP_LEADER}>{labels.groupLeader}</option>
-                           <option value={UserRole.ADMIN}>{labels.admin}</option>
-                           <option value={UserRole.SUPER_ADMIN}>{labels.superAdmin}</option>
-                           <option value={UserRole.AUDITOR}>Auditor</option>
-                        </select>
-                     </div>
-                     {!editingUser && (
+               {/* Scrollable Body */}
+               <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                  <form id="user-form" onSubmit={handleSubmit} className="space-y-4">
+                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                           <label className="block text-sm font-medium text-gray-700 mb-1">{labels.initialPassword}</label>
+                           <label className="block text-sm font-medium text-gray-700 mb-1">{labels.fullName}</label>
                            <input 
-                              type="text"
+                              required
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 outline-none bg-white text-gray-900"
-                              value={formData.password}
-                              onChange={e => setFormData({...formData, password: e.target.value})}
+                              value={formData.fullName}
+                              onChange={e => setFormData({...formData, fullName: e.target.value})}
                            />
                         </div>
-                     )}
-                  </div>
-
-                  {formData.role === UserRole.GROUP_LEADER && (
-                     <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
-                        <label className="block text-sm font-medium text-blue-900 mb-2">{labels.assignedGroup} (Multi-select)</label>
-                        
-                        <div className="border border-blue-200 rounded-lg max-h-48 overflow-y-auto bg-white p-2 space-y-1">
-                            {groups.map(g => {
-                                const isSelected = formData.managedGroupIds.includes(g.id);
-                                return (
-                                    <div 
-                                        key={g.id} 
-                                        onClick={() => toggleGroupSelection(g.id)}
-                                        className={`flex items-center p-2 rounded cursor-pointer transition-colors ${isSelected ? 'bg-blue-50 text-blue-800' : 'hover:bg-gray-50 text-gray-700'}`}
-                                    >
-                                        {isSelected ? 
-                                            <CheckSquare size={18} className="mr-2 text-blue-600" /> : 
-                                            <Square size={18} className="mr-2 text-gray-400" />
-                                        }
-                                        <span className="text-sm font-medium">{g.name}</span>
-                                    </div>
-                                );
-                            })}
+                        <div>
+                           <label className="block text-sm font-medium text-gray-700 mb-1">{labels.emailAddr}</label>
+                           <input 
+                              type="email"
+                              required
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 outline-none bg-white text-gray-900"
+                              value={formData.email}
+                              onChange={e => setFormData({...formData, email: e.target.value})}
+                           />
                         </div>
-                        <p className="text-xs text-blue-700 mt-2 flex items-center">
-                           <Lock size={12} className="mr-1"/> Selected: {formData.managedGroupIds.length} groups.
-                        </p>
                      </div>
-                  )}
 
+                     <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{labels.phoneNumber}</label>
+                        <input 
+                           required
+                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 outline-none bg-white text-gray-900"
+                           value={formData.phone}
+                           onChange={e => setFormData({...formData, phone: e.target.value})}
+                        />
+                     </div>
+
+                     <div className="grid grid-cols-2 gap-4">
+                        <div>
+                           <label className="block text-sm font-medium text-gray-700 mb-1">{labels.role}</label>
+                           <select 
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 outline-none bg-white text-gray-900"
+                              value={formData.role}
+                              onChange={e => setFormData({...formData, role: e.target.value as UserRole})}
+                           >
+                              <option value={UserRole.MEMBER_USER}>{labels.memberUser}</option>
+                              <option value={UserRole.GROUP_LEADER}>{labels.groupLeader}</option>
+                              <option value={UserRole.ADMIN}>{labels.admin}</option>
+                              <option value={UserRole.SUPER_ADMIN}>{labels.superAdmin}</option>
+                              <option value={UserRole.AUDITOR}>Auditor</option>
+                           </select>
+                        </div>
+                        {!editingUser && (
+                           <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">{labels.initialPassword}</label>
+                              <input 
+                                 type="text"
+                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 outline-none bg-white text-gray-900"
+                                 value={formData.password}
+                                 onChange={e => setFormData({...formData, password: e.target.value})}
+                              />
+                           </div>
+                        )}
+                     </div>
+
+                     {formData.role === UserRole.GROUP_LEADER && (
+                        <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
+                           <label className="block text-sm font-medium text-blue-900 mb-2">{labels.assignedGroup} (Multi-select)</label>
+                           
+                           <div className="border border-blue-200 rounded-lg max-h-48 overflow-y-auto bg-white p-2 space-y-1">
+                               {groups.map(g => {
+                                   const isSelected = formData.managedGroupIds.includes(g.id);
+                                   return (
+                                       <div 
+                                           key={g.id} 
+                                           onClick={() => toggleGroupSelection(g.id)}
+                                           className={`flex items-center p-2 rounded cursor-pointer transition-colors ${isSelected ? 'bg-blue-50 text-blue-800' : 'hover:bg-gray-50 text-gray-700'}`}
+                                       >
+                                           {isSelected ? 
+                                               <CheckSquare size={18} className="mr-2 text-blue-600" /> : 
+                                               <Square size={18} className="mr-2 text-gray-400" />
+                                           }
+                                           <span className="text-sm font-medium">{g.name}</span>
+                                       </div>
+                                   );
+                               })}
+                           </div>
+                           <p className="text-xs text-blue-700 mt-2 flex items-center">
+                              <Lock size={12} className="mr-1"/> Selected: {formData.managedGroupIds.length} groups.
+                           </p>
+                        </div>
+                     )}
+                  </form>
+               </div>
+
+               {/* Sticky Footer */}
+               <div className="p-4 border-t border-gray-100 bg-gray-50 flex-none">
                   <button 
-                     type="submit" 
+                     type="submit"
+                     form="user-form"
                      disabled={submitting}
-                     className="w-full py-3 bg-slate-800 text-white rounded-lg font-bold hover:bg-slate-900 flex justify-center items-center mt-2"
+                     className="w-full py-3 bg-slate-800 text-white rounded-lg font-bold hover:bg-slate-900 flex justify-center items-center shadow-sm"
                   >
-                     {submitting ? <Loader2 className="animate-spin" size={20} /> : labels.saveUser}
+                     {submitting ? <Loader2 className="animate-spin" size={20} /> : <div className="flex items-center"><Save className="mr-2" size={18} /> {labels.saveUser}</div>}
                   </button>
-               </form>
+               </div>
             </div>
          </div>
       )}
+
+      <DeleteConfirmDialog 
+         isOpen={!!deletingUser}
+         title={labels.removeUser}
+         description={labels.confirmRemoveUser}
+         onConfirm={handleDelete}
+         onCancel={() => setDeletingUser(null)}
+         isDeleting={submitting}
+      />
     </div>
   );
 }

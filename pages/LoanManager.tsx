@@ -4,7 +4,7 @@ import { AppContext } from '../App';
 import { api } from '../api/client';
 import { LABELS } from '../constants';
 import { LoanStatus, Loan, Member, UserRole } from '../types';
-import { Check, X, AlertTriangle, FileText, Calculator, Loader2, Coins, RefreshCw, Info, Plus, Banknote, Search, Filter, CheckCircle, ChevronDown, ChevronUp, Eye, FileCheck, ThumbsUp, ThumbsDown, ArrowRight, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Check, X, AlertTriangle, FileText, Calculator, Loader2, Coins, RefreshCw, Info, Plus, Banknote, Search, Filter, CheckCircle, ChevronDown, ChevronUp, Eye, FileCheck, ThumbsUp, ThumbsDown, ArrowRight, ArrowUpDown, ArrowUp, ArrowDown, Save } from 'lucide-react';
 import { TableRowSkeleton } from '../components/Skeleton';
 import { useAuth } from '../contexts/AuthContext';
 import { CsvImporter } from '../components/CsvImporter';
@@ -72,6 +72,7 @@ export default function LoanManager() {
 
   const canEdit = user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.ADMIN || user?.role === UserRole.GROUP_LEADER;
 
+  // ... (fetchData, handleApplyFees, handleImportLoans remain same) ...
   const fetchData = () => {
     if (!activeGroupId) return;
     setLoading(true);
@@ -238,7 +239,9 @@ export default function LoanManager() {
   
   // Max Loan Calculation
   const selectedMember = members.find(m => m.id === selectedMemberId);
-  const maxLoanAmount = selectedMember ? (selectedMember.totalShares * (group?.shareValue || 0) * 3) : 0;
+  const multiplier = group?.maxLoanMultiplier || 3;
+  const totalSavings = selectedMember ? (selectedMember.totalShares * (group?.shareValue || 0)) : 0;
+  const maxLoanAmount = totalSavings * multiplier;
   const isAmountValid = typeof formAmount === 'number' && formAmount > 0 && formAmount <= maxLoanAmount;
 
   const pendingLoans = loans.filter(l => l.status === LoanStatus.PENDING);
@@ -247,6 +250,7 @@ export default function LoanManager() {
   const overdueLoans = loans.filter(l => l.status === LoanStatus.ACTIVE && l.dueDate < new Date().toISOString().split('T')[0]);
   const overdueCount = overdueLoans.length;
 
+  // ... (Sort logic) ...
   const handleSort = (field: 'memberName' | 'amount' | 'dueDate' | 'status') => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -427,7 +431,7 @@ export default function LoanManager() {
                   </div>
                   
                   <div className="p-6 space-y-4">
-                      {/* Loan Summary */}
+                      {/* ... content ... */}
                       <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
                           <div className="flex justify-between items-center mb-2">
                               <span className="text-sm text-blue-700 font-bold">{getMemberName(reviewingLoan.memberId)}</span>
@@ -439,7 +443,6 @@ export default function LoanManager() {
                           <p className="text-xs text-blue-700 opacity-80">{reviewingLoan.purpose}</p>
                       </div>
 
-                      {/* Cash Check */}
                       <div className="flex justify-between text-sm py-2 border-b border-gray-100">
                           <span className="text-gray-500">Group Cash Balance:</span>
                           <span className={`font-bold ${cashBalance < reviewingLoan.principal ? 'text-red-600' : 'text-green-600'}`}>
@@ -447,7 +450,6 @@ export default function LoanManager() {
                           </span>
                       </div>
 
-                      {/* Review Actions */}
                       {!reviewAction ? (
                           <div className="grid grid-cols-2 gap-4 mt-4">
                               <button 
@@ -567,6 +569,7 @@ export default function LoanManager() {
                 <button onClick={() => setViewingLoan(null)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
              </div>
              <div className="p-6 space-y-4">
+                {/* ... existing detail fields ... */}
                 <div className="flex justify-between items-start">
                    <div>
                       <p className="text-sm text-gray-500">Member</p>
@@ -617,104 +620,114 @@ export default function LoanManager() {
         </div>
       )}
 
-      {/* Loan Application Modal */}
+      {/* Loan Application Modal - REFACTORED FOR STICKY HEADER/FOOTER */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full overflow-hidden">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-white flex-none">
               <h3 className="text-lg font-bold text-gray-800">{labels.newLoanApp}</h3>
               <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600">
                 <X size={24} />
               </button>
             </div>
             
-            <form onSubmit={handleCreateLoan} className="p-6 space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{labels.selectMember}</label>
-                {canEdit ? (
-                  <select 
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
-                    value={selectedMemberId}
+            <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                <form id="loan-form" onSubmit={handleCreateLoan} className="space-y-5">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{labels.selectMember}</label>
+                    {canEdit ? (
+                    <select 
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
+                        value={selectedMemberId}
+                        onChange={(e) => {
+                        setSelectedMemberId(e.target.value);
+                        setFormAmount(''); // Reset amount when member changes
+                        }}
+                        required
+                    >
+                        <option value="">-- {labels.selectMember} --</option>
+                        {members.map(m => (
+                        <option key={m.id} value={m.id}>{m.fullName} ({labels.totalSavings}: {(m.totalShares * (group?.shareValue || 0)).toLocaleString()})</option>
+                        ))}
+                    </select>
+                    ) : (
+                    <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm">
+                        You can only apply for yourself. Please contact leader for assistance.
+                    </div>
+                    )}
+                    
+                    {selectedMember && (
+                    <div className="mt-2 p-3 bg-blue-50 text-blue-800 rounded-lg text-sm border border-blue-100">
+                        <div className="flex justify-between items-center font-bold">
+                            <span>{labels.maxEligible}:</span>
+                            <span>{maxLoanAmount.toLocaleString()} {labels.currency}</span>
+                        </div>
+                        <div className="text-xs text-blue-600 mt-1 flex justify-between items-center">
+                            <span>Savings: {totalSavings.toLocaleString()}</span>
+                            <span className="bg-blue-200 px-1.5 py-0.5 rounded text-blue-800">x{multiplier} Limit</span>
+                        </div>
+                    </div>
+                    )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{labels.amount} ({labels.currency})</label>
+                    <input 
+                        type="number"
+                        min="1"
+                        max={maxLoanAmount}
+                        value={formAmount}
+                        onChange={(e) => setFormAmount(e.target.value === '' ? '' : Number(e.target.value))}
+                        className={`w-full px-4 py-2 border rounded-lg focus:ring-2 outline-none bg-white text-gray-900 ${
+                        formAmount && Number(formAmount) > maxLoanAmount ? 'border-red-300 focus:ring-red-200' : 'border-gray-300 focus:ring-blue-500'
+                        }`}
+                        disabled={!selectedMemberId && canEdit}
+                        required
+                    />
+                    {formAmount && Number(formAmount) > maxLoanAmount && (
+                        <span className="text-xs text-red-600 mt-1">{labels.exceedsLimit}</span>
+                    )}
+                    </div>
+                    <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{labels.durationMonths}</label>
+                    <input 
+                        type="number"
+                        min="1"
+                        max="24"
+                        value={formDuration}
+                        onChange={(e) => setFormDuration(Number(e.target.value))}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
+                        required
+                    />
+                    </div>
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{labels.purpose}</label>
+                    <textarea 
+                    rows={2}
+                    value={formPurpose}
                     onChange={(e) => {
-                      setSelectedMemberId(e.target.value);
-                      setFormAmount(''); // Reset amount when member changes
+                        setFormPurpose(e.target.value);
+                        if (purposeError) setPurposeError(null);
                     }}
-                    required
-                  >
-                    <option value="">-- {labels.selectMember} --</option>
-                    {members.map(m => (
-                      <option key={m.id} value={m.id}>{m.fullName} ({labels.totalSavings}: {(m.totalShares * (group?.shareValue || 0)).toLocaleString()})</option>
-                    ))}
-                  </select>
-                ) : (
-                  <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm">
-                     You can only apply for yourself. Please contact leader for assistance.
-                  </div>
-                )}
-                {selectedMember && (
-                  <div className="mt-2 p-3 bg-blue-50 text-blue-700 rounded-lg text-sm flex justify-between items-center">
-                    <span>{labels.maxEligible}:</span>
-                    <span className="font-bold">{maxLoanAmount.toLocaleString()} {labels.currency}</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">{labels.amount} ({labels.currency})</label>
-                  <input 
-                    type="number"
-                    min="1"
-                    max={maxLoanAmount}
-                    value={formAmount}
-                    onChange={(e) => setFormAmount(e.target.value === '' ? '' : Number(e.target.value))}
+                    placeholder="e.g. School Fees, Agriculture, Business..."
                     className={`w-full px-4 py-2 border rounded-lg focus:ring-2 outline-none bg-white text-gray-900 ${
-                       formAmount && Number(formAmount) > maxLoanAmount ? 'border-red-300 focus:ring-red-200' : 'border-gray-300 focus:ring-blue-500'
+                        purposeError ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-blue-500'
                     }`}
-                    disabled={!selectedMemberId && canEdit}
                     required
-                  />
-                  {formAmount && Number(formAmount) > maxLoanAmount && (
-                    <span className="text-xs text-red-600 mt-1">{labels.exceedsLimit}</span>
-                  )}
+                    />
+                    {purposeError && (
+                    <p className="text-xs text-red-600 mt-1 flex items-center">
+                        <AlertTriangle size={12} className="mr-1" /> {purposeError}
+                    </p>
+                    )}
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">{labels.durationMonths}</label>
-                  <input 
-                    type="number"
-                    min="1"
-                    max="24"
-                    value={formDuration}
-                    onChange={(e) => setFormDuration(Number(e.target.value))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
-                    required
-                  />
-                </div>
-              </div>
+                </form>
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{labels.purpose}</label>
-                <textarea 
-                  rows={2}
-                  value={formPurpose}
-                  onChange={(e) => {
-                    setFormPurpose(e.target.value);
-                    if (purposeError) setPurposeError(null);
-                  }}
-                  placeholder="e.g. School Fees, Agriculture, Business..."
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 outline-none bg-white text-gray-900 ${
-                    purposeError ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-blue-500'
-                  }`}
-                  required
-                />
-                {purposeError && (
-                  <p className="text-xs text-red-600 mt-1 flex items-center">
-                    <AlertTriangle size={12} className="mr-1" /> {purposeError}
-                  </p>
-                )}
-              </div>
-
-              <div className="pt-2 flex gap-3">
+            <div className="p-4 border-t border-gray-100 bg-gray-50 flex-none flex gap-3">
                 <button 
                   type="button" 
                   onClick={() => {
@@ -726,7 +739,8 @@ export default function LoanManager() {
                   {labels.cancel}
                 </button>
                 <button 
-                  type="submit" 
+                  type="submit"
+                  form="loan-form" 
                   disabled={!isAmountValid || formSubmitting}
                   className={`flex-1 px-4 py-2 text-white rounded-lg flex justify-center items-center ${
                     !isAmountValid || formSubmitting ? 'bg-blue-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
@@ -734,220 +748,221 @@ export default function LoanManager() {
                 >
                   {formSubmitting ? <Loader2 className="animate-spin" size={20} /> : labels.submit}
                 </button>
-              </div>
-            </form>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Fee Manager Tool */}
+      {/* ... Other sections (Fee Manager, Calculator, Tables) ... */}
       {showFeeManager && (
         <div className="bg-gradient-to-br from-white to-red-50 p-6 rounded-xl border border-red-100 shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-            <div>
-              <h3 className="text-lg font-semibold text-red-800 flex items-center">
-                <Coins size={20} className="mr-2" /> {labels.penaltyManager}
-              </h3>
-              <p className="text-sm text-gray-600 max-w-2xl mt-1">
-                Calculate and apply fees to overdue loans. {overdueLoans.length} loans are currently overdue.
-              </p>
+            {/* ... fee manager tool content ... */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+                <div>
+                <h3 className="text-lg font-semibold text-red-800 flex items-center">
+                    <Coins size={20} className="mr-2" /> {labels.penaltyManager}
+                </h3>
+                <p className="text-sm text-gray-600 max-w-2xl mt-1">
+                    Calculate and apply fees to overdue loans. {overdueLoans.length} loans are currently overdue.
+                </p>
+                </div>
             </div>
-          </div>
-          
-          <div className="flex flex-col md:flex-row items-end gap-6 border-b border-red-100 pb-6 mb-6">
-            <div className="w-full md:w-64">
-              <label className="block text-sm font-medium text-gray-700 mb-1">{labels.penaltyType}</label>
-              <div className="flex rounded-lg shadow-sm">
-                <button
-                  onClick={() => setFeeIsPercentage(true)}
-                  className={`flex-1 px-4 py-2 text-sm font-medium border rounded-l-lg ${
-                    feeIsPercentage ? 'bg-red-100 text-red-700 border-red-200' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                  }`}
+            {/* ... rest of fee manager ... */}
+            <div className="flex flex-col md:flex-row items-end gap-6 border-b border-red-100 pb-6 mb-6">
+                <div className="w-full md:w-64">
+                <label className="block text-sm font-medium text-gray-700 mb-1">{labels.penaltyType}</label>
+                <div className="flex rounded-lg shadow-sm">
+                    <button
+                    onClick={() => setFeeIsPercentage(true)}
+                    className={`flex-1 px-4 py-2 text-sm font-medium border rounded-l-lg ${
+                        feeIsPercentage ? 'bg-red-100 text-red-700 border-red-200' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                    }`}
+                    >
+                    {labels.percentage} (%)
+                    </button>
+                    <button
+                    onClick={() => setFeeIsPercentage(false)}
+                    className={`flex-1 px-4 py-2 text-sm font-medium border-t border-b border-r rounded-r-lg ${
+                        !feeIsPercentage ? 'bg-red-100 text-red-700 border-red-200' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                    }`}
+                    >
+                    {labels.fixedAmount}
+                    </button>
+                </div>
+                </div>
+
+                <div className="w-full md:w-48">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {feeIsPercentage ? labels.percentageRate : `${labels.fixedAmount} (${labels.currency})`}
+                </label>
+                <input 
+                    type="number"
+                    min="0"
+                    value={feeAmount}
+                    onChange={(e) => setFeeAmount(Number(e.target.value))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none bg-white text-gray-900"
+                />
+                </div>
+
+                <button 
+                onClick={handleApplyFees}
+                disabled={applyingFees || overdueCount === 0}
+                className={`flex items-center px-6 py-2 rounded-lg font-medium text-white shadow-sm transition-all ${
+                    applyingFees || overdueCount === 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'
+                }`}
                 >
-                  {labels.percentage} (%)
+                {applyingFees ? <Loader2 className="animate-spin mr-2" size={18} /> : <RefreshCw size={18} className="mr-2" />}
+                {applyingFees ? labels.processing : labels.applyPenalties}
                 </button>
-                <button
-                   onClick={() => setFeeIsPercentage(false)}
-                   className={`flex-1 px-4 py-2 text-sm font-medium border-t border-b border-r rounded-r-lg ${
-                    !feeIsPercentage ? 'bg-red-100 text-red-700 border-red-200' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  {labels.fixedAmount}
-                </button>
-              </div>
             </div>
 
-            <div className="w-full md:w-48">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {feeIsPercentage ? labels.percentageRate : `${labels.fixedAmount} (${labels.currency})`}
-              </label>
-              <input 
-                type="number"
-                min="0"
-                value={feeAmount}
-                onChange={(e) => setFeeAmount(Number(e.target.value))}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none bg-white text-gray-900"
-              />
-            </div>
+            {/* Penalty Preview Table */}
+            {overdueCount > 0 && (
+                <div className="bg-white rounded-lg border border-red-100 overflow-hidden">
+                    <table className="w-full text-sm text-left">
+                    <thead className="bg-red-50 text-red-800 font-bold uppercase text-xs">
+                        <tr>
+                            <th className="p-3">Member</th>
+                            <th className="p-3 text-right">Balance</th>
+                            <th className="p-3 text-right">Proposed Penalty</th>
+                            <th className="p-3 text-right">New Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {overdueLoans.map(loan => {
+                            const penalty = feeIsPercentage ? (loan.balance * feeAmount / 100) : feeAmount;
+                            return (
+                                <tr key={loan.id} className="border-t border-red-50">
+                                <td className="p-3 font-medium text-gray-700">{getMemberName(loan.memberId)}</td>
+                                <td className="p-3 text-right">{loan.balance.toLocaleString()}</td>
+                                <td className="p-3 text-right text-red-600 font-bold">+{penalty.toLocaleString()}</td>
+                                <td className="p-3 text-right font-bold text-gray-900">{(loan.balance + penalty).toLocaleString()}</td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                    </table>
+                </div>
+            )}
 
-            <button 
-              onClick={handleApplyFees}
-              disabled={applyingFees || overdueCount === 0}
-              className={`flex items-center px-6 py-2 rounded-lg font-medium text-white shadow-sm transition-all ${
-                applyingFees || overdueCount === 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'
-              }`}
-            >
-              {applyingFees ? <Loader2 className="animate-spin mr-2" size={18} /> : <RefreshCw size={18} className="mr-2" />}
-              {applyingFees ? labels.processing : labels.applyPenalties}
-            </button>
-          </div>
-
-          {/* Penalty Preview Table */}
-          {overdueCount > 0 && (
-             <div className="bg-white rounded-lg border border-red-100 overflow-hidden">
-                <table className="w-full text-sm text-left">
-                   <thead className="bg-red-50 text-red-800 font-bold uppercase text-xs">
-                      <tr>
-                         <th className="p-3">Member</th>
-                         <th className="p-3 text-right">Balance</th>
-                         <th className="p-3 text-right">Proposed Penalty</th>
-                         <th className="p-3 text-right">New Total</th>
-                      </tr>
-                   </thead>
-                   <tbody>
-                      {overdueLoans.map(loan => {
-                         const penalty = feeIsPercentage ? (loan.balance * feeAmount / 100) : feeAmount;
-                         return (
-                            <tr key={loan.id} className="border-t border-red-50">
-                               <td className="p-3 font-medium text-gray-700">{getMemberName(loan.memberId)}</td>
-                               <td className="p-3 text-right">{loan.balance.toLocaleString()}</td>
-                               <td className="p-3 text-right text-red-600 font-bold">+{penalty.toLocaleString()}</td>
-                               <td className="p-3 text-right font-bold text-gray-900">{(loan.balance + penalty).toLocaleString()}</td>
-                            </tr>
-                         );
-                      })}
-                   </tbody>
-                </table>
-             </div>
-          )}
-
-          {feeResult && (
-            <div className="mt-4 p-3 bg-green-100 text-green-800 rounded-lg text-sm flex items-center">
-              <Check size={16} className="mr-2" /> {feeResult}
-            </div>
-          )}
+            {feeResult && (
+                <div className="mt-4 p-3 bg-green-100 text-green-800 rounded-lg text-sm flex items-center">
+                <Check size={16} className="mr-2" /> {feeResult}
+                </div>
+            )}
         </div>
       )}
 
-      {/* Loan Estimator Tool */}
+      {/* Loan Estimator Tool - Remains same */}
       {showCalculator && (
         <div className="bg-gradient-to-br from-white to-blue-50 p-6 rounded-xl border border-blue-100 shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
-          <div className="flex justify-between items-start mb-4">
-            <h3 className="text-lg font-semibold text-gray-800 flex items-center">
-              <Calculator size={20} className="mr-2 text-blue-600" /> {labels.loanEstimator}
-            </h3>
-            <div className="flex items-center bg-blue-100 rounded-lg p-1">
-                <button 
-                   onClick={() => setCalcType('FLAT')}
-                   className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${calcType === 'FLAT' ? 'bg-white text-blue-700 shadow-sm' : 'text-blue-500 hover:bg-blue-200'}`}
-                >
-                   Flat Rate
-                </button>
-                <button 
-                   onClick={() => setCalcType('REDUCING')}
-                   className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${calcType === 'REDUCING' ? 'bg-white text-blue-700 shadow-sm' : 'text-blue-500 hover:bg-blue-200'}`}
-                >
-                   Reducing
-                </button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Inputs */}
-            <div className="space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{labels.amount} ({labels.currency})</label>
-                <div className="relative">
-                  <input 
-                    type="number" 
-                    min="0"
-                    value={calcAmount}
-                    onChange={(e) => setCalcAmount(Number(e.target.value))}
-                    className="w-full pl-4 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-shadow bg-white text-gray-900"
-                  />
+            {/* ... calculator content ... */}
+            <div className="flex justify-between items-start mb-4">
+                <h3 className="text-lg font-semibold text-gray-800 flex items-center">
+                <Calculator size={20} className="mr-2 text-blue-600" /> {labels.loanEstimator}
+                </h3>
+                <div className="flex items-center bg-blue-100 rounded-lg p-1">
+                    <button 
+                    onClick={() => setCalcType('FLAT')}
+                    className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${calcType === 'FLAT' ? 'bg-white text-blue-700 shadow-sm' : 'text-blue-500 hover:bg-blue-200'}`}
+                    >
+                    Flat Rate
+                    </button>
+                    <button 
+                    onClick={() => setCalcType('REDUCING')}
+                    className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${calcType === 'REDUCING' ? 'bg-white text-blue-700 shadow-sm' : 'text-blue-500 hover:bg-blue-200'}`}
+                    >
+                    Reducing
+                    </button>
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+            </div>
+            {/* ... rest of calculator ... */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Inputs */}
+                <div className="space-y-5">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">{labels.interestRate} (%)</label>
-                  <input 
-                    type="number" 
-                    min="0"
-                    step="0.1"
-                    value={calcRate}
-                    onChange={(e) => setCalcRate(Number(e.target.value))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-shadow bg-white text-gray-900"
-                  />
-                  <span className="text-xs text-gray-500 mt-1 block">{labels.perMonth}</span>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{labels.amount} ({labels.currency})</label>
+                    <div className="relative">
+                    <input 
+                        type="number" 
+                        min="0"
+                        value={calcAmount}
+                        onChange={(e) => setCalcAmount(Number(e.target.value))}
+                        className="w-full pl-4 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-shadow bg-white text-gray-900"
+                    />
+                    </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">{labels.durationMonths}</label>
-                  <input 
-                    type="number" 
-                    min="1"
-                    value={calcDuration}
-                    onChange={(e) => setCalcDuration(Number(e.target.value))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-shadow bg-white text-gray-900"
-                  />
-                  <span className="text-xs text-gray-500 mt-1 block">{labels.months}</span>
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{labels.interestRate} (%)</label>
+                    <input 
+                        type="number" 
+                        min="0"
+                        step="0.1"
+                        value={calcRate}
+                        onChange={(e) => setCalcRate(Number(e.target.value))}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-shadow bg-white text-gray-900"
+                    />
+                    <span className="text-xs text-gray-500 mt-1 block">{labels.perMonth}</span>
+                    </div>
+                    <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{labels.durationMonths}</label>
+                    <input 
+                        type="number" 
+                        min="1"
+                        value={calcDuration}
+                        onChange={(e) => setCalcDuration(Number(e.target.value))}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-shadow bg-white text-gray-900"
+                    />
+                    <span className="text-xs text-gray-500 mt-1 block">{labels.months}</span>
+                    </div>
                 </div>
-              </div>
-            </div>
+                </div>
 
-            {/* Results */}
-            <div className="lg:col-span-2 bg-white rounded-lg p-6 border border-gray-100 shadow-sm flex flex-col justify-center">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center divide-y sm:divide-y-0 sm:divide-x divide-gray-100">
-                <div className="pb-4 sm:pb-0">
-                  <p className="text-sm font-medium text-gray-500 mb-1">{labels.monthlyPayment}</p>
-                  <p className="text-2xl font-bold text-gray-900 tracking-tight">
-                    {monthlyPayment.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                    <span className="text-sm font-normal text-gray-400 ml-1">{labels.currency}</span>
-                  </p>
+                {/* Results */}
+                <div className="lg:col-span-2 bg-white rounded-lg p-6 border border-gray-100 shadow-sm flex flex-col justify-center">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center divide-y sm:divide-y-0 sm:divide-x divide-gray-100">
+                    <div className="pb-4 sm:pb-0">
+                    <p className="text-sm font-medium text-gray-500 mb-1">{labels.monthlyPayment}</p>
+                    <p className="text-2xl font-bold text-gray-900 tracking-tight">
+                        {monthlyPayment.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                        <span className="text-sm font-normal text-gray-400 ml-1">{labels.currency}</span>
+                    </p>
+                    </div>
+                    <div className="py-4 sm:py-0">
+                    <p className="text-sm font-medium text-gray-500 mb-1">{labels.totalInterest}</p>
+                    <p className="text-2xl font-bold text-blue-600 tracking-tight">
+                        {totalInterest.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                        <span className="text-sm font-normal text-gray-400 ml-1">{labels.currency}</span>
+                    </p>
+                    </div>
+                    <div className="pt-4 sm:pt-0">
+                    <p className="text-sm font-medium text-gray-500 mb-1">{labels.totalRepayment}</p>
+                    <p className="text-2xl font-bold text-green-600 tracking-tight">
+                        {totalRepayment.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                        <span className="text-sm font-normal text-gray-400 ml-1">{labels.currency}</span>
+                    </p>
+                    </div>
                 </div>
-                <div className="py-4 sm:py-0">
-                  <p className="text-sm font-medium text-gray-500 mb-1">{labels.totalInterest}</p>
-                  <p className="text-2xl font-bold text-blue-600 tracking-tight">
-                    {totalInterest.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                    <span className="text-sm font-normal text-gray-400 ml-1">{labels.currency}</span>
-                  </p>
+                <div className="mt-6 pt-4 border-t border-gray-100">
+                    <BreakdownView principal={calcAmount} totalRepayable={totalRepayment} interestRate={calcRate} />
+                    <p className="text-xs text-center text-gray-400 mt-2">
+                        * {calcType === 'FLAT' ? labels.formulaNote : 'Formula: Amortization (PMT)'}
+                    </p>
                 </div>
-                <div className="pt-4 sm:pt-0">
-                  <p className="text-sm font-medium text-gray-500 mb-1">{labels.totalRepayment}</p>
-                  <p className="text-2xl font-bold text-green-600 tracking-tight">
-                    {totalRepayment.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                    <span className="text-sm font-normal text-gray-400 ml-1">{labels.currency}</span>
-                  </p>
                 </div>
-              </div>
-              <div className="mt-6 pt-4 border-t border-gray-100">
-                 <BreakdownView principal={calcAmount} totalRepayable={totalRepayment} interestRate={calcRate} />
-                 <p className="text-xs text-center text-gray-400 mt-2">
-                    * {calcType === 'FLAT' ? labels.formulaNote : 'Formula: Amortization (PMT)'}
-                </p>
-              </div>
             </div>
-          </div>
         </div>
       )}
 
       {/* Pending Approvals Section */}
       {pendingLoans.length > 0 && canEdit && (
         <section>
+          {/* ... existing table/card code ... */}
           <h3 className="text-lg font-semibold text-gray-700 mb-4 flex items-center">
             <FileText size={20} className="mr-2" /> {labels.pendingApproval}
           </h3>
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            {/* Desktop Table for Pending */}
             <div className="hidden md:block">
               <table className="w-full text-left">
                 <thead className="bg-gray-50 text-xs uppercase text-gray-500">
@@ -977,7 +992,6 @@ export default function LoanManager() {
                 </tbody>
               </table>
             </div>
-            {/* Mobile Cards for Pending */}
             <div className="md:hidden divide-y divide-gray-100">
                 {pendingLoans.map(loan => (
                     <div key={loan.id} className="p-4">
@@ -1001,6 +1015,7 @@ export default function LoanManager() {
 
       {/* Active Loans Table/Cards */}
       <section>
+        {/* ... existing search/filter UI ... */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
           <h3 className="text-lg font-semibold text-gray-700">{labels.portfolio}</h3>
           
@@ -1052,7 +1067,7 @@ export default function LoanManager() {
           </div>
         </div>
 
-        {/* --- DESKTOP TABLE VIEW --- */}
+        {/* ... existing table code ... */}
         <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
            <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
@@ -1173,6 +1188,7 @@ export default function LoanManager() {
 
                     return (
                         <div key={loan.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                            {/* ... card content ... */}
                             <div className="flex justify-between items-start mb-3">
                                 <div>
                                     <h4 className="font-bold text-gray-900">{getMemberName(loan.memberId)}</h4>

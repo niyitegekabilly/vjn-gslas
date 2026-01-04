@@ -4,8 +4,9 @@ import { AppContext } from '../App';
 import { api } from '../api/client';
 import { LABELS } from '../constants';
 import { SystemSettings, SMSConfig, SMSTemplate, SMSLog } from '../types';
-import { Settings as SettingsIcon, Save, Download, RefreshCw, AlertTriangle, ShieldCheck, Loader2, Database, MessageSquare, ToggleRight, ToggleLeft, Edit, Activity, Zap, Trash2, CheckCircle } from 'lucide-react';
+import { Settings as SettingsIcon, Save, Download, RefreshCw, AlertTriangle, ShieldCheck, Loader2, Database, MessageSquare, ToggleRight, ToggleLeft, Edit, Activity, Zap, Trash2, CheckCircle, Copy } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { TABLE_SCHEMA_SQL, RLS_POLICIES_SQL } from '../backend/schema';
 
 export default function Settings() {
   const { lang } = useContext(AppContext);
@@ -125,6 +126,11 @@ export default function Settings() {
     }
   };
 
+  const copyToClipboard = (text: string) => {
+      navigator.clipboard.writeText(text);
+      alert("SQL copied to clipboard. Paste this in your Supabase SQL Editor.");
+  };
+
   if (loading) {
     return <div className="p-8 text-center"><Loader2 className="animate-spin mx-auto text-gray-400" /></div>;
   }
@@ -152,7 +158,7 @@ export default function Settings() {
                 onClick={() => setActiveTab('DATA')}
                 className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${activeTab === 'DATA' ? 'bg-blue-100 text-blue-700' : 'text-gray-500 hover:text-gray-700'}`}
             >
-                Data
+                Data & DB
             </button>
         </div>
       </div>
@@ -347,6 +353,61 @@ export default function Settings() {
       {/* DATA TAB */}
       {activeTab === 'DATA' && (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
+            
+            {/* Database Schema Viewer */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="p-6 border-b border-gray-100 bg-gray-50">
+                    <h3 className="font-bold text-gray-800 flex items-center">
+                    <Database className="mr-2 text-blue-600" size={20} /> {labels.rlsConfig}
+                    </h3>
+                </div>
+                <div className="p-6 space-y-4">
+                    <div className="bg-yellow-50 text-yellow-800 p-4 rounded-lg text-sm flex items-start border border-yellow-200">
+                        <AlertTriangle className="mr-2 flex-shrink-0 mt-0.5" size={16} />
+                        <div>
+                            <p className="font-bold">Missing Tables? (e.g. sms_config)</p>
+                            <p>{labels.runSqlWarning}</p>
+                        </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Table Schema (Run First)</label>
+                            <div className="relative">
+                                <textarea 
+                                    readOnly 
+                                    className="w-full h-48 p-3 bg-slate-900 text-slate-300 font-mono text-xs rounded-lg resize-y focus:outline-none"
+                                    value={TABLE_SCHEMA_SQL}
+                                />
+                                <button 
+                                    onClick={() => copyToClipboard(TABLE_SCHEMA_SQL)}
+                                    className="absolute top-2 right-2 px-2 py-1 bg-white/10 hover:bg-white/20 text-white text-xs rounded transition-colors flex items-center"
+                                >
+                                    <Copy size={12} className="mr-1"/> {labels.copySql}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">RLS Policies (Run Second)</label>
+                            <div className="relative">
+                                <textarea 
+                                    readOnly 
+                                    className="w-full h-48 p-3 bg-slate-900 text-slate-300 font-mono text-xs rounded-lg resize-y focus:outline-none"
+                                    value={RLS_POLICIES_SQL}
+                                />
+                                <button 
+                                    onClick={() => copyToClipboard(RLS_POLICIES_SQL)}
+                                    className="absolute top-2 right-2 px-2 py-1 bg-white/10 hover:bg-white/20 text-white text-xs rounded transition-colors flex items-center"
+                                >
+                                    <Copy size={12} className="mr-1"/> {labels.copySql}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {/* Backup Section */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <div className="p-6 border-b border-gray-100 bg-gray-50">

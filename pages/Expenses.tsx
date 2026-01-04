@@ -296,29 +296,32 @@ export default function Expenses() {
 
       {/* Category Modal */}
       {isCategoryOpen && (
-         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in zoom-in-95">
-            <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-               <div className="flex justify-between mb-4">
+         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[80vh] flex flex-col overflow-hidden">
+               <div className="flex justify-between items-center p-4 border-b border-gray-100 flex-none bg-white">
                   <h3 className="font-bold text-lg">Expense Categories</h3>
-                  <button onClick={() => setIsCategoryOpen(false)}><X className="text-gray-400" /></button>
+                  <button onClick={() => setIsCategoryOpen(false)} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
                </div>
-               <form onSubmit={handleAddCategory} className="flex gap-2 mb-4">
-                  <input 
-                     className="flex-1 p-2 border rounded-lg bg-white" 
-                     placeholder="New Category Name"
-                     value={newCatName}
-                     onChange={e => setNewCatName(e.target.value)}
-                     required
-                  />
-                  <button className="px-4 bg-slate-800 text-white rounded-lg font-bold text-sm">Add</button>
-               </form>
-               <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {categories.map(c => (
-                     <div key={c.id} className="p-2 bg-gray-50 border border-gray-100 rounded flex justify-between">
-                        <span>{c.name}</span>
-                        {c.active && <CheckCircle size={16} className="text-green-500" />}
-                     </div>
-                  ))}
+               
+               <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+                   <form onSubmit={handleAddCategory} className="flex gap-2 mb-4 sticky top-0 bg-white z-10 pb-2">
+                      <input 
+                         className="flex-1 p-2 border rounded-lg bg-white" 
+                         placeholder="New Category Name"
+                         value={newCatName}
+                         onChange={e => setNewCatName(e.target.value)}
+                         required
+                      />
+                      <button className="px-4 bg-slate-800 text-white rounded-lg font-bold text-sm">Add</button>
+                   </form>
+                   <div className="space-y-2">
+                      {categories.map(c => (
+                         <div key={c.id} className="p-2 bg-gray-50 border border-gray-100 rounded flex justify-between">
+                            <span>{c.name}</span>
+                            {c.active && <CheckCircle size={16} className="text-green-500" />}
+                         </div>
+                      ))}
+                   </div>
                </div>
             </div>
          </div>
@@ -326,130 +329,144 @@ export default function Expenses() {
 
       {/* Create Modal */}
       {isCreateOpen && (
-         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in zoom-in-95">
-            <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6">
-               <h3 className="font-bold text-lg mb-4">{labels.addExpense}</h3>
-               <form onSubmit={handleCreate} className="space-y-4">
-                  <div>
-                     <label className="block text-sm font-medium text-gray-700 mb-1">{labels.expenseCategory}</label>
-                     <select 
-                        required
-                        className="w-full p-2 border rounded-lg bg-white"
-                        value={formData.categoryId}
-                        onChange={e => setFormData({...formData, categoryId: e.target.value})}
-                     >
-                        <option value="">-- Select --</option>
-                        {categories.filter(c => c.active).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                     </select>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{labels.amount}</label>
-                        <input 
-                           type="number"
-                           required
-                           className="w-full p-2 border rounded-lg bg-white"
-                           min="1"
-                           max={cashBalance}
-                           value={formData.amount}
-                           onChange={e => setFormData({...formData, amount: parseInt(e.target.value) || 0})}
-                        />
-                     </div>
-                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{labels.date}</label>
-                        <input 
-                           type="date"
-                           required
-                           className="w-full p-2 border rounded-lg bg-white"
-                           value={formData.date}
-                           onChange={e => setFormData({...formData, date: e.target.value})}
-                        />
-                     </div>
-                  </div>
-                  <div>
-                     <label className="block text-sm font-medium text-gray-700 mb-1">{labels.description}</label>
-                     <textarea 
-                        required
-                        className="w-full p-2 border rounded-lg bg-white"
-                        rows={2}
-                        value={formData.description}
-                        onChange={e => setFormData({...formData, description: e.target.value})}
-                     />
-                  </div>
-                  
-                  {formData.amount > cashBalance && (
-                     <div className="text-xs text-red-600 bg-red-50 p-2 rounded border border-red-100 flex items-center">
-                        <AlertTriangle size={12} className="mr-1" /> {labels.insufficientFunds} (Bal: {cashBalance})
-                     </div>
-                  )}
+         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden">
+               <div className="flex justify-between items-center p-6 border-b border-gray-100 flex-none bg-white">
+                  <h3 className="font-bold text-lg">{labels.addExpense}</h3>
+                  <button onClick={() => setIsCreateOpen(false)} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
+               </div>
+               
+               <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                  <form id="create-expense-form" onSubmit={handleCreate} className="space-y-4">
+                      <div>
+                         <label className="block text-sm font-medium text-gray-700 mb-1">{labels.expenseCategory}</label>
+                         <select 
+                            required
+                            className="w-full p-2 border rounded-lg bg-white"
+                            value={formData.categoryId}
+                            onChange={e => setFormData({...formData, categoryId: e.target.value})}
+                         >
+                            <option value="">-- Select --</option>
+                            {categories.filter(c => c.active).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                         </select>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                         <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">{labels.amount}</label>
+                            <input 
+                               type="number"
+                               required
+                               className="w-full p-2 border rounded-lg bg-white"
+                               min="1"
+                               max={cashBalance}
+                               value={formData.amount}
+                               onChange={e => setFormData({...formData, amount: parseInt(e.target.value) || 0})}
+                            />
+                         </div>
+                         <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">{labels.date}</label>
+                            <input 
+                               type="date"
+                               required
+                               className="w-full p-2 border rounded-lg bg-white"
+                               value={formData.date}
+                               onChange={e => setFormData({...formData, date: e.target.value})}
+                            />
+                         </div>
+                      </div>
+                      <div>
+                         <label className="block text-sm font-medium text-gray-700 mb-1">{labels.description}</label>
+                         <textarea 
+                            required
+                            className="w-full p-2 border rounded-lg bg-white"
+                            rows={2}
+                            value={formData.description}
+                            onChange={e => setFormData({...formData, description: e.target.value})}
+                         />
+                      </div>
+                      
+                      {formData.amount > cashBalance && (
+                         <div className="text-xs text-red-600 bg-red-50 p-2 rounded border border-red-100 flex items-center">
+                            <AlertTriangle size={12} className="mr-1" /> {labels.insufficientFunds} (Bal: {cashBalance})
+                         </div>
+                      )}
+                  </form>
+               </div>
 
-                  <div className="flex gap-3 pt-2">
-                     <button type="button" onClick={() => setIsCreateOpen(false)} className="flex-1 py-2 border rounded-lg">{labels.cancel}</button>
-                     <button 
-                        type="submit" 
-                        disabled={submitting || formData.amount > cashBalance} 
-                        className="flex-1 py-2 bg-slate-800 text-white rounded-lg font-bold flex justify-center items-center disabled:opacity-50"
-                     >
-                        {submitting ? <Loader2 className="animate-spin" size={18}/> : labels.save}
-                     </button>
-                  </div>
-               </form>
+               <div className="p-4 border-t border-gray-100 bg-gray-50 flex-none flex gap-3">
+                  <button type="button" onClick={() => setIsCreateOpen(false)} className="flex-1 py-2 border rounded-lg font-medium text-gray-700">{labels.cancel}</button>
+                  <button 
+                     type="submit" 
+                     form="create-expense-form"
+                     disabled={submitting || formData.amount > cashBalance} 
+                     className="flex-1 py-2 bg-slate-800 text-white rounded-lg font-bold flex justify-center items-center shadow-sm disabled:opacity-50"
+                  >
+                     {submitting ? <Loader2 className="animate-spin" size={18}/> : labels.save}
+                  </button>
+               </div>
             </div>
          </div>
       )}
 
       {/* Edit Modal */}
       {isEditOpen && selectedExp && (
-         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in zoom-in-95">
-            <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-               <h3 className="font-bold text-lg mb-4">{labels.edit}</h3>
-               <form onSubmit={handleEditSubmit} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{labels.amount}</label>
-                        <input 
-                           type="number"
-                           className="w-full p-2 border rounded-lg bg-white"
-                           value={editData.amount}
-                           onChange={e => setEditData({...editData, amount: parseInt(e.target.value) || 0})}
-                        />
-                     </div>
-                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{labels.expenseCategory}</label>
-                        <select 
-                           className="w-full p-2 border rounded-lg bg-white"
-                           value={editData.categoryId}
-                           onChange={e => setEditData({...editData, categoryId: e.target.value})}
-                        >
-                           {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                        </select>
-                     </div>
-                  </div>
-                  <div>
-                     <label className="block text-sm font-medium text-gray-700 mb-1">{labels.description}</label>
-                     <input 
-                        className="w-full p-2 border rounded-lg bg-white"
-                        value={editData.description}
-                        onChange={e => setEditData({...editData, description: e.target.value})}
-                     />
-                  </div>
-                  <div>
-                     <label className="block text-sm font-medium text-gray-700 mb-1">{labels.reason} <span className="text-red-500">*</span></label>
-                     <textarea 
-                        required
-                        className="w-full p-2 border rounded-lg bg-white focus:ring-2 focus:ring-amber-500 outline-none"
-                        value={editData.reason}
-                        onChange={e => setEditData({...editData, reason: e.target.value})}
-                        placeholder={labels.whyChange}
-                     />
-                  </div>
-                  <div className="flex gap-3 pt-2">
-                     <button type="button" onClick={() => setIsEditOpen(false)} className="flex-1 py-2 border rounded-lg">{labels.cancel}</button>
-                     <button type="submit" disabled={submitting} className="flex-1 py-2 bg-blue-600 text-white rounded-lg font-bold flex justify-center items-center">
-                        {submitting ? <Loader2 className="animate-spin" size={18}/> : labels.save}
-                     </button>
-                  </div>
-               </form>
+         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] flex flex-col overflow-hidden">
+               <div className="flex justify-between items-center p-6 border-b border-gray-100 flex-none bg-white">
+                  <h3 className="font-bold text-lg">{labels.edit}</h3>
+                  <button onClick={() => setIsEditOpen(false)} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
+               </div>
+               
+               <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                  <form id="edit-expense-form" onSubmit={handleEditSubmit} className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                         <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">{labels.amount}</label>
+                            <input 
+                               type="number"
+                               className="w-full p-2 border rounded-lg bg-white"
+                               value={editData.amount}
+                               onChange={e => setEditData({...editData, amount: parseInt(e.target.value) || 0})}
+                            />
+                         </div>
+                         <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">{labels.expenseCategory}</label>
+                            <select 
+                               className="w-full p-2 border rounded-lg bg-white"
+                               value={editData.categoryId}
+                               onChange={e => setEditData({...editData, categoryId: e.target.value})}
+                            >
+                               {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            </select>
+                         </div>
+                      </div>
+                      <div>
+                         <label className="block text-sm font-medium text-gray-700 mb-1">{labels.description}</label>
+                         <input 
+                            className="w-full p-2 border rounded-lg bg-white"
+                            value={editData.description}
+                            onChange={e => setEditData({...editData, description: e.target.value})}
+                         />
+                      </div>
+                      <div>
+                         <label className="block text-sm font-medium text-gray-700 mb-1">{labels.reason} <span className="text-red-500">*</span></label>
+                         <textarea 
+                            required
+                            className="w-full p-2 border rounded-lg bg-white focus:ring-2 focus:ring-amber-500 outline-none"
+                            value={editData.reason}
+                            onChange={e => setEditData({...editData, reason: e.target.value})}
+                            placeholder={labels.whyChange}
+                         />
+                      </div>
+                  </form>
+               </div>
+
+               <div className="p-4 border-t border-gray-100 bg-gray-50 flex-none flex gap-3">
+                  <button type="button" onClick={() => setIsEditOpen(false)} className="flex-1 py-2 border rounded-lg font-medium text-gray-700">{labels.cancel}</button>
+                  <button type="submit" form="edit-expense-form" disabled={submitting} className="flex-1 py-2 bg-blue-600 text-white rounded-lg font-bold flex justify-center items-center shadow-sm">
+                     {submitting ? <Loader2 className="animate-spin" size={18}/> : labels.save}
+                  </button>
+               </div>
             </div>
          </div>
       )}

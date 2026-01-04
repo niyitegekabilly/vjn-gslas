@@ -222,87 +222,98 @@ export default function Attendance() {
 
       {/* Create Modal */}
       {isCreateOpen && (
-         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in zoom-in-95">
-            <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-               <div className="flex justify-between mb-4">
+         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] flex flex-col overflow-hidden">
+               <div className="flex justify-between items-center p-6 border-b border-gray-100 flex-none bg-white">
                   <h3 className="font-bold text-lg">{labels.scheduleNewMeeting}</h3>
-                  <button onClick={() => setIsCreateOpen(false)}><X className="text-gray-400" /></button>
+                  <button onClick={() => setIsCreateOpen(false)} className="text-gray-400 hover:text-gray-600"><X className="text-gray-400" /></button>
                </div>
-               <form onSubmit={handleCreateMeeting} className="space-y-4">
-                  <div>
-                     <label className="block text-sm font-medium text-gray-700 mb-1">{labels.date}</label>
-                     <input 
-                        type="date"
-                        required
-                        value={newMeetingData.date}
-                        onChange={e => setNewMeetingData({...newMeetingData, date: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
-                     />
-                  </div>
-                  <div>
-                     <label className="block text-sm font-medium text-gray-700 mb-1">{labels.type}</label>
-                     <select 
-                        value={newMeetingData.type}
-                        onChange={e => setNewMeetingData({...newMeetingData, type: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
-                     >
-                        <option value="REGULAR">{labels.regularWeekly}</option>
-                        <option value="SPECIAL">{labels.specialEvent}</option>
-                        <option value="EMERGENCY">{labels.emergency}</option>
-                     </select>
-                  </div>
-                  <div>
-                     <label className="block text-sm font-medium text-gray-700 mb-1">{labels.notes}</label>
-                     <textarea 
-                        rows={3}
-                        value={newMeetingData.notes}
-                        onChange={e => setNewMeetingData({...newMeetingData, notes: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
-                     />
-                  </div>
-                  <div className="pt-2 flex gap-3">
-                     <button type="button" onClick={() => setIsCreateOpen(false)} className="flex-1 py-2 border rounded-lg">{labels.cancel}</button>
-                     <button type="submit" disabled={submitting} className="flex-1 py-2 bg-slate-800 text-white rounded-lg font-bold flex justify-center items-center">
-                        {submitting ? <Loader2 className="animate-spin" size={18}/> : labels.save}
-                     </button>
-                  </div>
-               </form>
+               
+               <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                  <form id="create-meeting-form" onSubmit={handleCreateMeeting} className="space-y-4">
+                      <div>
+                         <label className="block text-sm font-medium text-gray-700 mb-1">{labels.date}</label>
+                         <input 
+                            type="date"
+                            required
+                            value={newMeetingData.date}
+                            onChange={e => setNewMeetingData({...newMeetingData, date: e.target.value})}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
+                         />
+                      </div>
+                      <div>
+                         <label className="block text-sm font-medium text-gray-700 mb-1">{labels.type}</label>
+                         <select 
+                            value={newMeetingData.type}
+                            onChange={e => setNewMeetingData({...newMeetingData, type: e.target.value})}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
+                         >
+                            <option value="REGULAR">{labels.regularWeekly}</option>
+                            <option value="SPECIAL">{labels.specialEvent}</option>
+                            <option value="EMERGENCY">{labels.emergency}</option>
+                         </select>
+                      </div>
+                      <div>
+                         <label className="block text-sm font-medium text-gray-700 mb-1">{labels.notes}</label>
+                         <textarea 
+                            rows={3}
+                            value={newMeetingData.notes}
+                            onChange={e => setNewMeetingData({...newMeetingData, notes: e.target.value})}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
+                         />
+                      </div>
+                  </form>
+               </div>
+
+               <div className="p-4 border-t border-gray-100 bg-gray-50 flex-none flex gap-3">
+                  <button type="button" onClick={() => setIsCreateOpen(false)} className="flex-1 py-2 border rounded-lg text-gray-700 font-medium hover:bg-gray-50">{labels.cancel}</button>
+                  <button type="submit" form="create-meeting-form" disabled={submitting} className="flex-1 py-2 bg-slate-800 text-white rounded-lg font-bold flex justify-center items-center shadow-sm">
+                     {submitting ? <Loader2 className="animate-spin" size={18}/> : labels.save}
+                  </button>
+               </div>
             </div>
          </div>
       )}
 
-      {/* Edit Record Modal - Only accessible via drill-down logic which is simplified here */}
+      {/* Edit Record Modal */}
       {isEditOpen && editingRecord && (
-         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in zoom-in-95">
-            <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
-               <h3 className="font-bold text-lg mb-4">{labels.correctAttendance}</h3>
-               <form onSubmit={handleEditSubmit} className="space-y-4">
-                  <div>
-                     <label className="block text-sm font-medium text-gray-700 mb-1">{labels.status}</label>
-                     <select 
-                        value={editForm.status}
-                        onChange={e => setEditForm({...editForm, status: e.target.value as AttendanceStatus})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
-                     >
-                        {Object.values(AttendanceStatus).map(s => <option key={s} value={s}>{s}</option>)}
-                     </select>
-                  </div>
-                  <div>
-                     <label className="block text-sm font-medium text-gray-700 mb-1">{labels.reason} <span className="text-red-500">*</span></label>
-                     <textarea 
-                        required
-                        value={editForm.reason}
-                        onChange={e => setEditForm({...editForm, reason: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-amber-500 outline-none"
-                     />
-                  </div>
-                  <div className="pt-2 flex gap-3">
-                     <button type="button" onClick={() => setIsEditOpen(false)} className="flex-1 py-2 border rounded-lg">{labels.cancel}</button>
-                     <button type="submit" disabled={submitting} className="flex-1 py-2 bg-blue-600 text-white rounded-lg font-bold flex justify-center items-center">
-                        {submitting ? <Loader2 className="animate-spin" size={18}/> : labels.save}
-                     </button>
-                  </div>
-               </form>
+         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-white rounded-xl shadow-xl max-w-sm w-full max-h-[90vh] flex flex-col overflow-hidden">
+               <div className="flex justify-between items-center p-6 border-b border-gray-100 flex-none bg-white">
+                  <h3 className="font-bold text-lg">{labels.correctAttendance}</h3>
+                  <button onClick={() => setIsEditOpen(false)} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
+               </div>
+               
+               <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                  <form id="edit-attendance-form" onSubmit={handleEditSubmit} className="space-y-4">
+                      <div>
+                         <label className="block text-sm font-medium text-gray-700 mb-1">{labels.status}</label>
+                         <select 
+                            value={editForm.status}
+                            onChange={e => setEditForm({...editForm, status: e.target.value as AttendanceStatus})}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
+                         >
+                            {Object.values(AttendanceStatus).map(s => <option key={s} value={s}>{s}</option>)}
+                         </select>
+                      </div>
+                      <div>
+                         <label className="block text-sm font-medium text-gray-700 mb-1">{labels.reason} <span className="text-red-500">*</span></label>
+                         <textarea 
+                            required
+                            value={editForm.reason}
+                            onChange={e => setEditForm({...editForm, reason: e.target.value})}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-amber-500 outline-none"
+                         />
+                      </div>
+                  </form>
+               </div>
+
+               <div className="p-4 border-t border-gray-100 bg-gray-50 flex-none flex gap-3">
+                  <button type="button" onClick={() => setIsEditOpen(false)} className="flex-1 py-2 border rounded-lg text-gray-700 font-medium hover:bg-gray-50">{labels.cancel}</button>
+                  <button type="submit" form="edit-attendance-form" disabled={submitting} className="flex-1 py-2 bg-blue-600 text-white rounded-lg font-bold flex justify-center items-center shadow-sm">
+                     {submitting ? <Loader2 className="animate-spin" size={18}/> : labels.save}
+                  </button>
+               </div>
             </div>
          </div>
       )}

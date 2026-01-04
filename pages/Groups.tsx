@@ -1,3 +1,4 @@
+
 import React, { useContext, useEffect, useState } from 'react';
 import { AppContext } from '../App';
 import { api } from '../api/client';
@@ -97,7 +98,7 @@ export default function Groups() {
 
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-           <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-xl">
+           <div className="w-full max-w-3xl h-[90vh] flex flex-col bg-white rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
               <GroupForm 
                 initialData={selectedGroup}
                 onSubmit={handleSave}

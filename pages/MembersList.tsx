@@ -4,7 +4,7 @@ import { AppContext } from '../App';
 import { api } from '../api/client';
 import { LABELS } from '../constants';
 import { Member, MemberStatus, UserRole } from '../types';
-import { Users, Plus, Search, Edit, Trash2, Filter, Loader2, X, CheckCircle, AlertCircle, Phone } from 'lucide-react';
+import { Users, Plus, Search, Edit, Trash2, Filter, Loader2, X, CheckCircle, AlertCircle, Phone, Save } from 'lucide-react';
 import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog';
 import { CsvImporter } from '../components/CsvImporter';
 import { TableRowSkeleton } from '../components/Skeleton';
@@ -322,92 +322,98 @@ export default function MembersList() {
 
       {isModalOpen && (
          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in zoom-in-95 duration-200">
-            <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6">
-               <div className="flex justify-between items-center mb-6 border-b border-gray-100 pb-4">
+            <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden">
+               {/* Sticky Header */}
+               <div className="flex justify-between items-center p-6 border-b border-gray-100 flex-none bg-white">
                   <h3 className="text-lg font-bold text-gray-800">
                      {editingMember ? labels.editMember : labels.addMember}
                   </h3>
                   <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
                </div>
                
-               <form onSubmit={handleSubmit} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">{labels.fullName}</label>
-                    <input 
-                      type="text"
-                      required
-                      value={formData.fullName}
-                      onChange={e => setFormData({...formData, fullName: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                    />
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{labels.nationalId}</label>
-                        <input 
-                          type="text"
-                          value={formData.nationalId}
-                          onChange={e => setFormData({...formData, nationalId: e.target.value})}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                          placeholder="16 Digits"
-                        />
-                     </div>
-                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{labels.phoneNumber}</label>
+               {/* Scrollable Form Body */}
+               <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                  <form id="member-form" onSubmit={handleSubmit} className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{labels.fullName}</label>
                         <input 
                           type="text"
                           required
-                          value={formData.phone}
-                          onChange={e => setFormData({...formData, phone: e.target.value})}
+                          value={formData.fullName}
+                          onChange={e => setFormData({...formData, fullName: e.target.value})}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                         />
-                     </div>
-                  </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">{labels.nationalId}</label>
+                            <input 
+                              type="text"
+                              value={formData.nationalId}
+                              onChange={e => setFormData({...formData, nationalId: e.target.value})}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                              placeholder="16 Digits"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">{labels.phoneNumber}</label>
+                            <input 
+                              type="text"
+                              required
+                              value={formData.phone}
+                              onChange={e => setFormData({...formData, phone: e.target.value})}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                            />
+                        </div>
+                      </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{labels.role}</label>
-                        <select 
-                           value={formData.role}
-                           onChange={e => setFormData({...formData, role: e.target.value as UserRole})}
-                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                        >
-                           <option value={UserRole.MEMBER_USER}>{labels.memberUser}</option>
-                           <option value={UserRole.GROUP_LEADER}>{labels.groupLeader}</option>
-                        </select>
-                     </div>
-                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{labels.status}</label>
-                        <select 
-                           value={formData.status}
-                           onChange={e => setFormData({...formData, status: e.target.value as MemberStatus})}
-                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                        >
-                           <option value={MemberStatus.ACTIVE}>{labels.active}</option>
-                           <option value={MemberStatus.SUSPENDED}>{labels.suspended}</option>
-                           <option value={MemberStatus.EXITED}>{labels.exited}</option>
-                        </select>
-                     </div>
-                  </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">{labels.role}</label>
+                            <select 
+                              value={formData.role}
+                              onChange={e => setFormData({...formData, role: e.target.value as UserRole})}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                            >
+                              <option value={UserRole.MEMBER_USER}>{labels.memberUser}</option>
+                              <option value={UserRole.GROUP_LEADER}>{labels.groupLeader}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">{labels.status}</label>
+                            <select 
+                              value={formData.status}
+                              onChange={e => setFormData({...formData, status: e.target.value as MemberStatus})}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                            >
+                              <option value={MemberStatus.ACTIVE}>{labels.active}</option>
+                              <option value={MemberStatus.SUSPENDED}>{labels.suspended}</option>
+                              <option value={MemberStatus.EXITED}>{labels.exited}</option>
+                            </select>
+                        </div>
+                      </div>
+                  </form>
+               </div>
 
-                  <div className="pt-2 flex gap-3">
-                     <button 
-                        type="button" 
-                        onClick={() => setIsModalOpen(false)}
-                        className="flex-1 py-2.5 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50"
-                     >
-                        {labels.cancel}
-                     </button>
-                     <button 
-                        type="submit" 
-                        disabled={isSubmitting}
-                        className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 flex justify-center items-center shadow-sm"
-                     >
-                        {isSubmitting ? <Loader2 className="animate-spin mr-2" size={18} /> : labels.save}
-                     </button>
-                  </div>
-               </form>
+               {/* Sticky Footer */}
+               <div className="p-4 border-t border-gray-100 bg-gray-50 flex-none flex gap-3">
+                  <button 
+                    type="button" 
+                    onClick={() => setIsModalOpen(false)}
+                    className="flex-1 py-2.5 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50"
+                  >
+                    {labels.cancel}
+                  </button>
+                  <button 
+                    type="submit" 
+                    form="member-form"
+                    disabled={isSubmitting}
+                    className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 flex justify-center items-center shadow-sm disabled:opacity-50"
+                  >
+                    {isSubmitting ? <Loader2 className="animate-spin mr-2" size={18} /> : <div className="flex items-center"><Save size={18} className="mr-2"/> {labels.save}</div>}
+                  </button>
+               </div>
             </div>
          </div>
       )}
