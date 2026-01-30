@@ -1,31 +1,31 @@
-
 export enum UserRole {
   SUPER_ADMIN = 'SUPER_ADMIN',
   ADMIN = 'ADMIN',
   GROUP_LEADER = 'GROUP_LEADER',
   MEMBER_USER = 'MEMBER_USER',
-  AUDITOR = 'AUDITOR'
+  AUDITOR = 'AUDITOR',
 }
 
 export enum UserStatus {
   ACTIVE = 'ACTIVE',
   DISABLED = 'DISABLED',
   LOCKED = 'LOCKED',
-  PENDING_PASSWORD = 'PENDING_PASSWORD'
+  PENDING_PASSWORD = 'PENDING_PASSWORD',
 }
 
 export enum MemberStatus {
   ACTIVE = 'ACTIVE',
   SUSPENDED = 'SUSPENDED',
-  EXITED = 'EXITED'
+  EXITED = 'EXITED',
 }
 
 export enum LoanStatus {
   PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
   ACTIVE = 'ACTIVE',
-  REJECTED = 'REJECTED',
   CLEARED = 'CLEARED',
-  DEFAULTED = 'DEFAULTED'
+  REJECTED = 'REJECTED',
+  DEFAULTED = 'DEFAULTED',
 }
 
 export enum TransactionType {
@@ -33,33 +33,34 @@ export enum TransactionType {
   LOAN_REPAYMENT = 'LOAN_REPAYMENT',
   FINE_PAYMENT = 'FINE_PAYMENT',
   EXPENSE = 'EXPENSE',
-  LOAN_DISBURSEMENT = 'LOAN_DISBURSEMENT'
+  LOAN_DISBURSEMENT = 'LOAN_DISBURSEMENT',
+  LOAN_PENALTY = 'LOAN_PENALTY',
 }
 
 export enum GroupStatus {
   ACTIVE = 'ACTIVE',
   SUSPENDED = 'SUSPENDED',
-  CLOSED = 'CLOSED'
+  CLOSED = 'CLOSED',
 }
 
 export enum MeetingFrequency {
   WEEKLY = 'WEEKLY',
   BIWEEKLY = 'BIWEEKLY',
-  MONTHLY = 'MONTHLY'
+  MONTHLY = 'MONTHLY',
+}
+
+export enum FineStatus {
+  UNPAID = 'UNPAID',
+  PARTIALLY_PAID = 'PARTIALLY_PAID',
+  PAID = 'PAID',
+  VOID = 'VOID',
 }
 
 export enum AttendanceStatus {
   PRESENT = 'PRESENT',
   ABSENT = 'ABSENT',
   LATE = 'LATE',
-  EXCUSED = 'EXCUSED'
-}
-
-export enum FineStatus {
-  UNPAID = 'UNPAID',
-  PAID = 'PAID',
-  PARTIALLY_PAID = 'PARTIALLY_PAID',
-  VOID = 'VOID'
+  EXCUSED = 'EXCUSED',
 }
 
 export enum SMSEventType {
@@ -72,18 +73,26 @@ export enum SMSEventType {
   SEASON_CLOSED = 'SEASON_CLOSED',
   SHARE_OUT_FINALIZED = 'SHARE_OUT_FINALIZED',
   USER_CREATED = 'USER_CREATED',
-  PASSWORD_RESET = 'PASSWORD_RESET'
+  PASSWORD_RESET = 'PASSWORD_RESET',
 }
 
 export enum WorkflowScope {
   LOAN_APPROVAL = 'LOAN_APPROVAL',
-  EXPENSE_APPROVAL = 'EXPENSE_APPROVAL'
+  EXPENSE_APPROVAL = 'EXPENSE_APPROVAL',
 }
 
 export enum ApprovalStatus {
   PENDING = 'PENDING',
   APPROVED = 'APPROVED',
-  REJECTED = 'REJECTED'
+  REJECTED = 'REJECTED',
+}
+
+export interface AuditRecord {
+  id: string;
+  date: string;
+  editorId: string;
+  reason: string;
+  changes: { field: string; oldValue: any; newValue: any }[];
 }
 
 export interface SystemSettings {
@@ -106,10 +115,18 @@ export interface User {
   phone: string;
   role: UserRole;
   status: UserStatus;
+
+  // auth/security
   passwordHash?: string;
-  twoFactorEnabled: boolean;
+  twoFactorEnabled?: boolean;
+
+  // scoping
+  branchId?: string;
   linkedMemberId?: string;
-  managedGroupIds?: string[];
+  managedGroupId?: string; // legacy single group
+  managedGroupIds?: string[]; // newer multi-group
+
+  // metadata
   lastLogin?: string;
   failedLoginAttempts: number;
   createdAt: string;
@@ -126,31 +143,46 @@ export interface GSLAGroup {
   id: string;
   name: string;
   branchId: string;
+
+  // location
   district: string;
   sector: string;
   cell?: string;
   village?: string;
   location: string;
+  coordinates?: { lat: number; lng: number };
+
+  // governance (member ids)
+  presidentId?: string;
+  secretaryId?: string;
+  accountantId?: string;
+
+  // rules
   meetingDay: string;
   meetingFrequency: MeetingFrequency;
   shareValue: number;
   minShares: number;
   maxShares: number;
   maxLoanMultiplier: number;
+  lateFeeAmount?: number;
+  lateFeeType?: 'PERCENTAGE' | 'FIXED';
+
+  // documents
+  constitutionUrl?: string;
+
+  // state
   currentCycleId: string;
   status: GroupStatus;
+
+  // financial cache
   totalSavings: number;
   totalLoansOutstanding: number;
   totalSolidarity: number;
+
+  // metadata
   createdAt: string;
+  lastUpdatedAt?: string;
   auditHistory: AuditRecord[];
-  presidentId?: string;
-  secretaryId?: string;
-  accountantId?: string;
-  coordinates?: { lat: number; lng: number };
-  constitutionUrl?: string;
-  lateFeeAmount?: number;
-  lateFeeType?: 'PERCENTAGE' | 'FIXED';
 }
 
 export interface Cycle {
@@ -168,12 +200,12 @@ export interface Member {
   fullName: string;
   nationalId: string;
   phone: string;
-  role: UserRole;
+  email?: string;
+  role: UserRole | string;
   status: MemberStatus;
   joinDate: string;
   totalShares: number;
   totalLoans: number;
-  email?: string;
   photoUrl?: string;
 }
 
@@ -189,7 +221,7 @@ export interface Loan {
   startDate: string;
   dueDate: string;
   purpose: string;
-  memberRole?: UserRole;
+  memberRole?: UserRole | string;
 }
 
 export interface Transaction {
@@ -200,19 +232,34 @@ export interface Transaction {
   type: TransactionType;
   amount: number;
   date: string;
-  shareCount?: number;
-  solidarityAmount?: number;
   description?: string;
   categoryId?: string;
+
+  // contribution fields
+  shareCount?: number;
+  solidarityAmount?: number;
+  paymentMethod?: 'CASH' | 'MOBILE_MONEY' | 'BANK_TRANSFER' | string;
+
+  // audit/status
   isVoid?: boolean;
   voidReason?: string;
+  notes?: string;
   recordedBy?: string;
   approvedBy?: string;
   editHistory?: AuditRecord[];
   status?: string;
   approvalRequestId?: string;
+}
+
+export interface Meeting {
+  id: string;
+  groupId: string;
+  cycleId?: string;
+  date: string;
+  type: 'REGULAR' | 'SPECIAL' | 'EMERGENCY';
   notes?: string;
-  paymentMethod?: string;
+  createdBy: string;
+  createdAt: string;
 }
 
 export interface Attendance {
@@ -223,31 +270,7 @@ export interface Attendance {
   memberId: string;
   status: AttendanceStatus;
   notes?: string;
-  recordedBy: string;
-  auditHistory: AuditRecord[];
-}
-
-export interface Meeting {
-  id: string;
-  groupId: string;
-  date: string;
-  type: 'REGULAR' | 'SPECIAL' | 'EMERGENCY';
-  notes?: string;
-  createdBy: string;
-  createdAt: string;
-}
-
-export interface Fine {
-  id: string;
-  groupId: string;
-  memberId: string;
-  cycleId: string;
-  date: string;
-  categoryId: string;
-  amount: number;
-  paidAmount: number;
-  status: FineStatus;
-  reason?: string;
+  fineId?: string;
   recordedBy: string;
   auditHistory: AuditRecord[];
 }
@@ -268,6 +291,21 @@ export interface ExpenseCategory {
   active: boolean;
 }
 
+export interface Fine {
+  id: string;
+  groupId: string;
+  memberId: string;
+  cycleId: string;
+  date: string;
+  categoryId: string;
+  amount: number;
+  paidAmount: number;
+  status: FineStatus;
+  reason?: string;
+  recordedBy: string;
+  auditHistory: AuditRecord[];
+}
+
 export interface Notification {
   id: string;
   title: string;
@@ -275,14 +313,6 @@ export interface Notification {
   date: string;
   read: boolean;
   type: 'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR';
-}
-
-export interface AuditRecord {
-  id: string;
-  date: string;
-  editorId: string;
-  reason: string;
-  changes: { field: string; oldValue: any; newValue: any }[];
 }
 
 export interface ShareOutSnapshot {
@@ -345,3 +375,4 @@ export interface SMSConfig {
   updatedAt?: string;
   updatedBy?: string;
 }
+

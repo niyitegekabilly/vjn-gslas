@@ -9,7 +9,7 @@ import { Skeleton } from '../components/Skeleton';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function Notifications() {
-  const { lang, activeGroupId } = useContext(AppContext);
+  const { lang, activeGroupId, refreshNotifications } = useContext(AppContext);
   const labels = LABELS[lang];
   const { user } = useAuth();
   
@@ -27,6 +27,7 @@ export default function Notifications() {
 
   useEffect(() => {
     fetchData();
+    refreshNotifications(); // Refresh the badge count when page loads
   }, []);
 
   useEffect(() => {
@@ -45,11 +46,13 @@ export default function Notifications() {
   const markAsRead = async (id: string) => {
     await api.markNotificationRead(id);
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    refreshNotifications(); // Update the badge count
   };
 
   const markAllRead = async () => {
     await api.markAllNotificationsRead();
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    refreshNotifications(); // Update the badge count
   };
 
   const handleSend = async (e: React.FormEvent) => {

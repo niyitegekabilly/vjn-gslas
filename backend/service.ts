@@ -1,5 +1,4 @@
 
-// ... existing imports
 import { 
   GSLAGroup, Member, Loan, Transaction, 
   UserRole, MemberStatus, LoanStatus, TransactionType, Attendance,
@@ -11,25 +10,13 @@ import {
 import { supabase } from './supabaseClient';
 import { SEED_DATA } from './db';
 
-// Helper to extract clean error messages from Supabase responses
+// Mock implementation helper
 const handleResponse = async (promise: Promise<any>) => {
   const { data, error } = await promise;
   if (error) {
     console.error("Supabase Error:", error);
-    
-    let errorMessage = "Unknown Database Error";
-    
-    // Attempt to extract specific message fields
-    if (typeof error === 'object' && error !== null) {
-        if ('message' in error) errorMessage = (error as any).message;
-        else if ('error_description' in error) errorMessage = (error as any).error_description;
-        else if ('details' in error) errorMessage = (error as any).details;
-        else if ('hint' in error) errorMessage = (error as any).hint;
-        else errorMessage = JSON.stringify(error);
-    } else if (typeof error === 'string') {
-        errorMessage = error;
-    }
-
+    // Normalize error to standard Error object to prevent [object Object] alerts
+    const errorMessage = error.message || error.details || error.hint || JSON.stringify(error);
     throw new Error(errorMessage);
   }
   return data;
@@ -132,7 +119,7 @@ export const triggerSMSEvent = async (
             await supabase.from('sms_config').update({ currentUsage: smsConfig.currentUsage + 1 }).neq('id', '');
         } catch (e: any) {
             status = 'FAILED';
-            errorMsg = e.message || JSON.stringify(e);
+            errorMsg = e.message;
             console.error("SMS Send Failed:", e);
         }
     } else {
@@ -199,15 +186,18 @@ export const createUser = async (user: Partial<User>, creatorId: string): Promis
     twoFactorEnabled: false
   };
   const created = await handleResponse(supabase.from('users').insert(newUser).select().single());
+  
+  // Trigger SMS if phone exists
+  if (created.phone) {
+      // We don't have a direct member ID link usually for admins, but if user has phone, treat as recipient
+      // For simplicity in this mock, we might skip or need a dummy member ID logic.
+      // But typically we trigger based on MEMBER events.
+  }
   return created;
 };
 
 export const updateUser = async (id: string, updates: Partial<User>): Promise<User> => {
   return handleResponse(supabase.from('users').update(updates).eq('id', id).select().single());
-};
-
-export const deleteUser = async (id: string) => {
-  return handleResponse(supabase.from('users').delete().eq('id', id));
 };
 
 export const importUsers = async (users: any[], creatorId: string) => {
@@ -360,23 +350,93 @@ export const updateGroup = async (id: string, updates: Partial<GSLAGroup>, reaso
 };
 
 export const importGroups = async (groupsData: any[]) => {
-  const newGroups = groupsData.map((g, i) => ({
-    id: `g_imp_${Date.now()}_${i}`,
-    name: g.Name,
-    district: g.District,
-    sector: g.Sector || '',
-    branchId: 'b1', // Default
-    location: `${g.Sector || ''}, ${g.District}`,
-    status: GroupStatus.ACTIVE,
-    createdAt: new Date().toISOString(),
-    meetingFrequency: MeetingFrequency.WEEKLY,
-    shareValue: parseInt(g.ShareValue) || 100,
-    minShares: 1,
-    maxShares: 5,
-    maxLoanMultiplier: 3
-  }));
-  await handleResponse(supabase.from('groups').insert(newGroups));
-  return { added: newGroups.length };
+  const now = Date.now();
+  const nowIso = new Date().toISOString();
+
+  // De-duplicate against existing groups (by name + district + sector)
+  const { data: existing, error: existingErr } = await supabase
+    .from('groups')
+    .select('name,district,sector');
+  if (existingErr) throw existingErr;
+
+  const normalizeKey = (name: string, district: string, sector: string) =>
+    `${(name || '').trim().toLowerCase()}|${(district || '').trim().toLowerCase()}|${(sector || '').trim().toLowerCase()}`;
+
+  const existingKeys = new Set(
+    (existing || []).map((g: any) => normalizeKey(g.name, g.district, g.sector || ''))
+  );
+
+  const seenInFile = new Set<string>();
+  let skippedInvalid = 0;
+  let skippedExisting = 0;
+
+  const candidates = groupsData
+    .map((g, i) => ({ g, i }))
+    .filter(({ g }) => {
+      const name = String(g?.Name ?? '').trim();
+      const district = String(g?.District ?? '').trim();
+      const sector = String(g?.Sector ?? '').trim();
+
+      if (!name || !district) {
+        skippedInvalid += 1;
+        return false;
+      }
+
+      const key = normalizeKey(name, district, sector);
+      if (existingKeys.has(key) || seenInFile.has(key)) {
+        skippedExisting += 1;
+        return false;
+      }
+
+      seenInFile.add(key);
+      return true;
+    })
+    .map(({ g, i }) => {
+      const name = String(g?.Name ?? '').trim();
+      const district = String(g?.District ?? '').trim();
+      const sector = String(g?.Sector ?? '').trim();
+      const meetingDay = String(g?.MeetingDay ?? 'Friday').trim() || 'Friday';
+      const shareValueRaw = String(g?.ShareValue ?? '').trim();
+      const parsedShareValue = Number(shareValueRaw);
+      const shareValue = Number.isFinite(parsedShareValue) && parsedShareValue > 0 ? parsedShareValue : 100;
+
+      return {
+        id: `g_imp_${now}_${i}`,
+        name,
+        district,
+        sector,
+        branchId: 'b1', // Default
+        location: `${sector || ''}${sector ? ', ' : ''}${district}`,
+        status: GroupStatus.ACTIVE,
+        createdAt: nowIso,
+        meetingDay,
+        meetingFrequency: MeetingFrequency.WEEKLY,
+        shareValue,
+        minShares: 1,
+        maxShares: 5,
+        maxLoanMultiplier: 3,
+        currentCycleId: '',
+        totalSavings: 0,
+        totalLoansOutstanding: 0,
+        totalSolidarity: 0,
+        auditHistory: [
+          {
+            id: `aud_${now}_${i}`,
+            date: nowIso,
+            editorId: 'CSV Import',
+            reason: 'Initial Creation (CSV Import)',
+            changes: []
+          }
+        ]
+      };
+    });
+
+  if (candidates.length === 0) {
+    return { added: 0, skippedExisting, skippedInvalid };
+  }
+
+  await handleResponse(supabase.from('groups').insert(candidates));
+  return { added: candidates.length, skippedExisting, skippedInvalid };
 };
 
 // --- Members ---
@@ -863,35 +923,42 @@ export const getCycle = async (id: string): Promise<Cycle | null> => {
   return data;
 };
 
-export const startCycle = async (groupId: string, config: any) => {
-  // 1. Update Group Settings with new Cycle Rules
-  await handleResponse(supabase.from('groups').update({
-    shareValue: config.shareValue,
-    minShares: config.minShares,
-    maxShares: config.maxShares,
-    maxLoanMultiplier: config.maxLoanMultiplier,
-    lateFeeAmount: config.lateFeeAmount
-  }).eq('id', groupId));
+export const getCycles = async (groupId: string): Promise<Cycle[]> => {
+  return handleResponse(supabase.from('cycles').select('*').eq('groupId', groupId).order('startDate', { ascending: false }));
+};
 
-  // 2. Create the Cycle Record
+export const createCycle = async (groupId: string, interestRate: number, startDate?: string): Promise<Cycle> => {
+  // Check if there's already an open cycle
+  const { data: existing } = await supabase.from('cycles').select('*').eq('groupId', groupId).eq('status', 'OPEN').single();
+  if (existing) {
+    throw new Error('An open cycle already exists for this group. Please close it first.');
+  }
+
   const newCycle = {
-      id: `c_${Date.now()}`,
-      groupId,
-      startDate: config.startDate,
-      endDate: config.endDate || null,
-      status: 'OPEN',
-      interestRate: config.interestRate
+    id: `c_${Date.now()}`,
+    groupId,
+    startDate: startDate || new Date().toISOString().split('T')[0],
+    status: 'OPEN' as const,
+    interestRate
   };
   
-  await handleResponse(supabase.from('cycles').insert(newCycle));
+  const result = await handleResponse(supabase.from('cycles').insert(newCycle).select().single());
   
-  // 3. Set as Current Cycle
-  await handleResponse(supabase.from('groups').update({ currentCycleId: newCycle.id }).eq('id', groupId));
+  // Update group's current cycle
+  await supabase.from('groups').update({ currentCycleId: newCycle.id }).eq('id', groupId);
   
-  // 4. Log/Notify
-  await triggerSMSEvent(SMSEventType.SEASON_OPENED, { date: config.startDate }, 'system', groupId, 'system');
+  return result;
+};
+
+export const updateCycle = async (id: string, updates: Partial<Cycle>): Promise<Cycle> => {
+  const { data: cycle } = await supabase.from('cycles').select('*').eq('id', id).single();
+  if (!cycle) throw new Error('Cycle not found');
   
-  return newCycle;
+  if (cycle.status === 'CLOSED' && updates.status === 'OPEN') {
+    throw new Error('Cannot reopen a closed cycle. Create a new cycle instead.');
+  }
+  
+  return handleResponse(supabase.from('cycles').update(updates).eq('id', id).select().single());
 };
 
 export const closeCycle = async (id: string, snapshot: ShareOutSnapshot) => {
@@ -900,8 +967,22 @@ export const closeCycle = async (id: string, snapshot: ShareOutSnapshot) => {
   // Archive data and set status
   await supabase.from('cycles').update({ status: 'CLOSED', endDate: snapshot.date }).eq('id', id);
   
+  // Create New Cycle
+  const newCycle = {
+      id: `c_${Date.now()}`,
+      groupId: cycle.groupId,
+      startDate: new Date().toISOString().split('T')[0],
+      status: 'OPEN',
+      interestRate: 5
+  };
+  await supabase.from('cycles').insert(newCycle);
+  await supabase.from('groups').update({ currentCycleId: newCycle.id }).eq('id', cycle.groupId);
+
   // Notify & SMS
-  // Trigger single SMS for system log mostly or president
+  const { data: members } = await supabase.from('members').select('id, fullName').eq('groupId', cycle.groupId);
+  
+  // Could be high volume, consider batching or selective
+  // For demo, trigger single SMS for system log mostly or president
   await logSMS('SYSTEM', `Cycle ${id} Closed. Shareout: ${snapshot.totalDistributable}`, 'SENT', cycle.groupId, 'system');
 
   return { success: true };
@@ -1049,68 +1130,6 @@ export const generateReport = async (groupId: string, type: string, filters: any
       "Total Savings": m.totalShares * group.shareValue
     }));
   }
-  
-  if (type === 'SHARE_OUT') {
-      const { data: group } = await supabase.from('groups').select('*').eq('id', groupId).single();
-      const { data: members } = await supabase.from('members').select('*').eq('groupId', groupId);
-      const { data: loans } = await supabase.from('loans').select('*').eq('groupId', groupId);
-      
-      // Calculate Cash Balance
-      const cashOnHand = await getCashBalance(groupId);
-      
-      const shareValue = group?.shareValue || 100;
-      const totalShares = members ? members.reduce((sum:number, m:any) => sum + (m.totalShares || 0), 0) : 0;
-      const outstandingLoans = loans ? loans.reduce((sum:number, l:any) => sum + (l.balance || 0), 0) : 0;
-      
-      // Mock Breakdown components for simulation
-      const contributions = totalShares * shareValue;
-      const socialFund = group?.totalSolidarity || 0;
-      
-      // Net Worth = Cash + Outstanding Loans (Simplified)
-      // In reality: Assets = Cash + Loans; Liabilities = Social Fund; Equity = Share Capital + Retained Earnings
-      const netWorth = cashOnHand + outstandingLoans;
-      
-      // Distributable = Net Worth - Social Fund
-      const totalDistributable = Math.max(0, netWorth - socialFund);
-      const valuePerShare = totalShares > 0 ? totalDistributable / totalShares : shareValue;
-      
-      const memberList = (members || []).map((m: any) => {
-          const shares = m.totalShares || 0;
-          const invested = shares * shareValue;
-          const payout = shares * valuePerShare;
-          return {
-              id: m.id,
-              name: m.fullName,
-              shares,
-              invested,
-              payout,
-              profit: payout - invested,
-              currentValue: payout
-          };
-      });
-
-      return {
-          summary: {
-              totalDistributable,
-              netWorth,
-              valuePerShare,
-              cashOnHand,
-              outstandingLoans,
-              breakdown: {
-                  contributions,
-                  interest: 0, 
-                  investmentProfits: 0,
-                  shareEligibleFines: 0,
-                  expenses: 0,
-                  investmentLosses: 0,
-                  socialContributions: socialFund,
-                  socialFines: 0
-              }
-          },
-          members: memberList
-      };
-  }
-
   // Implement other report types similarly...
   return [];
 };

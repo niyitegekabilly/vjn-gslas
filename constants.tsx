@@ -3,7 +3,7 @@ import React from 'react';
 import { 
   LayoutDashboard, Users, BookOpen, Banknote, CalendarCheck, Settings, 
   PieChart, ShieldAlert, Building, Sprout, PiggyBank, Gavel, 
-  Receipt, ClipboardCheck, HelpCircle, Bell, UserCog
+  Receipt, ClipboardCheck, HelpCircle, Bell, UserCog, Video
 } from 'lucide-react';
 
 export const MENU_ITEMS = [
@@ -16,6 +16,7 @@ export const MENU_ITEMS = [
   { id: 'fines', label: { en: 'Fines', rw: 'Amande' }, icon: <Gavel size={20} />, path: '/fines' },
   { id: 'expenses', label: { en: 'Expenses', rw: 'Amafaranga yasohotse' }, icon: <Receipt size={20} />, path: '/expenses' },
   { id: 'attendance', label: { en: 'Attendance', rw: 'Ubwitabire' }, icon: <ClipboardCheck size={20} />, path: '/attendance' },
+  { id: 'meeting', label: { en: 'Meeting Mode', rw: 'Inama' }, icon: <Video size={20} />, path: '/meeting' },
   { id: 'reports', label: { en: 'Reports', rw: 'Raporo' }, icon: <PieChart size={20} />, path: '/reports' },
   { id: 'notifications', label: { en: 'Notifications', rw: 'Amatangazo' }, icon: <Bell size={20} />, path: '/notifications' },
   { id: 'users', label: { en: 'Users & Roles', rw: 'Abakoresha' }, icon: <UserCog size={20} />, path: '/users' },
@@ -25,10 +26,10 @@ export const MENU_ITEMS = [
 ];
 
 export const EMAIL_CONFIG = {
+  // EXACT verified domain configuration
   defaultFrom: "VJN System <notifications@amatsinda.vjn.org.rw>", 
   replyTo: "support@amatsinda.vjn.org.rw"
 };
-
 export const LABELS = {
   en: {
     // General
@@ -64,9 +65,6 @@ export const LABELS = {
     step: "Step",
     of: "of",
     send: "Send",
-    categories: "Categories",
-    viewDetails: "View Details",
-    quickTips: "Quick Tips",
     
     // Auth & Greetings
     goodMorning: "Good Morning",
@@ -85,15 +83,6 @@ export const LABELS = {
     verifyCode: "Verify Code",
     invalidCode: "Invalid code",
     
-    // Days of Week
-    monday: "Monday",
-    tuesday: "Tuesday",
-    wednesday: "Wednesday",
-    thursday: "Thursday",
-    friday: "Friday",
-    saturday: "Saturday",
-    sunday: "Sunday",
-
     // Notifications & Messaging
     composeBroadcast: "Compose Broadcast",
     sendMessage: "Send Message",
@@ -121,7 +110,7 @@ export const LABELS = {
     secureAccount: "Secure your account with an extra layer of protection.",
     activeAccount: "Active on your account.",
     
-    // Roles & Status & Enums
+    // Roles & Status
     superAdmin: "Super Admin",
     admin: "Admin",
     groupLeader: "Group Leader",
@@ -132,13 +121,6 @@ export const LABELS = {
     exited: "Exited",
     all: "All",
     allStatus: "All Status",
-    weekly: "Weekly",
-    biweekly: "Biweekly",
-    monthly: "Monthly",
-    regular: "Regular",
-    special: "Special",
-    emergency: "Emergency",
-    activeUser: "Active User",
     
     // Stepper
     stepAttendance: "Attendance",
@@ -177,6 +159,8 @@ export const LABELS = {
     recordContribution: "Record Contribution",
     recordRepayment: "Record Repayment",
     recordNewFine: "Record New Fine",
+    attendance: "Attendance",
+    expenses: "Expenses",
     lastAttendance: "Last Meeting Attendance",
     repeatedAbsence: "Repeated Absence",
     contributionsSeason: "Contributions (Season)",
@@ -243,7 +227,6 @@ export const LABELS = {
     uploadPhotoDesc: "Upload a clear headshot for identification.",
     confirmRemoveMember: "Are you sure you want to remove this member?",
     archiveWarning: "If they have financial history, they will be archived instead of deleted.",
-    template: "Template",
     
     // Loans
     loanManagement: "Loan Management",
@@ -281,11 +264,6 @@ export const LABELS = {
     purpose: "Purpose",
     interestBreakdown: "Interest Breakdown",
     feesApplied: "Fees Applied Successfully",
-    principal: "Principal",
-    repaid: "Repaid",
-    lblBalance: "Balance",
-    lblProgress: "Progress",
-    lblDueDate: "Due Date",
     
     // Meeting Mode
     startMeeting: "Start Meeting Recording",
@@ -337,7 +315,6 @@ export const LABELS = {
     backToList: "Back to List",
     
     // Expenses
-    expenses: "Expenses",
     totalExpenses: "Total Expenses (Season)",
     addExpense: "Add Expense",
     expenseManagement: "Expense Management",
@@ -351,12 +328,11 @@ export const LABELS = {
     whyChange: "Why is this being changed?",
     
     // Attendance
-    attendance: "Attendance",
     attendanceManagement: "Attendance Management",
     scheduleNewMeeting: "Schedule New Meeting",
     regularWeekly: "Regular Weekly",
     specialEvent: "Special Event",
-    meetingEmergency: "Emergency",
+    emergency: "Emergency",
     recordingAttendance: "Recording Attendance",
     correctAttendance: "Correct Attendance",
     
@@ -385,64 +361,6 @@ export const LABELS = {
     confirmSeasonClose: "Finalize Share-Out & Close Season?",
     irreversibleAction: "This action is irreversible.",
     
-    // Seasons Wizard
-    wizStepHealth: "Health Check",
-    wizStepFinancials: "Financials",
-    wizStepPayouts: "Payouts",
-    wizStepConfirm: "Confirm",
-    wizStartTimeline: "Timeline",
-    wizStartSavings: "Savings",
-    wizStartLoans: "Loans",
-    wizStartReview: "Review",
-    closeWizardTitle: "Close Season Wizard",
-    calculatingPositions: "Calculating final positions for",
-    outstandingCheck: "Outstanding Loans Check",
-    loansWarningTitle: "Warning: Unpaid Loans Detected",
-    loansWarningDesc: "There is {amount} in outstanding loans. Closing the season now means this amount is counted as an asset (Net Worth) but you do not have the cash to pay it out.",
-    recoverRecommendation: "Recommendation: Recover all loans before closing.",
-    loansCleared: "All loans cleared. Good to go!",
-    finesReconciliation: "Fines Reconciliation",
-    finesDesc: "Ensure all fines are collected or written off.",
-    totalShareContrib: "Total Share Contributions",
-    totalProfits: "Total Profits (Interest + Fines)",
-    expensesLosses: "Expenses & Losses",
-    netDistributable: "Net Distributable",
-    finalShareValue: "Final Share Value",
-    memberPayoutSchedule: "Member Payout Schedule",
-    printReport: "Print Report",
-    confirmCloseTitle: "Are you absolutely sure?",
-    confirmCloseDesc: "This action will archive the current season and lock all financial records. Make sure all cash has been distributed to members according to the Payout Schedule.",
-    shareValueFinalized: "Share Value finalized at",
-    membersCalculated: "members calculated",
-    historyPreserved: "Cycle history preserved",
-    confirmPayouts: "I confirm that all payouts are complete.",
-    
-    // Start Season Wizard
-    seasonTimeline: "Season Timeline",
-    timelineDesc: "Define the operating period for this cycle.",
-    seasonName: "Season Name",
-    startDate: "Start Date",
-    expectedEnd: "Expected End",
-    contributionRules: "Contribution Rules",
-    contributionDesc: "Set the value of shares and contribution limits.",
-    sharePrice: "Share Price",
-    sharePriceDesc: "The value of a single stamp/share.",
-    minShares: "Min Shares",
-    maxShares: "Max Shares",
-    socialFundFee: "Social Fund",
-    loanConfig: "Loan Configuration",
-    loanConfigDesc: "Define interest rates and credit limits.",
-    interestRatePercent: "Interest Rate (%)",
-    loanLimitMultiplier: "Loan Limit (x)",
-    multiplierDesc: "Multiplier of savings",
-    latePenalty: "Late Payment Penalty",
-    penaltyPercent: "Percentage %",
-    penaltyFixed: "Fixed Amount",
-    finalCheck: "Final Check",
-    finalCheckDesc: "Starting a new season creates an immutable financial ledger. Ensure all members agree to these rules.",
-    confirmSettings: "I confirm these settings are correct.",
-    launchSeason: "Launch Season",
-
     // Reports
     reports: "Reports",
     reportTypes: "Report Types",
@@ -469,9 +387,6 @@ export const LABELS = {
     totalInflow: "Total Inflow",
     totalOutflow: "Total Outflow",
     memberFinancialSummary: "Member Financial Summary",
-    topSavers: "Top 10 Savers",
-    portfolioHealth: "Portfolio Health (Count)",
-    flowComparison: "Flow Comparison",
     
     // Settings & Users
     settingsTitle: "Configuration",
@@ -490,6 +405,8 @@ export const LABELS = {
     clearCacheDesc: "Fix display issues by clearing local storage. Requires re-login.",
     verifyHealth: "Verify Health",
     healthCheckDesc: "Check database connection and system status.",
+    resetSystem: "Reset System",
+    confirmReset: "Are you sure you want to reset the database? This cannot be undone.",
     systemUsers: "System Users & Roles",
     manageAccess: "Manage access control and permissions",
     addUser: "Add User",
@@ -502,11 +419,9 @@ export const LABELS = {
     lastLogin: "Last Login",
     createUser: "Create User",
     editUser: "Edit User",
-    editUserTitle: "Edit User",
-    saveUser: "Save User",
-    removeUser: "Remove User",
     initialPassword: "Initial Password",
     assignedGroup: "Assigned Group",
+    saveUser: "Save User",
     never: "Never",
     global: "Global / None",
     enableAi: "Enable Help Assistant",
@@ -515,16 +430,10 @@ export const LABELS = {
     runSqlWarning: "Important: Run this SQL in your Supabase Dashboard to apply security rules.",
     clearCacheBtn: "Clear Cache",
     resetLocal: "Clear & Logout",
-    confirmRemoveUser: "Are you sure you want to delete this user? This action cannot be undone.",
-    
     // Audit & Help
     auditLogs: "Audit Logs",
     userGuide: "User Guide",
     contactSupport: "Contact Support",
-    timestamp: "Timestamp",
-    userLog: "User",
-    actionLog: "Action",
-    detailsLog: "Details",
     
     // Layout
     notifications: "Notifications",
@@ -570,6 +479,17 @@ export const LABELS = {
     next: "Komeza",
     step: "Intambwe",
     of: "ya",
+    
+    // Auth & Greetings
+    goodMorning: "Mwaramutse",
+    goodAfternoon: "Mwiriwe",
+    goodEvening: "Mwiriwe neza",
+    signIn: "Injira",
+    emailAddr: "Imeyili / Izina",
+    password: "Ijambo ry'ibanga",
+    securePortal: "Urubuga Rwizewe",
+    unauthMsg: "Kwinjira utabifitiye uburenganzira birabujijwe.",
+
     verifyIdentity: "Kugenzura Umwirondoro",
     recoverAccess: "Kugarura Konti",
     enterCode: "Andika umubare w'ibanga wohererejwe",
@@ -578,28 +498,6 @@ export const LABELS = {
     verifyCode: "Emeza",
     invalidCode: "Umubare utari wo",
     send: "Ohereza",
-    categories: "Ubwoko",
-    viewDetails: "Reba Birambuye",
-    quickTips: "Inama z'Ingenzi",
-
-    // Auth & Greetings
-    goodMorning: "Mwaramutse",
-    goodAfternoon: "Mwiriwe",
-    goodEvening: "Umugoroba mwiza",
-    signIn: "Kwinjira",
-    emailAddr: "Imeyili",
-    password: "Ijambo ry'ibanga",
-    securePortal: "Urubuga Rwizewe",
-    unauthMsg: "Kwinjira utabifitiye uburenganzira birabujijwe. Ibikorwa byose biragenzurwa.",
-
-    // Days of Week
-    monday: "Kuwa Mbere",
-    tuesday: "Kuwa Kabiri",
-    wednesday: "Kuwa Gatatu",
-    thursday: "Kuwa Kane",
-    friday: "Kuwa Gatanu",
-    saturday: "Kuwa Gatandatu",
-    sunday: "Kuwa Cyumweru",
 
     // Notifications & Messaging
     composeBroadcast: "Andika Itangazo",
@@ -628,10 +526,10 @@ export const LABELS = {
     secureAccount: "Ongera umutekano wa konti yawe.",
     activeAccount: "Birakora kuri konti yawe.",
 
-    // Roles & Status & Enums
+    // Roles & Status
     superAdmin: "Umuhuzabikorwa Mukuru",
     admin: "Ushinzwe Porogaramu",
-    groupLeader: "Umuyobozi w'Itsinda",
+    groupLeader: "Ubuyobozi bw'Itsinda",
     memberUser: "Umunyamuryango",
     active: "Gikora",
     suspended: "Hagaritswe",
@@ -639,13 +537,6 @@ export const LABELS = {
     exited: "Sezeye",
     all: "Byose",
     allStatus: "Imiterere Yose",
-    weekly: "Rimwe mu Cyumweru",
-    biweekly: "Kabiri mu Cyumweru",
-    monthly: "Rimwe mu Kwezi",
-    regular: "Bisanzwe",
-    special: "Idasanzwe",
-    emergency: "Iyihutirwa",
-    activeUser: "Arakora",
 
     // Stepper
     stepAttendance: "Ubwitabire",
@@ -684,6 +575,8 @@ export const LABELS = {
     recordContribution: "Andika Ubwizigame",
     recordRepayment: "Andika Ubwishyu",
     recordNewFine: "Andika Amande Mashya",
+    attendance: "Ubwitabire",
+    expenses: "Amafaranga Yasohotse",
     lastAttendance: "Ubwitabire bw'Inama Iheruka",
     repeatedAbsence: "Abasiba Kenshi",
     contributionsSeason: "Ubwizigame (Igihembwe)",
@@ -738,41 +631,34 @@ export const LABELS = {
     addMember: "Ongeramo Umunyamuryango",
     editMember: "Hindura Umunyamuryango",
     removeMember: "Kuramo Umunyamuryango",
-    memberSearchPlaceholder: "Search (Name, Phone, ID)",
-    loanBalance: "Ideni Risigaye",
-    fullName: "Amazina Yombi",
+    memberSearchPlaceholder: "Shakisha (Izina, Telefoni, Indangamuntu)",
+    loanBalance: "Ideni Asigaje",
+    fullName: "Amazina Yose",
     nationalId: "Indangamuntu",
     phoneNumber: "Telefoni",
     role: "Inshingano",
-    importCsv: "Shyiramo CSV",
-    csvFormat: "Imiterere: Izina, Indangamuntu, Telefoni, Inshingano",
-    memberPhoto: "Ifoto",
-    uploadPhotoDesc: "Shyiraho ifoto igaragara neza.",
-    confirmRemoveMember: "Ese koko urashaka gukuramo uyu munyamuryango?",
-    archiveWarning: "Niba afite amateka y'imari, azabikwa (archive) aho gusibwa burundu.",
-    template: "Urugero",
-    
+
     // Loans
     loanManagement: "Gucunga Inguzanyo",
     applyLoan: "Saba Inguzanyo",
-    newLoanApp: "Kwandika Inguzanyo Nshya",
+    newLoanApp: "Gusaba Inguzanyo Nshya",
     loanEstimator: "Ibalura ry'Inguzanyo",
-    penaltyTool: "Ibihano",
+    penaltyTool: "Gucunga Ibihano",
     penaltyManager: "Gucunga Ibihano",
     latePenalties: "Ibihano by'Ubukererewe",
-    pendingApproval: "Zitegereje Kwemezwa",
+    pendingApproval: "Itegereje Kwemezwa",
     approve: "Emeza",
     reject: "Hakana",
-    portfolio: "Inguzanyo Zose",
-    monthlyPayment: "Yishyurwa ku Kwezi",
+    portfolio: "Urutonde rw'Inguzanyo",
+    monthlyPayment: "Ubwishyu bwa Buri Kwezi",
     totalInterest: "Inyungu Yose",
-    totalRepayment: "Ayishyurwa Yose",
+    totalRepayment: "Ubwishyu Bwose",
     hidePenalty: "Hisha Ibihano",
     hideCalc: "Hisha Ibalura",
     penaltyType: "Ubwoko bw'Igihano",
     percentage: "Ijanisha",
     fixedAmount: "Amafaranga Azwi",
-    percentageRate: "Ijanisha (%)",
+    percentageRate: "Igipimo cy'Ijanisha",
     applyPenalties: "Emeza Ibihano",
     simpleInterest: "Inyungu Isanzwe",
     perMonth: "Ku kwezi",
@@ -788,11 +674,6 @@ export const LABELS = {
     purpose: "Impamvu",
     interestBreakdown: "Imiterere y'Inyungu",
     feesApplied: "Ibihano byatanzwe neza",
-    principal: "Igishoro",
-    repaid: "Ayishyuwe",
-    lblBalance: "Asigaye",
-    lblProgress: "Ibikomeje",
-    lblDueDate: "Igihe Ntarengwa",
 
     // Meeting Mode
     startMeeting: "Tangira Kwandika Inama",
@@ -844,7 +725,6 @@ export const LABELS = {
     backToList: "Subira ku Rutonde",
 
     // Expenses
-    expenses: "Amafaranga Yasohotse",
     totalExpenses: "Amafaranga yose yasohotse (Igihembwe)",
     addExpense: "Ongeramo Ayasohotse",
     expenseManagement: "Gucunga Ayasohotse",
@@ -858,12 +738,11 @@ export const LABELS = {
     whyChange: "Kuki ugiye kubihindura?",
 
     // Attendance
-    attendance: "Ubwitabire",
     attendanceManagement: "Gucunga Ubwitabire",
     scheduleNewMeeting: "Tegura Inama Nshya",
     regularWeekly: "Isanzwe ya Buri Cyumweru",
     specialEvent: "Igikorwa Cyihariye",
-    meetingEmergency: "Iyihutirwa",
+    emergency: "Iyihutirwa",
     recordingAttendance: "Kwandika Ubwitabire",
     correctAttendance: "Gukosora Ubwitabire",
 
@@ -892,64 +771,6 @@ export const LABELS = {
     confirmSeasonClose: "Emeza Gusoza Igihembwe",
     irreversibleAction: "Iki gikorwa ntikigarurwa.",
 
-    // Seasons Wizard
-    wizStepHealth: "Kugenzura",
-    wizStepFinancials: "Imari",
-    wizStepPayouts: "Kugabana",
-    wizStepConfirm: "Emeza",
-    wizStartTimeline: "Igihe",
-    wizStartSavings: "Ubwizigame",
-    wizStartLoans: "Inguzanyo",
-    wizStartReview: "Reba",
-    closeWizardTitle: "Gusoza Igihembwe",
-    calculatingPositions: "Kubara imibare ya nyuma ya",
-    outstandingCheck: "Kugenzura Inguzanyo",
-    loansWarningTitle: "Icyitonderwa: Hari inguzanyo zitarishyurwa",
-    loansWarningDesc: "Hari {amount} z'inguzanyo zitarishyurwa. Gusoza ubu bivuze ko zibarwa nk'umutungo kandi nta mafaranga ahari.",
-    recoverRecommendation: "Inama: Ishyuza inguzanyo zose mbere yo gusoza.",
-    loansCleared: "Nta nguzanyo zirebwa. Byose ni byiza!",
-    finesReconciliation: "Kugenzura Amande",
-    finesDesc: "Reba ko amande yose yishyuwe cyangwa yakuweho.",
-    totalShareContrib: "Imigabane Yose",
-    totalProfits: "Inyungu (Inyungu + Amande)",
-    expensesLosses: "Ayasohotse & Igihombo",
-    netDistributable: "Ayagabanywa",
-    finalShareValue: "Agaciro k'Umugabane (Nyuma)",
-    memberPayoutSchedule: "Gahunda yo Kwishyura",
-    printReport: "Sohora Raporo",
-    confirmCloseTitle: "Ese urabyemeza neza?",
-    confirmCloseDesc: "Ibi bizabika igihembwe kandi bifunge inyandiko z'imari. Reba ko amafaranga yose yatanzwe.",
-    shareValueFinalized: "Agaciro k'umugabane: ",
-    membersCalculated: "abanyamuryango babaruwe",
-    historyPreserved: "Amateka y'igihembwe abitswe",
-    confirmPayouts: "Ndemeza ko amafaranga yose yatanzwe.",
-
-    // Start Season Wizard
-    seasonTimeline: "Ingengabihe y'Igihembwe",
-    timelineDesc: "Gena igihe cy'imikorere.",
-    seasonName: "Izina ry'Igihembwe",
-    startDate: "Itariki yo Gutangira",
-    expectedEnd: "Itariki yo Gusoza (Iteganyijwe)",
-    contributionRules: "Amategeko y'Ubwizigame",
-    contributionDesc: "Gena agaciro k'imigabane n'imipaka.",
-    sharePrice: "Igiciro cy'Umugabane",
-    sharePriceDesc: "Agaciro k'umugabane umwe.",
-    minShares: "Imigabane Nto",
-    maxShares: "Imigabane Nini",
-    socialFundFee: "Ingoboka",
-    loanConfig: "Igenamiterere ry'Inguzanyo",
-    loanConfigDesc: "Gena inyungu n'inguzanyo ntarengwa.",
-    interestRatePercent: "Inyungu (%)",
-    loanLimitMultiplier: "Inguzanyo Ntarengwa (x)",
-    multiplierDesc: "Inkubo y'ubwizigame",
-    latePenalty: "Ibihano by'Ubukererewe",
-    penaltyPercent: "Ijanisha %",
-    penaltyFixed: "Amafaranga Azwi",
-    finalCheck: "Igenzura rya Nyuma",
-    finalCheckDesc: "Gutangira igihembwe bitangira ibaruramari rishya. Reba ko abanyamuryango bose babyemera.",
-    confirmSettings: "Ndemeza ko ibi bimeze neza.",
-    launchSeason: "Tangiza Igihembwe",
-
     // Reports
     reports: "Raporo",
     reportTypes: "Ubwoko bwa Raporo",
@@ -976,9 +797,6 @@ export const LABELS = {
     totalInflow: "Ayinjiye Yose",
     totalOutflow: "Ayasohotse Yose",
     memberFinancialSummary: "Incamake y'Imari y'Abanyamuryango",
-    topSavers: "Abazigamye Cyane (10)",
-    portfolioHealth: "Imiterere y'Inguzanyo",
-    flowComparison: "Incamake y'Ayinjiye n'Ayasohotse",
 
     // Settings & Users
     settingsTitle: "Igenamiterere",
@@ -997,6 +815,8 @@ export const LABELS = {
     clearCacheDesc: "Kemura ibibazo bya sisitemu. Bisaba kwinjira bundi bushya.",
     verifyHealth: "Genzura Ubuzima",
     healthCheckDesc: "Reba niba sisitemu ihujwe neza n'ububiko.",
+    resetSystem: "Siba Sisitemu",
+    confirmReset: "Ese urahenganya ushaka gusiba ububiko bwose? Ibi ntibigarurwa.",
     systemUsers: "Abakoresha Sisitemu n'Inshingano",
     manageAccess: "Gucunga uburenganzira bw'injira",
     addUser: "Ongeramo Umukoresha",
@@ -1009,11 +829,9 @@ export const LABELS = {
     lastLogin: "Iheruka kwinjira",
     createUser: "Rema Umukoresha",
     editUser: "Hindura Umukoresha",
-    editUserTitle: "Hindura Umukoresha",
     initialPassword: "Ijambo ry'ibanga ry'ibanze",
     assignedGroup: "Itsinda Ayobora",
     saveUser: "Bika Umukoresha",
-    removeUser: "Siba Umukoresha",
     never: "Ntabwo arinjira",
     global: "Rusange / Ntabwo",
     enableAi: "Koresha Umufasha (AI)",
@@ -1022,16 +840,11 @@ export const LABELS = {
     runSqlWarning: "Icyitonderwa: Koresha iyi SQL muri Supabase kugirango wemeze amategeko y'umutekano.",
     clearCacheBtn: "Siba Cache",
     resetLocal: "Sohoka Burundu",
-    confirmRemoveUser: "Ese koko urashaka gusiba uyu mukoresha? Iki gikorwa ntikigarurwa.",
 
     // Audit & Help
     auditLogs: "Raporo y'Ubugenzuzi",
     userGuide: "Imfashanyigisho",
     contactSupport: "Vugisha Ubufasha",
-    timestamp: "Igihe",
-    userLog: "Umukozi",
-    actionLog: "Igikorwa",
-    detailsLog: "Ibyakozwe",
 
     // Layout
     notifications: "Amatangazo",
@@ -1056,32 +869,32 @@ export const HELP_CONTENT = {
     {
       id: 'meeting-mode',
       title: 'Meeting Mode',
-      content: 'Use "Start Meeting" when conducting a physical gathering. It allows you to record attendance, savings, loan repayments, and fines for all members in a single flow. Simply mark attendance and enter amounts. Click "Save" at the end to commit all transactions.'
+      content: 'Use Meeting Mode during your physical group meetings. It allows you to bulk record attendance, share deposits, loan repayments, and fine payments for all members at once. Simply select the "Present" members and enter their amounts. Click "Save" at the bottom to commit all transactions.'
     },
     {
       id: 'shares',
-      title: 'Savings & Shares',
-      content: 'Shares are the core unit of savings. Each share has a fixed value (e.g., 100 RWF). Members can buy between the minimum and maximum allowed shares per meeting. The system automatically tracks the total value. Avoid editing past share records without a valid reason, as changes are audited.'
+      title: 'Contributions & Shares',
+      content: 'Shares are the core savings of the group. Each share has a fixed value (e.g., 100 RWF). Members can buy between the minimum and maximum allowed shares per meeting. The system tracks the "Share Count" and automatically calculates the value. Do not edit past contributions without a valid reason, as this is audited.'
     },
     {
       id: 'loans',
       title: 'Loans',
-      content: 'Members can request loans up to 3x their savings (configurable). Loans have a duration and interest rate (usually 5% per month). Use the "Loan Calculator" to preview repayment schedules. If a loan is overdue, use the "Penalty Tool" to apply fines.'
+      content: 'Members can borrow up to 3 times their total savings (configurable). Loans have a duration and an interest rate (usually 5% per month). Use the "Loan Estimator" tool to calculate repayment schedules. If a loan is overdue, use the "Penalty Tool" to apply fines.'
     },
     {
       id: 'seasons',
-      title: 'Seasons / Cycles',
-      content: 'A Season is the operational period of the group (usually 1 year). All financial activities must happen within an open season. At the end, use the "Share-out Report" to calculate dividends based on member savings and group profits.'
+      title: 'Seasons & Cycles',
+      content: 'A Season (or Cycle) is the operating period of the group (usually 1 year). All transactions must happen within an active season. When the season ends, use the "Share-out Report" to calculate how much money each member receives based on their shares and the group profit.'
     },
     {
       id: 'fines',
       title: 'Fines',
-      content: 'Record fines for rule violations (e.g., Late Arrival, Phone usage). You can manage fine categories in the Fines section. System-generated fines (like Absence) can be automated.'
+      content: 'Record fines for rule violations (e.g., Late arrival, Phone usage). You can create custom Fine Categories in the Fines module. Attendance fines (Absent/Late) can be automated in the Attendance settings.'
     },
     {
       id: 'expenses',
       title: 'Expense Management',
-      content: 'Record any money leaving the group fund (e.g., Stationery, Transport). The system checks against available cash balance before approving. Editing requires a reason and is logged.'
+      content: 'Track all money leaving the group (e.g., Stationery, Transport). The system validates that you have enough Cash on Hand before saving an expense. All edits require a reason and are logged in the audit trail.'
     }
   ],
   rw: [

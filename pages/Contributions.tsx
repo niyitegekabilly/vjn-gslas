@@ -1,4 +1,3 @@
-
 import React, { useContext, useEffect, useState } from 'react';
 import { AppContext } from '../App';
 import { api } from '../api/client';
@@ -152,7 +151,7 @@ export default function Contributions() {
         </h2>
         <button 
           onClick={() => setIsAddOpen(true)}
-          className="flex items-center px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 shadow-sm transition-colors w-full sm:w-auto justify-center"
+          className="flex items-center px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 shadow-sm transition-colors"
         >
           <Plus size={18} className="mr-2" /> {labels.newContribution}
         </button>
@@ -184,188 +183,131 @@ export default function Contributions() {
                {[...Array(5)].map((_, i) => <TableRowSkeleton key={i} />)}
             </div>
          ) : (
-            <>
-              {/* Desktop Table View */}
-              <div className="hidden md:block overflow-x-auto">
-                 <table className="w-full text-left text-sm">
-                    <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs border-b border-gray-200">
-                       <tr>
-                          <th className="p-4">{labels.date}</th>
-                          <th className="p-4">{labels.members}</th>
-                          <th className="p-4 text-center">{labels.shareCount}</th>
-                          <th className="p-4 text-right">{labels.amount}</th>
-                          <th className="p-4 text-right">{labels.solidarity}</th>
-                          <th className="p-4">{labels.status}</th>
-                          <th className="p-4 text-right">{labels.actions}</th>
-                       </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                       {filtered.length === 0 ? (
-                          <tr><td colSpan={7} className="p-8 text-center text-gray-500">{labels.noData}</td></tr>
-                       ) : (
-                          filtered.map(tx => (
-                             <tr key={tx.id} className={`hover:bg-gray-50 ${tx.isVoid ? 'bg-red-50/50 opacity-60' : ''}`}>
-                                <td className="p-4 text-gray-600 font-medium">{tx.date}</td>
-                                <td className="p-4 font-bold text-gray-900">{getMemberName(tx.memberId)}</td>
-                                <td className="p-4 text-center">
-                                   <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded font-bold text-xs">{tx.shareCount}</span>
-                                </td>
-                                <td className="p-4 text-right font-mono font-medium">{tx.amount.toLocaleString()}</td>
-                                <td className="p-4 text-right text-gray-500">{tx.solidarityAmount?.toLocaleString() || '-'}</td>
-                                <td className="p-4">
-                                   {tx.isVoid ? (
-                                      <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded font-bold">VOID</span>
-                                   ) : (
-                                      <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded font-bold flex items-center w-fit">
-                                         <CheckCircle size={12} className="mr-1"/> OK
-                                      </span>
-                                   )}
-                                </td>
-                                <td className="p-4 text-right">
-                                   {!tx.isVoid && (
-                                      <div className="flex justify-end gap-2">
-                                         <button onClick={() => openEdit(tx)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title={labels.edit}><Edit size={16}/></button>
-                                         <button onClick={() => openVoid(tx)} className="p-1.5 text-red-600 hover:bg-red-50 rounded" title={labels.void}><Ban size={16}/></button>
-                                      </div>
-                                   )}
-                                </td>
-                             </tr>
-                          ))
-                       )}
-                    </tbody>
-                 </table>
-              </div>
-
-              {/* Mobile Card View */}
-              <div className="md:hidden divide-y divide-gray-100">
-                 {filtered.length === 0 ? (
-                    <div className="p-8 text-center text-gray-500">{labels.noData}</div>
-                 ) : (
-                    filtered.map(tx => (
-                       <div key={tx.id} className={`p-4 ${tx.isVoid ? 'bg-red-50/50 opacity-60' : ''}`}>
-                          <div className="flex justify-between items-start mb-2">
-                             <div>
-                                <p className="font-bold text-gray-900">{getMemberName(tx.memberId)}</p>
-                                <p className="text-xs text-gray-500 flex items-center mt-1">
-                                   <Calendar size={12} className="mr-1" /> {tx.date}
-                                </p>
-                             </div>
-                             {tx.isVoid ? (
-                                <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded font-bold">VOID</span>
-                             ) : (
-                                <div className="flex gap-1">
-                                   <button onClick={() => openEdit(tx)} className="p-1.5 text-blue-600 bg-blue-50 rounded"><Edit size={16}/></button>
-                                   <button onClick={() => openVoid(tx)} className="p-1.5 text-red-600 bg-red-50 rounded"><Ban size={16}/></button>
-                                </div>
-                             )}
-                          </div>
-                          
-                          <div className="grid grid-cols-2 gap-2 mt-3">
-                             <div className="bg-gray-50 p-2 rounded border border-gray-100">
-                                <p className="text-xs text-gray-500 uppercase">{labels.amount}</p>
-                                <p className="font-mono font-bold text-gray-800">{tx.amount.toLocaleString()} RWF</p>
-                             </div>
-                             <div className="bg-gray-50 p-2 rounded border border-gray-100">
-                                <p className="text-xs text-gray-500 uppercase">{labels.shareCount}</p>
-                                <p className="font-bold text-blue-600">{tx.shareCount}</p>
-                             </div>
-                             {tx.solidarityAmount > 0 && (
-                                <div className="col-span-2 bg-gray-50 p-2 rounded border border-gray-100 flex justify-between items-center">
-                                   <span className="text-xs text-gray-500 uppercase">{labels.solidarity}</span>
-                                   <span className="font-bold text-gray-700">{tx.solidarityAmount.toLocaleString()} RWF</span>
-                                </div>
-                             )}
-                          </div>
-                       </div>
-                    ))
-                 )}
-              </div>
-            </>
+            <div className="overflow-x-auto">
+               <table className="w-full text-left text-sm">
+                  <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs border-b border-gray-200">
+                     <tr>
+                        <th className="p-4">{labels.date}</th>
+                        <th className="p-4">{labels.members}</th>
+                        <th className="p-4 text-center">{labels.shareCount}</th>
+                        <th className="p-4 text-right">{labels.amount}</th>
+                        <th className="p-4 text-right">{labels.solidarity}</th>
+                        <th className="p-4">{labels.status}</th>
+                        <th className="p-4 text-right">{labels.actions}</th>
+                     </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                     {filtered.length === 0 ? (
+                        <tr><td colSpan={7} className="p-8 text-center text-gray-500">{labels.noData}</td></tr>
+                     ) : (
+                        filtered.map(tx => (
+                           <tr key={tx.id} className={`hover:bg-gray-50 ${tx.isVoid ? 'bg-red-50/50 opacity-60' : ''}`}>
+                              <td className="p-4 text-gray-600 font-medium">{tx.date}</td>
+                              <td className="p-4 font-bold text-gray-900">{getMemberName(tx.memberId)}</td>
+                              <td className="p-4 text-center">
+                                 <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded font-bold text-xs">{tx.shareCount}</span>
+                              </td>
+                              <td className="p-4 text-right font-mono font-medium">{tx.amount.toLocaleString()}</td>
+                              <td className="p-4 text-right text-gray-500">{tx.solidarityAmount?.toLocaleString() || '-'}</td>
+                              <td className="p-4">
+                                 {tx.isVoid ? (
+                                    <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded font-bold">VOID</span>
+                                 ) : (
+                                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded font-bold flex items-center w-fit">
+                                       <CheckCircle size={12} className="mr-1"/> OK
+                                    </span>
+                                 )}
+                              </td>
+                              <td className="p-4 text-right">
+                                 {!tx.isVoid && (
+                                    <div className="flex justify-end gap-2">
+                                       <button onClick={() => openEdit(tx)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title={labels.edit}><Edit size={16}/></button>
+                                       <button onClick={() => openVoid(tx)} className="p-1.5 text-red-600 hover:bg-red-50 rounded" title={labels.void}><Ban size={16}/></button>
+                                    </div>
+                                 )}
+                              </td>
+                           </tr>
+                        ))
+                     )}
+                  </tbody>
+               </table>
+            </div>
          )}
       </div>
 
       {/* Add Modal */}
       {isAddOpen && (
          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in zoom-in-95 duration-200">
-            <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden">
-               <div className="flex justify-between items-center p-6 border-b border-gray-100 flex-none bg-white">
+            <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6">
+               <div className="flex justify-between items-center mb-6 border-b border-gray-100 pb-4">
                   <h3 className="text-lg font-bold text-gray-800">{labels.newContribution}</h3>
-                  <button onClick={() => setIsAddOpen(false)} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
+                  <button onClick={() => setIsAddOpen(false)}><X className="text-gray-400 hover:text-gray-600" /></button>
                </div>
-               
-               <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
-                  <form id="add-contribution-form" onSubmit={handleAddSubmit} className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{labels.members}</label>
-                        <select 
-                            required
-                            value={formData.memberId}
-                            onChange={e => setFormData({...formData, memberId: e.target.value})}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 bg-white"
-                        >
-                            <option value="">-- {labels.selectMember} --</option>
-                            {members.filter(m => m.status === 'ACTIVE').map(m => (
-                              <option key={m.id} value={m.id}>{m.fullName}</option>
-                            ))}
-                        </select>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">{labels.shareCount}</label>
-                            <input 
-                              type="number"
-                              min="1"
-                              max={group?.maxShares}
-                              required
-                              value={formData.shareCount}
-                              onChange={e => setFormData({...formData, shareCount: parseInt(e.target.value) || 0})}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 bg-white"
-                            />
-                            <p className="text-xs text-gray-500 mt-1">Value: {(formData.shareCount * (group?.shareValue || 0)).toLocaleString()} {labels.currency}</p>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">{labels.solidarity}</label>
-                            <input 
-                              type="number"
-                              min="0"
-                              value={formData.solidarityAmount}
-                              onChange={e => setFormData({...formData, solidarityAmount: parseInt(e.target.value) || 0})}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 bg-white"
-                            />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{labels.date}</label>
+               <form onSubmit={handleAddSubmit} className="space-y-4">
+                  <div>
+                     <label className="block text-sm font-medium text-gray-700 mb-1">{labels.members}</label>
+                     <select 
+                        required
+                        value={formData.memberId}
+                        onChange={e => setFormData({...formData, memberId: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 bg-white"
+                     >
+                        <option value="">-- {labels.selectMember} --</option>
+                        {members.filter(m => m.status === 'ACTIVE').map(m => (
+                           <option key={m.id} value={m.id}>{m.fullName}</option>
+                        ))}
+                     </select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                     <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{labels.shareCount}</label>
                         <input 
-                            type="date"
-                            required
-                            value={formData.date}
-                            onChange={e => setFormData({...formData, date: e.target.value})}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 bg-white"
+                           type="number"
+                           min="1"
+                           max={group?.maxShares}
+                           required
+                           value={formData.shareCount}
+                           onChange={e => setFormData({...formData, shareCount: parseInt(e.target.value) || 0})}
+                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 bg-white"
                         />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{labels.notes}</label>
-                        <textarea 
-                            rows={3}
-                            value={formData.notes}
-                            onChange={e => setFormData({...formData, notes: e.target.value})}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 bg-white"
+                        <p className="text-xs text-gray-500 mt-1">Value: {(formData.shareCount * (group?.shareValue || 0)).toLocaleString()} {labels.currency}</p>
+                     </div>
+                     <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{labels.solidarity}</label>
+                        <input 
+                           type="number"
+                           min="0"
+                           value={formData.solidarityAmount}
+                           onChange={e => setFormData({...formData, solidarityAmount: parseInt(e.target.value) || 0})}
+                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 bg-white"
                         />
-                      </div>
-                  </form>
-               </div>
-
-               <div className="p-4 border-t border-gray-100 bg-gray-50 flex-none">
-                  <button 
-                    type="submit" 
-                    form="add-contribution-form"
-                    disabled={submitting} 
-                    className="w-full py-3 bg-slate-800 text-white rounded-lg font-bold hover:bg-slate-900 flex justify-center items-center shadow-sm"
-                  >
-                     {submitting ? <Loader2 className="animate-spin" size={20}/> : labels.save}
-                  </button>
-               </div>
+                     </div>
+                  </div>
+                  <div>
+                     <label className="block text-sm font-medium text-gray-700 mb-1">{labels.date}</label>
+                     <input 
+                        type="date"
+                        required
+                        value={formData.date}
+                        onChange={e => setFormData({...formData, date: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 bg-white"
+                     />
+                  </div>
+                  <div>
+                     <label className="block text-sm font-medium text-gray-700 mb-1">{labels.notes}</label>
+                     <textarea 
+                        rows={2}
+                        value={formData.notes}
+                        onChange={e => setFormData({...formData, notes: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 bg-white"
+                     />
+                  </div>
+                  <div className="pt-2">
+                     <button type="submit" disabled={submitting} className="w-full py-3 bg-slate-800 text-white rounded-lg font-bold hover:bg-slate-900 flex justify-center items-center">
+                        {submitting ? <Loader2 className="animate-spin" size={20}/> : labels.save}
+                     </button>
+                  </div>
+               </form>
             </div>
          </div>
       )}
@@ -373,52 +315,44 @@ export default function Contributions() {
       {/* Edit Modal */}
       {isEditOpen && (
          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in zoom-in-95 duration-200">
-            <div className="bg-white rounded-xl shadow-xl max-w-sm w-full max-h-[90vh] flex flex-col overflow-hidden">
-               <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-white flex-none">
-                  <h3 className="text-lg font-bold text-gray-800">{labels.edit}</h3>
-                  <button onClick={() => setIsEditOpen(false)} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
-               </div>
-               
-               <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
-                  <form id="edit-contribution-form" onSubmit={handleEditSubmit} className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">{labels.shareCount}</label>
-                            <input 
-                              type="number" min="1"
-                              value={editData.shareCount}
-                              onChange={e => setEditData({...editData, shareCount: parseInt(e.target.value) || 0})}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">{labels.solidarity}</label>
-                            <input 
-                              type="number" min="0"
-                              value={editData.solidarityAmount}
-                              onChange={e => setEditData({...editData, solidarityAmount: parseInt(e.target.value) || 0})}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
-                            />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{labels.reason} <span className="text-red-500">*</span></label>
-                        <textarea 
-                            required
-                            value={editData.reason}
-                            onChange={e => setEditData({...editData, reason: e.target.value})}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-amber-500 outline-none"
-                            placeholder="Audit reason..."
-                            rows={3}
+            <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
+               <h3 className="text-lg font-bold text-gray-800 mb-4">{labels.edit}</h3>
+               <form onSubmit={handleEditSubmit} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                     <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{labels.shareCount}</label>
+                        <input 
+                           type="number" min="1"
+                           value={editData.shareCount}
+                           onChange={e => setEditData({...editData, shareCount: parseInt(e.target.value) || 0})}
+                           className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
                         />
-                      </div>
-                  </form>
-               </div>
-
-               <div className="p-4 border-t border-gray-100 bg-gray-50 flex-none flex gap-2">
-                  <button type="button" onClick={() => setIsEditOpen(false)} className="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium text-gray-700">{labels.cancel}</button>
-                  <button type="submit" form="edit-contribution-form" disabled={submitting} className="flex-1 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-bold shadow-sm">{labels.save}</button>
-               </div>
+                     </div>
+                     <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{labels.solidarity}</label>
+                        <input 
+                           type="number" min="0"
+                           value={editData.solidarityAmount}
+                           onChange={e => setEditData({...editData, solidarityAmount: parseInt(e.target.value) || 0})}
+                           className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
+                        />
+                     </div>
+                  </div>
+                  <div>
+                     <label className="block text-sm font-medium text-gray-700 mb-1">{labels.reason} <span className="text-red-500">*</span></label>
+                     <textarea 
+                        required
+                        value={editData.reason}
+                        onChange={e => setEditData({...editData, reason: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-amber-500 outline-none"
+                        placeholder="Audit reason..."
+                     />
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                     <button type="button" onClick={() => setIsEditOpen(false)} className="flex-1 py-2 border rounded-lg hover:bg-gray-50">{labels.cancel}</button>
+                     <button type="submit" disabled={submitting} className="flex-1 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-bold">{labels.save}</button>
+                  </div>
+               </form>
             </div>
          </div>
       )}
