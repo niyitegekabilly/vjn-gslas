@@ -16,13 +16,24 @@ export const MENU_ITEMS = [
   { id: 'fines', label: { en: 'Fines', rw: 'Amande' }, icon: <Gavel size={20} />, path: '/fines' },
   { id: 'expenses', label: { en: 'Expenses', rw: 'Amafaranga yasohotse' }, icon: <Receipt size={20} />, path: '/expenses' },
   { id: 'attendance', label: { en: 'Attendance', rw: 'Ubwitabire' }, icon: <ClipboardCheck size={20} />, path: '/attendance' },
-  { id: 'meeting', label: { en: 'Meeting Mode', rw: 'Inama' }, icon: <Video size={20} />, path: '/meeting' },
+  { id: 'meeting', label: { en: 'Meting', rw: 'Meting' }, icon: <Video size={20} />, path: '/meeting' },
   { id: 'reports', label: { en: 'Reports', rw: 'Raporo' }, icon: <PieChart size={20} />, path: '/reports' },
   { id: 'notifications', label: { en: 'Notifications', rw: 'Amatangazo' }, icon: <Bell size={20} />, path: '/notifications' },
   { id: 'users', label: { en: 'Users & Roles', rw: 'Abakoresha' }, icon: <UserCog size={20} />, path: '/users' },
   { id: 'settings', label: { en: 'Settings', rw: 'Igenamiterere' }, icon: <Settings size={20} />, path: '/settings' },
   { id: 'audit', label: { en: 'Audit Logs', rw: 'Ubugenzuzi' }, icon: <ShieldAlert size={20} />, path: '/audit' },
   { id: 'help', label: { en: 'Help / Support', rw: 'Ubufasha' }, icon: <HelpCircle size={20} />, path: '/help' },
+];
+
+/** Menu categories for grouped sidebar with dropdowns */
+export const MENU_CATEGORIES = [
+  { id: 'overview', label: { en: 'Overview', rw: 'Incamake' }, itemIds: ['dashboard'] },
+  { id: 'organization', label: { en: 'Organization', rw: 'Amatsinda' }, itemIds: ['groups', 'members', 'seasons'] },
+  { id: 'finance', label: { en: 'Finance', rw: 'Amafaranga' }, itemIds: ['contributions', 'loans', 'fines', 'expenses'] },
+  { id: 'operations', label: { en: 'Operations', rw: 'Imikorere' }, itemIds: ['attendance', 'meeting'] },
+  { id: 'reports', label: { en: 'Reports & Comms', rw: 'Raporo' }, itemIds: ['reports', 'notifications'] },
+  { id: 'administration', label: { en: 'Administration', rw: 'Ubucuruzi' }, itemIds: ['users', 'settings', 'audit'] },
+  { id: 'support', label: { en: 'Support', rw: 'Ubufasha' }, itemIds: ['help'] },
 ];
 
 export const EMAIL_CONFIG = {
