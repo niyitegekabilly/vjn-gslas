@@ -1,0 +1,29 @@
+# Weekly keep-alive: pings Supabase so the project doesn't go to sleep after inactivity.
+# Runs every Sunday at 00:00 UTC.
+# Required repo secrets: SUPABASE_PROJECT_URL (e.g. https://xxx.supabase.co), SUPABASE_ANON_KEY (project anon key).
+name: Supabase Keep-Alive
+
+on:
+  schedule:
+    # Every Sunday at midnight UTC
+    - cron: '0 0 * * 0'
+  workflow_dispatch: # Allow manual run from Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase keep-alive function
+        run: |
+          URL="${{ secrets.SUPABASE_PROJECT_URL }}/functions/v1/keep-alive"
+          if [ -z "$URL" ] || [ "$URL" = "/functions/v1/keep-alive" ]; then
+            echo "Set SUPABASE_PROJECT_URL secret (e.g. https://YOUR_PROJECT_REF.supabase.co)"
+            exit 1
+          fi
+          curl -sS -X POST "$URL" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Content-Type: application/json" \
+            --max-time 30 \
+            -o /tmp/out.json
+          cat /tmp/out.json
+          grep -q '"ok"' /tmp/out.json && echo "Keep-alive OK" || echo "Keep-alive response (non-fatal): $(cat /tmp/out.json)"

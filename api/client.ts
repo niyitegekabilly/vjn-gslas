@@ -6,9 +6,20 @@ import { UserRole } from '../types';
 
 const delay = (ms = 500) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const SESSION_EXPIRES_AT_KEY = 'vjn_session_expires_at';
+
 const getSessionUser = (): User | null => {
   const session = localStorage.getItem('vjn_session');
   if (!session) return null;
+  const raw = localStorage.getItem(SESSION_EXPIRES_AT_KEY);
+  if (raw != null) {
+    const expiresAt = parseInt(raw, 10);
+    if (Number.isFinite(expiresAt) && Date.now() >= expiresAt) {
+      localStorage.removeItem('vjn_session');
+      localStorage.removeItem(SESSION_EXPIRES_AT_KEY);
+      return null;
+    }
+  }
   try {
     return JSON.parse(session) as User;
   } catch {

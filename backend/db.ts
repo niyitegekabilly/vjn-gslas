@@ -331,7 +331,8 @@ export const db = JSON.parse(JSON.stringify(SEED_DATA));
 export const resetDatabase = () => {
   try {
     localStorage.removeItem(DB_KEY);
-    localStorage.removeItem('vjn_session'); 
+    localStorage.removeItem('vjn_session');
+    localStorage.removeItem('vjn_session_expires_at');
     window.location.reload();
   } catch (error) {
     console.error('Failed to reset database:', error);

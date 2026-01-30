@@ -1,7 +1,23 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { User, UserRole } from '../types';
 import { api } from '../api/client';
+
+const SESSION_STORAGE_KEY = 'vjn_session';
+const SESSION_EXPIRES_AT_KEY = 'vjn_session_expires_at';
+const SESSION_DURATION_MS = 60 * 60 * 1000; // 60 minutes
+
+const getSessionExpiresAt = (): number | null => {
+  const raw = localStorage.getItem(SESSION_EXPIRES_AT_KEY);
+  if (raw == null) return null;
+  const n = parseInt(raw, 10);
+  return Number.isFinite(n) ? n : null;
+};
+
+const isSessionExpired = (): boolean => {
+  const expiresAt = getSessionExpiresAt();
+  return expiresAt == null || Date.now() >= expiresAt;
+};
 
 interface LoginResponse {
   needs2FA: boolean;
@@ -26,34 +42,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    const clearSession = () => {
+      localStorage.removeItem(SESSION_STORAGE_KEY);
+      localStorage.removeItem(SESSION_EXPIRES_AT_KEY);
+      setUser(null);
+    };
+
     const restoreSession = async () => {
-      const storedSession = localStorage.getItem('vjn_session');
-      if (storedSession) {
-        try {
-          // Parse user object or token from storage
-          const parsed = JSON.parse(storedSession);
-          // If we have a user ID, validate it against the server to ensure session is fresh
-          if (parsed && parsed.id) {
-             // @ts-ignore
-             const freshUser = await api.getUser(parsed.id);
-             // Ensure user exists and is active
-             if (freshUser && freshUser.status === 'ACTIVE') {
-               setUser(freshUser);
-               // Update cache with fresh data
-               localStorage.setItem('vjn_session', JSON.stringify(freshUser));
-             } else {
-               console.warn("Session invalid or user inactive");
-               localStorage.removeItem('vjn_session');
-             }
+      const storedSession = localStorage.getItem(SESSION_STORAGE_KEY);
+      if (!storedSession) {
+        setIsLoading(false);
+        return;
+      }
+      if (isSessionExpired()) {
+        clearSession();
+        setIsLoading(false);
+        return;
+      }
+      try {
+        const parsed = JSON.parse(storedSession);
+        if (parsed && parsed.id) {
+          // @ts-ignore
+          const freshUser = await api.getUser(parsed.id);
+          if (freshUser && freshUser.status === 'ACTIVE' && !isSessionExpired()) {
+            setUser(freshUser);
+            localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(freshUser));
+          } else {
+            clearSession();
           }
-        } catch (e) {
-          console.error("Session restore failed", e);
-          localStorage.removeItem('vjn_session'); // Clear corrupt data
+        } else {
+          clearSession();
         }
+      } catch (e) {
+        console.error("Session restore failed", e);
+        clearSession();
       }
       setIsLoading(false);
     };
-    
+
     restoreSession();
   }, []);
 
@@ -66,7 +92,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return { needs2FA: true, userId: response.userId, email: response.email };
         } else if (response.status === 'SUCCESS' && response.user) {
             setUser(response.user);
-            localStorage.setItem('vjn_session', JSON.stringify(response.user));
+            const expiresAt = Date.now() + SESSION_DURATION_MS;
+            localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(response.user));
+            localStorage.setItem(SESSION_EXPIRES_AT_KEY, String(expiresAt));
             return { needs2FA: false };
         }
         
@@ -82,7 +110,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await api.verifyTwoFactor(userId, code);
       if (response.status === 'SUCCESS' && response.user) {
         setUser(response.user);
-        localStorage.setItem('vjn_session', JSON.stringify(response.user));
+        const expiresAt = Date.now() + SESSION_DURATION_MS;
+        localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(response.user));
+        localStorage.setItem(SESSION_EXPIRES_AT_KEY, String(expiresAt));
       }
     } catch (e) {
       throw e;
@@ -91,8 +121,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('vjn_session');
+    localStorage.removeItem(SESSION_STORAGE_KEY);
+    localStorage.removeItem(SESSION_EXPIRES_AT_KEY);
   };
+
+  // Auto-logout when session expires (check every 60 seconds)
+  const logoutRef = useRef(logout);
+  logoutRef.current = logout;
+  useEffect(() => {
+    if (!user) return;
+    const interval = setInterval(() => {
+      if (isSessionExpired()) {
+        logoutRef.current();
+      }
+    }, 60 * 1000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   const checkPermission = (allowedRoles: UserRole[]) => {
     if (!user) return false;
