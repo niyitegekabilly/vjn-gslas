@@ -2,7 +2,7 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { AppContext } from '../App';
 import { api } from '../api/client';
-import { LABELS } from '../constants';
+import { LABELS, BROADCAST_EMAIL_TEMPLATES, BROADCAST_SMS_TEMPLATES } from '../constants';
 import { Notification, Member, UserRole } from '../types';
 import { Bell, Check, Loader2, Info, AlertTriangle, CheckCircle, Mail, MessageSquare, Send, X, Users } from 'lucide-react';
 import { Skeleton } from '../components/Skeleton';
@@ -21,13 +21,15 @@ export default function Notifications() {
   const [composeType, setComposeType] = useState<'EMAIL' | 'SMS'>('EMAIL');
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
-  const [recipients, setRecipients] = useState<'ALL' | 'SPECIFIC'>('ALL');
+  const [recipientMode, setRecipientMode] = useState<'MEMBERS' | 'CUSTOM'>('MEMBERS');
+  const [customList, setCustomList] = useState('');
   const [members, setMembers] = useState<Member[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
     fetchData();
-    refreshNotifications(); // Refresh the badge count when page loads
+    refreshNotifications();
   }, []);
 
   useEffect(() => {
@@ -57,53 +59,82 @@ export default function Notifications() {
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!activeGroupId) return;
     setSending(true);
 
     try {
-        let recipientList: string[] = [];
-        
+      let recipientList: string[] = [];
+
+      if (recipientMode === 'MEMBERS') {
+        if (!activeGroupId) {
+          alert(lang === 'en' ? 'Select a group to send to its members, or use "Custom emails / phones".' : 'Hitamo itsinda kugira ngo wohereze abanyamuryango, cyangwa koresha "Imeyili / telefoni byihariye".');
+          setSending(false);
+          return;
+        }
         if (composeType === 'EMAIL') {
-            // Filter members with email addresses (mock logic if field is missing, use default)
-            recipientList = members
-                .filter(m => m.email || m.fullName.includes('@')) // Fallback logic
-                .map(m => m.email || `${m.fullName.replace(/\s/g,'.').toLowerCase()}@amatsinda.vjn.org.rw`);
+          recipientList = members
+            .filter(m => m.email || (m.fullName && m.fullName.includes('@')))
+            .map(m => m.email || `${(m.fullName || '').replace(/\s/g, '.').toLowerCase()}@amatsinda.vjn.org.rw`);
         } else {
-            recipientList = members.filter(m => m.phone).map(m => m.phone);
+          recipientList = members.filter(m => m.phone).map(m => m.phone!);
         }
-
-        if (recipientList.length === 0) {
-            alert("No valid recipients found with contact info.");
-            setSending(false);
-            return;
-        }
-
+      } else {
+        const raw = customList.split(/[\n,;]+/).map(s => s.trim()).filter(Boolean);
         if (composeType === 'EMAIL') {
-            await api.sendEmail(recipientList, subject, message);
+          recipientList = raw.filter(s => s.includes('@'));
         } else {
-            // Send SMS to each (simulation loop)
-            for (const phone of recipientList) {
-                await api.sendSMS(phone, message);
-            }
+          recipientList = raw.filter(s => /^[+\d\s-]+$/.test(s));
         }
+      }
 
-        // Add internal notification for record
-        await api.createNotification({
-            title: `Broadcast Sent (${composeType})`,
-            message: `Sent to ${recipientList.length} recipients by ${user?.fullName}`,
-            type: 'INFO'
-        });
-
-        alert(labels.msgSentSuccess);
-        setIsComposeOpen(false);
-        setSubject('');
-        setMessage('');
-        fetchData();
-    } catch (e) {
-        alert(labels.msgFailed);
-        console.error(e);
-    } finally {
+      if (recipientList.length === 0) {
+        alert(lang === 'en' ? 'No valid recipients. Add emails or phone numbers.' : 'Nta bigenewe. Ongeraho imeyili cyangwa nomero.');
         setSending(false);
+        return;
+      }
+
+      const htmlMessage = message.replace(/\n/g, '<br/>');
+      if (composeType === 'EMAIL') {
+        await api.sendEmail(recipientList, subject, htmlMessage);
+      } else {
+        for (const phone of recipientList) {
+          await api.sendSMS(phone, message);
+        }
+      }
+
+      await api.createNotification({
+        title: `Broadcast Sent (${composeType})`,
+        message: `Sent to ${recipientList.length} recipients by ${user?.fullName}`,
+        type: 'INFO'
+      });
+
+      alert(labels.msgSentSuccess);
+      setIsComposeOpen(false);
+      setSubject('');
+      setMessage('');
+      setCustomList('');
+      setSelectedTemplateId('');
+      fetchData();
+    } catch (e: any) {
+      const errMsg = e?.message || (typeof e === 'string' ? e : labels.msgFailed);
+      alert(errMsg);
+      console.error(e);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const applyTemplate = (templateId: string) => {
+    setSelectedTemplateId(templateId);
+    if (!templateId) return;
+    if (composeType === 'EMAIL') {
+      const t = BROADCAST_EMAIL_TEMPLATES.find(x => x.id === templateId);
+      if (t) {
+        setSubject(lang === 'rw' ? t.subjectRw : t.subjectEn);
+        setMessage(lang === 'rw' ? t.bodyRw : t.bodyEn);
+      }
+    } else {
+      const t = BROADCAST_SMS_TEMPLATES.find(x => x.id === templateId);
+      if (t) setMessage(lang === 'rw' ? t.bodyRw : t.bodyEn);
     }
   };
 
@@ -245,18 +276,62 @@ export default function Notifications() {
                     </div>
                  </div>
 
-                 {/* Recipients */}
+                 {/* Recipients: Members vs Custom */}
                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">{labels.recipients}</label>
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
-                        <div className="flex items-center">
-                            <Users size={18} className="text-gray-500 mr-2" />
-                            <span className="text-sm font-medium text-gray-800">{labels.allMembers} ({members.length})</span>
-                        </div>
-                        <span className="text-xs text-gray-500 bg-white px-2 py-1 rounded border border-gray-200">
-                            {composeType === 'EMAIL' ? 'Via Email Address' : 'Via Phone Number'}
-                        </span>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{labels.recipients}</label>
+                    <div className="flex gap-3 mb-2">
+                        <button
+                            type="button"
+                            onClick={() => setRecipientMode('MEMBERS')}
+                            className={`flex-1 py-2.5 rounded-lg border flex justify-center items-center text-sm font-medium transition-all ${
+                                recipientMode === 'MEMBERS' ? 'bg-blue-50 border-blue-500 text-blue-700 ring-1 ring-blue-500' : 'border-gray-200 hover:bg-gray-50 text-gray-600'
+                            }`}
+                        >
+                            <Users size={16} className="mr-2" /> {labels.recipientsOptionMembers}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setRecipientMode('CUSTOM')}
+                            className={`flex-1 py-2.5 rounded-lg border flex justify-center items-center text-sm font-medium transition-all ${
+                                recipientMode === 'CUSTOM' ? 'bg-blue-50 border-blue-500 text-blue-700 ring-1 ring-blue-500' : 'border-gray-200 hover:bg-gray-50 text-gray-600'
+                            }`}
+                        >
+                            <Mail size={16} className="mr-2" /> {labels.recipientsOptionCustom}
+                        </button>
                     </div>
+                    {recipientMode === 'MEMBERS' ? (
+                        <div className="flex items-center p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <Users size={18} className="text-gray-500 mr-2" />
+                            <span className="text-sm text-gray-800">{labels.allMembers} {activeGroupId ? `(${members.length})` : '(select a group)'}</span>
+                        </div>
+                    ) : (
+                        <textarea
+                            value={customList}
+                            onChange={e => setCustomList(e.target.value)}
+                            rows={3}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                            placeholder={composeType === 'EMAIL' ? labels.oneEmailPerLine : labels.onePhonePerLine}
+                        />
+                    )}
+                 </div>
+
+                 {/* Template selector */}
+                 <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{labels.selectTemplate}</label>
+                    <select
+                        value={selectedTemplateId}
+                        onChange={e => applyTemplate(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                    >
+                        <option value="">{labels.customTemplate}</option>
+                        {composeType === 'EMAIL'
+                            ? BROADCAST_EMAIL_TEMPLATES.map(t => (
+                                <option key={t.id} value={t.id}>{lang === 'rw' ? t.nameRw : t.nameEn}</option>
+                              ))
+                            : BROADCAST_SMS_TEMPLATES.map(t => (
+                                <option key={t.id} value={t.id}>{lang === 'rw' ? t.nameRw : t.nameEn}</option>
+                              ))}
+                    </select>
                  </div>
 
                  {/* Subject (Email Only) */}

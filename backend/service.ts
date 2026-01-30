@@ -1032,10 +1032,18 @@ export const createNotification = async (notif: Partial<Notification>) => {
 
 // --- Communication ---
 export const sendEmail = async (to: string[], subject: string, html: string) => {
-  // In production, call Edge Function
-  // await supabase.functions.invoke('send-email', { body: { to, subject, html } });
-  console.log('Sending Email:', subject);
-  return { success: true };
+  if (!to?.length) throw new Error('No recipients provided');
+  const { data, error } = await supabase.functions.invoke('send-email', {
+    body: { to, subject, html },
+  });
+  if (error) {
+    console.error('Send email function error:', error);
+    throw new Error(error.message || 'Failed to send email');
+  }
+  if (data?.error) {
+    throw new Error(typeof data.error === 'string' ? data.error : data.error?.message || 'Email delivery failed');
+  }
+  return data ?? { success: true };
 };
 
 export const sendSMS = async (phone: string, msg: string) => {

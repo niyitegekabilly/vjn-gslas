@@ -29,36 +29,45 @@ serve(async (req) => {
       throw new Error("RESEND_API_KEY is not set in Supabase Secrets.");
     }
 
-    // 2. Call Resend API
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${RESEND_API_KEY}`,
-      },
-      body: JSON.stringify({
-        // Use verified domain or fallback to Resend testing domain if key is missing
-        from: from || "VJN System <notifications@amatsinda.vjn.org.rw>",
-        to: to,
-        subject: subject,
-        html: html,
-      }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-        console.error("Resend API Error:", data);
-        return new Response(JSON.stringify(data), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-            status: res.status,
-        });
+    const recipients = Array.isArray(to) ? to : [to];
+    if (recipients.length === 0) {
+      throw new Error("No recipients provided.");
     }
 
-    return new Response(JSON.stringify(data), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
+    const fromAddress = from || "VJN System <notifications@amatsinda.vjn.org.rw>";
+    const results: { to: string; id?: string; error?: string }[] = [];
+
+    for (const email of recipients) {
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${RESEND_API_KEY}`,
+        },
+        body: JSON.stringify({
+          from: fromAddress,
+          to: email,
+          subject: subject,
+          html: html,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        console.error("Resend API Error for", email, data);
+        return new Response(
+          JSON.stringify({ error: data.message || data.error || "Email delivery failed", details: data }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: res.status }
+        );
+      }
+      results.push({ to: email, id: data.id });
+    }
+
+    return new Response(
+      JSON.stringify({ success: true, sent: results.length, results }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+    );
 
   } catch (error: any) {
     console.error("Function Error:", error);

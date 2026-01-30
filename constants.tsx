@@ -36,6 +36,22 @@ export const MENU_CATEGORIES = [
   { id: 'support', label: { en: 'Support', rw: 'Ubufasha' }, itemIds: ['help'] },
 ];
 
+/** Email templates for Compose Broadcast (Admin can send to members or custom emails) */
+export const BROADCAST_EMAIL_TEMPLATES = [
+  { id: 'meeting_reminder', nameEn: 'Meeting reminder', nameRw: 'Icyibutsa cy\'inama', subjectEn: 'Meeting reminder', subjectRw: 'Icyibutsa cy\'inama', bodyEn: 'Hello,\n\nThis is a reminder about an upcoming group meeting. Please check the app for date and time.\n\nBest regards,\nVJN GSLA', bodyRw: 'Muraho,\n\nIki ni icyibutsa cy\'inama y\'itsinda. Reba porogaramu kugira ngo ubone itariki n\'igihe.\n\nVJN GSLA' },
+  { id: 'loan_due', nameEn: 'Loan due reminder', nameRw: 'Icyibutsa inguzanyo', subjectEn: 'Loan repayment due', subjectRw: 'Inguzanyo igomba kwishyurwa', bodyEn: 'Hello,\n\nYour loan repayment is due soon. Please ensure your account is funded.\n\nVJN GSLA', bodyRw: 'Muraho,\n\nInguzanyo yawe igiye kwishyurwa. Tegeka ko konti yawe ifite amafaranga.\n\nVJN GSLA' },
+  { id: 'savings_reminder', nameEn: 'Savings reminder', nameRw: 'Icyibutsa ubwizigame', subjectEn: 'Savings reminder', subjectRw: 'Icyibutsa ubwizigame', bodyEn: 'Hello,\n\nA friendly reminder to make your regular savings contribution when possible.\n\nVJN GSLA', bodyRw: 'Muraho,\n\nIcyibutsa cyo guha ubwizigame bwawe bugezweho.\n\nVJN GSLA' },
+  { id: 'general_announcement', nameEn: 'General announcement', nameRw: 'Amatangazo', subjectEn: 'Group announcement', subjectRw: 'Amatangazo y\'itsinda', bodyEn: 'Hello,\n\nPlease see the message below from your group.\n\nVJN GSLA', bodyRw: 'Muraho,\n\nReba ubutumwa bukurikira buva kuri itsinda ryawe.\n\nVJN GSLA' },
+];
+
+/** SMS templates for Compose Broadcast */
+export const BROADCAST_SMS_TEMPLATES = [
+  { id: 'meeting_reminder', nameEn: 'Meeting reminder', nameRw: 'Icyibutsa inama', bodyEn: 'Reminder: Group meeting soon. Check the app for details. VJN GSLA', bodyRw: 'Icyibutsa: Inama y\'itsinda. Reba porogaramu. VJN GSLA' },
+  { id: 'loan_due', nameEn: 'Loan due', nameRw: 'Inguzanyo igiye kwishyurwa', bodyEn: 'Your loan repayment is due soon. Please ensure your account is funded. VJN GSLA', bodyRw: 'Inguzanyo yawe igiye kwishyurwa. Tegeka konti. VJN GSLA' },
+  { id: 'savings_reminder', nameEn: 'Savings reminder', nameRw: 'Icyibutsa ubwizigame', bodyEn: 'Reminder: Make your savings contribution when you can. VJN GSLA', bodyRw: 'Icyibutsa: Tanga ubwizigame bwawe. VJN GSLA' },
+  { id: 'general_short', nameEn: 'Short announcement', nameRw: 'Amatangazo', bodyEn: 'Message from your group. Check the VJN app for details.', bodyRw: 'Ubutumwa buva kuri itsinda. Reba porogaramu VJN.' },
+];
+
 export const EMAIL_CONFIG = {
   // EXACT verified domain configuration
   defaultFrom: "VJN System <notifications@amatsinda.vjn.org.rw>", 
@@ -100,9 +116,15 @@ export const LABELS = {
     sendEmail: "Send Email",
     channel: "Channel",
     recipients: "Recipients",
+    recipientsOptionMembers: "Group members",
+    recipientsOptionCustom: "Custom emails / phones",
     allMembers: "All Members",
     subject: "Subject",
     message: "Message",
+    selectTemplate: "Use a template",
+    customTemplate: "Custom (write your own)",
+    oneEmailPerLine: "One email per line",
+    onePhonePerLine: "One phone number per line",
     msgSentSuccess: "Message sent successfully!",
     msgFailed: "Failed to send message.",
     emailSentSim: "Email Simulation: Sent to",
@@ -516,9 +538,15 @@ export const LABELS = {
     sendEmail: "Ohereza Imeyili",
     channel: "Uburyo",
     recipients: "Abo bigenewe",
+    recipientsOptionMembers: "Abanyamuryango b'amatsinda",
+    recipientsOptionCustom: "Imeyili / telefoni byihariye",
     allMembers: "Abanyamuryango Bose",
     subject: "Impamvu",
     message: "Ubutumwa",
+    selectTemplate: "Koresha icyitegererezo",
+    customTemplate: "Bihariye (andika wenyine)",
+    oneEmailPerLine: "Imeyili imwe kuri buri murongo",
+    onePhonePerLine: "Nomero imwe kuri buri murongo",
     msgSentSuccess: "Ubutumwa bwoherejwe neza!",
     msgFailed: "Ntibyakunze kohereza ubutumwa.",
     emailSentSim: "Imeyili yoherejwe kuri",
