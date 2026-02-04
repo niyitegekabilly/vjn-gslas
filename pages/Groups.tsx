@@ -4,7 +4,7 @@ import { AppContext } from '../App';
 import { api } from '../api/client';
 import { LABELS } from '../constants';
 import { GSLAGroup, Member, MemberStatus, UserRole } from '../types';
-import { Plus, Building, MapPin, Users, Edit, Search, X, CheckCircle, AlertCircle, Phone, Mail, Calendar, ChevronRight } from 'lucide-react';
+import { Plus, Building, MapPin, Users, Edit, Search, X, CheckCircle, AlertCircle, Phone, Mail, Calendar, ChevronRight, Upload } from 'lucide-react';
 import { GroupForm } from '../components/GroupForm';
 import { TableRowSkeleton } from '../components/Skeleton';
 import { CsvImporter } from '../components/CsvImporter';
@@ -30,6 +30,7 @@ export default function Groups() {
   const [membersGroupName, setMembersGroupName] = useState('');
   const [selectedGroupId, setSelectedGroupId] = useState<string>('');
   const [memberSearchTerm, setMemberSearchTerm] = useState('');
+  const [showImportMembers, setShowImportMembers] = useState(false);
 
   useEffect(() => {
     // Initial load from context, then background refresh
@@ -150,6 +151,37 @@ export default function Groups() {
       return { success: false, message: e?.message || 'Failed to import groups' };
     }
   };
+
+  const handleImportMembers = async (data: any[]) => {
+    if (!selectedGroupId) return { success: false, message: 'No group selected' };
+    try {
+      const res: any = await api.importMembers(selectedGroupId, data);
+      // Refresh the members list
+      const members = await api.getMembers(selectedGroupId);
+      setSelectedGroupMembers(members);
+      // Update member counts
+      await fetchMemberCounts(groups);
+      // @ts-ignore
+      return { success: true, message: `Imported ${res.added} members successfully.` };
+    } catch (e: any) {
+      return { success: false, message: e?.message || 'Failed to import members' };
+    }
+  };
+
+  const handleAddMemberClick = () => {
+    if (selectedGroupId) {
+      setActiveGroupId(selectedGroupId);
+    }
+    navigate('/members');
+    setIsMembersModalOpen(false);
+  };
+
+  const importMemberFields = [
+    { key: 'FullName', label: 'Full Name', sample: 'John Doe', required: true },
+    { key: 'NationalID', label: 'National ID', sample: '1199000...', required: true },
+    { key: 'Phone', label: 'Phone', sample: '0788123456', required: true },
+    { key: 'Role', label: 'Role (Optional)', sample: 'MEMBER_USER', required: false },
+  ];
 
   return (
     <div className="space-y-6">
@@ -449,31 +481,71 @@ export default function Groups() {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-6 border-t border-gray-200 flex justify-between items-center flex-shrink-0 bg-white">
-              <div className="text-sm text-gray-500">
-                {(() => {
-                  const filtered = selectedGroupMembers.filter(member => {
-                    if (!memberSearchTerm) return true;
-                    const search = memberSearchTerm.toLowerCase();
-                    return (
-                      member.fullName.toLowerCase().includes(search) ||
-                      member.phone.includes(search) ||
-                      member.nationalId.includes(search) ||
-                      (member.email && member.email.toLowerCase().includes(search))
-                    );
-                  });
-                  return `${filtered.length} of ${selectedGroupMembers.length} members`;
-                })()}
+            <div className="p-6 border-t border-gray-200 flex flex-col gap-4 flex-shrink-0 bg-white">
+              {/* Import Members Section */}
+              {showImportMembers && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex justify-between items-center mb-3">
+                    <h4 className="text-sm font-bold text-blue-900">Upload Members from CSV</h4>
+                    <button
+                      onClick={() => setShowImportMembers(false)}
+                      className="text-blue-600 hover:text-blue-800"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+                  <CsvImporter
+                    entityName="Members"
+                    fields={importMemberFields}
+                    onImport={handleImportMembers}
+                    className="w-full"
+                  />
+                </div>
+              )}
+              
+              <div className="flex justify-between items-center">
+                <div className="text-sm text-gray-500">
+                  {(() => {
+                    const filtered = selectedGroupMembers.filter(member => {
+                      if (!memberSearchTerm) return true;
+                      const search = memberSearchTerm.toLowerCase();
+                      return (
+                        member.fullName.toLowerCase().includes(search) ||
+                        member.phone.includes(search) ||
+                        member.nationalId.includes(search) ||
+                        (member.email && member.email.toLowerCase().includes(search))
+                      );
+                    });
+                    return `${filtered.length} of ${selectedGroupMembers.length} members`;
+                  })()}
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowImportMembers(!showImportMembers)}
+                    className="flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                  >
+                    <Upload size={16} className="mr-2" />
+                    {showImportMembers ? 'Hide Upload' : 'Upload CSV'}
+                  </button>
+                  <button
+                    onClick={handleAddMemberClick}
+                    className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
+                  >
+                    <Plus size={16} className="mr-2" />
+                    Add Member
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsMembersModalOpen(false);
+                      setMemberSearchTerm('');
+                      setShowImportMembers(false);
+                    }}
+                    className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                  >
+                    {labels.close}
+                  </button>
+                </div>
               </div>
-              <button
-                onClick={() => {
-                  setIsMembersModalOpen(false);
-                  setMemberSearchTerm('');
-                }}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
-              >
-                {labels.close}
-              </button>
             </div>
           </div>
         </div>

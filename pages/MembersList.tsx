@@ -2,16 +2,21 @@ import React, { useContext, useEffect, useState } from 'react';
 import { AppContext } from '../App';
 import { api } from '../api/client';
 import { LABELS } from '../constants';
-import { Member, MemberStatus, UserRole } from '../types';
-import { Users, Plus, Search, Edit, Trash2, Filter, Loader2, X, CheckCircle, AlertCircle } from 'lucide-react';
+import { Member, MemberStatus, UserRole, GSLAGroup } from '../types';
+import { Users, Plus, Search, Edit, Trash2, Filter, Loader2, X, CheckCircle, AlertCircle, Building } from 'lucide-react';
 import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog';
 import { CsvImporter } from '../components/CsvImporter';
 import { TableRowSkeleton } from '../components/Skeleton';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function MembersList() {
-  const { activeGroupId, lang, groups } = useContext(AppContext);
+  const { activeGroupId, lang, groups, setActiveGroupId } = useContext(AppContext);
+  const { user } = useAuth();
   const labels = LABELS[lang];
   const group = groups.find((g) => g.id === activeGroupId);
+  
+  // Check if user is admin
+  const canSeeAllGroups = user && [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.AUDITOR].includes(user.role);
 
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,13 +39,21 @@ export default function MembersList() {
   // Delete State
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  
+  // Group Selection Dialog State (for admins when no group selected)
+  const [showGroupSelectDialog, setShowGroupSelectDialog] = useState(false);
+  const [selectedGroupForMember, setSelectedGroupForMember] = useState<string>('');
 
   useEffect(() => {
-    if (activeGroupId) {
+    // For admins: show group selection dialog if no group is selected
+    if (canSeeAllGroups && !activeGroupId && groups.length > 0) {
+      setShowGroupSelectDialog(true);
+    } else if (activeGroupId) {
       fetchMembers();
+      setShowGroupSelectDialog(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeGroupId]);
+  }, [activeGroupId, canSeeAllGroups, groups.length]);
 
   const fetchMembers = async () => {
     if (!activeGroupId) return;
@@ -56,6 +69,12 @@ export default function MembersList() {
   };
 
   const handleOpenModal = (member?: Member) => {
+    // If no group selected and trying to add a new member, show group selection first
+    if (!member && !activeGroupId && canSeeAllGroups && groups.length > 0) {
+      setShowGroupSelectDialog(true);
+      return;
+    }
+    
     if (member) {
       setEditingMember(member);
       setFormData({
@@ -77,18 +96,46 @@ export default function MembersList() {
     }
     setIsModalOpen(true);
   };
+  
+  const handleGroupSelect = (groupId: string) => {
+    setActiveGroupId(groupId);
+    setShowGroupSelectDialog(false);
+    if (selectedGroupForMember) {
+      // If we were trying to add a member, open the modal now
+      setSelectedGroupForMember('');
+      setTimeout(() => handleOpenModal(), 100);
+    }
+  };
+  
+  const handleGroupSelectForMember = (groupId: string) => {
+    setSelectedGroupForMember(groupId);
+    setActiveGroupId(groupId);
+    setShowGroupSelectDialog(false);
+    // Open member form after group is selected
+    setTimeout(() => {
+      handleOpenModal();
+    }, 100);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!activeGroupId) return;
+    const groupIdToUse = activeGroupId || selectedGroupForMember;
+    if (!groupIdToUse) {
+      alert('Please select a group');
+      return;
+    }
     setIsSubmitting(true);
     try {
       if (editingMember) {
         await api.updateMember(editingMember.id, formData);
       } else {
-        await api.addMember(activeGroupId, formData);
+        await api.addMember(groupIdToUse, formData);
       }
       setIsModalOpen(false);
+      setSelectedGroupForMember('');
+      if (groupIdToUse !== activeGroupId) {
+        setActiveGroupId(groupIdToUse);
+      }
       fetchMembers();
     } catch (e) {
       console.error(e);
@@ -114,9 +161,19 @@ export default function MembersList() {
   };
 
   const handleImport = async (data: any[]) => {
-    if (!activeGroupId) return { success: false, message: 'No active group selected' };
+    const groupIdToUse = activeGroupId || selectedGroupForMember;
+    if (!groupIdToUse) {
+      if (canSeeAllGroups && groups.length > 0) {
+        setShowGroupSelectDialog(true);
+        return { success: false, message: 'Please select a group first' };
+      }
+      return { success: false, message: 'No active group selected' };
+    }
     try {
-      const res = await api.importMembers(activeGroupId, data);
+      const res = await api.importMembers(groupIdToUse, data);
+      if (groupIdToUse !== activeGroupId) {
+        setActiveGroupId(groupIdToUse);
+      }
       fetchMembers();
       // @ts-ignore
       return { success: true, message: `Imported ${res.added} members successfully.` };
@@ -143,6 +200,55 @@ export default function MembersList() {
 
   return (
     <div className="space-y-6">
+      {/* Group Selection Dialog for Admins */}
+      {showGroupSelectDialog && canSeeAllGroups && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="bg-blue-50 p-2 rounded-lg">
+                  <Building className="text-blue-600" size={24} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-800">Select Group</h3>
+                  <p className="text-sm text-gray-500">Please select a group to view or manage members</p>
+                </div>
+              </div>
+            </div>
+            <div className="p-6">
+              <div className="space-y-3 max-h-96 overflow-y-auto custom-scrollbar">
+                {groups.map((g: GSLAGroup) => (
+                  <button
+                    key={g.id}
+                    onClick={() => selectedGroupForMember ? handleGroupSelectForMember(g.id) : handleGroupSelect(g.id)}
+                    className="w-full p-4 text-left border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all group"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-bold text-gray-900 group-hover:text-blue-700">{g.name}</h4>
+                        <p className="text-sm text-gray-500 mt-1">{g.district} • {g.sector}</p>
+                      </div>
+                      <ChevronRight size={20} className="text-gray-400 group-hover:text-blue-600" />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="p-6 border-t border-gray-200 flex justify-end">
+              <button
+                onClick={() => {
+                  setShowGroupSelectDialog(false);
+                  setSelectedGroupForMember('');
+                }}
+                className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h2 className="text-2xl font-bold text-gray-800 flex items-center">
           <Users className="mr-3 text-blue-600" /> {labels.members}
@@ -185,7 +291,19 @@ export default function MembersList() {
           </div>
         </div>
 
-        {loading ? (
+        {!activeGroupId && canSeeAllGroups ? (
+          <div className="p-12 text-center bg-white rounded-xl border-2 border-dashed border-gray-300">
+            <Building size={48} className="mx-auto mb-4 text-gray-300" />
+            <p className="text-lg font-medium text-gray-500 mb-2">No Group Selected</p>
+            <p className="text-sm text-gray-400 mb-4">Please select a group to view members</p>
+            <button
+              onClick={() => setShowGroupSelectDialog(true)}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+            >
+              Select Group
+            </button>
+          </div>
+        ) : loading ? (
           <div className="p-4 space-y-4">
             {[...Array(5)].map((_, i) => (
               <TableRowSkeleton key={i} />
@@ -285,12 +403,47 @@ export default function MembersList() {
           <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-hidden flex flex-col">
             <div className="flex justify-between items-center p-6 border-b border-gray-100 flex-shrink-0">
               <h3 className="text-lg font-bold text-gray-800">{editingMember ? labels.editMember : labels.addMember}</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+              <button 
+                onClick={() => {
+                  setIsModalOpen(false);
+                  setSelectedGroupForMember('');
+                }} 
+                className="text-gray-400 hover:text-gray-600"
+              >
                 <X size={24} />
               </button>
             </div>
 
             <form id="member-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar min-h-0">
+              {/* Group Selector for Admins when no group is selected */}
+              {(!activeGroupId || selectedGroupForMember) && canSeeAllGroups && groups.length > 0 && !editingMember && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Select Group <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    required
+                    value={selectedGroupForMember || activeGroupId || ''}
+                    onChange={(e) => {
+                      const groupId = e.target.value;
+                      setSelectedGroupForMember(groupId);
+                      if (!activeGroupId) {
+                        setActiveGroupId(groupId);
+                      }
+                    }}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                  >
+                    <option value="">-- Select a Group --</option>
+                    {groups.map((g: GSLAGroup) => (
+                      <option key={g.id} value={g.id}>
+                        {g.name} ({g.district})
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">Choose the group to add this member to</p>
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{labels.fullName}</label>
                 <input
@@ -355,7 +508,10 @@ export default function MembersList() {
             <div className="pt-2 flex gap-3 p-6 border-t border-gray-100 flex-shrink-0">
               <button
                 type="button"
-                onClick={() => setIsModalOpen(false)}
+                onClick={() => {
+                  setIsModalOpen(false);
+                  setSelectedGroupForMember('');
+                }}
                 className="flex-1 py-2.5 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50"
               >
                 {labels.cancel}
