@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AppContext } from '../App';
 import { api } from '../api/client';
 import { LABELS } from '../constants';
@@ -10,6 +11,7 @@ import { CsvImporter } from '../components/CsvImporter';
 
 export default function Groups() {
   const { lang, groups: contextGroups, refreshApp } = useContext(AppContext);
+  const navigate = useNavigate();
   const labels = LABELS[lang];
   
   const [groups, setGroups] = useState<GSLAGroup[]>([]);
@@ -171,15 +173,23 @@ export default function Groups() {
            </div>
         ) : (
            filteredGroups.map(group => (
-             <div key={group.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow group-card">
+             <div 
+               key={group.id} 
+               className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all cursor-pointer group-card"
+               onClick={() => navigate(`/groups/${group.id}`)}
+             >
                 <div className="p-5">
                    <div className="flex justify-between items-start mb-4">
                       <div className="bg-blue-50 p-3 rounded-lg text-blue-600">
                          <Building size={24} />
                       </div>
                       <button 
-                        onClick={() => handleEdit(group)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEdit(group);
+                        }}
                         className="p-2 text-gray-400 hover:text-blue-600 hover:bg-gray-50 rounded-lg transition-colors"
+                        title={labels.edit}
                       >
                          <Edit size={18} />
                       </button>
@@ -203,7 +213,7 @@ export default function Groups() {
                       </div>
                       <div>
                          <p className="text-gray-400 text-xs uppercase font-bold">{labels.shareValue}</p>
-                         <p className="font-medium text-gray-700 mt-1">{group.shareValue} RWF</p>
+                         <p className="font-medium text-gray-700 mt-1">{group.shareValue.toLocaleString()} RWF</p>
                       </div>
                       <div>
                          <p className="text-gray-400 text-xs uppercase font-bold">{labels.members}</p>

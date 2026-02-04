@@ -14,6 +14,7 @@ import Login from './pages/Login';
 import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import Groups from './pages/Groups';
+import GroupDetail from './pages/GroupDetail';
 import MembersList from './pages/MembersList';
 import LoanManager from './pages/LoanManager';
 import MeetingMode from './pages/MeetingMode';
@@ -306,6 +307,7 @@ const AppContent: React.FC = () => {
 
           <Route path="/" element={<Layout><Dashboard /></Layout>} />
           <Route path="/groups" element={<Layout><Groups /></Layout>} />
+          <Route path="/groups/:id" element={<Layout><GroupDetail /></Layout>} />
           <Route path="/members" element={<Layout><MembersList /></Layout>} />
           <Route path="/loans" element={<Layout><LoanManager /></Layout>} />
           <Route path="/meeting" element={<Layout><MeetingMode /></Layout>} />
