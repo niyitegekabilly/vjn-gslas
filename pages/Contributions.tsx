@@ -6,6 +6,7 @@ import { Transaction, Member, TransactionType } from '../types';
 import { Wallet, Plus, Search, Edit, Ban, Filter, CheckCircle, X, Loader2, Calendar } from 'lucide-react';
 import { TableRowSkeleton } from '../components/Skeleton';
 import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog';
+import { MemberSearchSelect } from '../components/MemberSearchSelect';
 
 export default function Contributions() {
   const { activeGroupId, lang, groups } = useContext(AppContext);
@@ -244,20 +245,17 @@ export default function Contributions() {
                   <button onClick={() => setIsAddOpen(false)}><X className="text-gray-400 hover:text-gray-600" /></button>
                </div>
                <form onSubmit={handleAddSubmit} className="space-y-4">
-                  <div>
-                     <label className="block text-sm font-medium text-gray-700 mb-1">{labels.members}</label>
-                     <select 
-                        required
-                        value={formData.memberId}
-                        onChange={e => setFormData({...formData, memberId: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 bg-white"
-                     >
-                        <option value="">-- {labels.selectMember} --</option>
-                        {members.filter(m => m.status === 'ACTIVE').map(m => (
-                           <option key={m.id} value={m.id}>{m.fullName}</option>
-                        ))}
-                     </select>
-                  </div>
+                  <MemberSearchSelect
+                    members={members}
+                    selectedMemberId={formData.memberId}
+                    onSelect={(memberId) => setFormData({...formData, memberId})}
+                    label={labels.members}
+                    required
+                    filterActive={true}
+                    showSavings={true}
+                    shareValue={group?.shareValue || 0}
+                    placeholder="Search members by name, phone, or ID..."
+                  />
                   <div className="grid grid-cols-2 gap-4">
                      <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">{labels.shareCount}</label>

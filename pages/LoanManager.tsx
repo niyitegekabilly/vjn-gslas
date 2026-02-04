@@ -54,6 +54,10 @@ export default function LoanManager() {
   const [formPurpose, setFormPurpose] = useState('');
   const [purposeError, setPurposeError] = useState<string | null>(null); // Validation State
   const [formSubmitting, setFormSubmitting] = useState(false);
+  
+  // Member Search State
+  const [memberSearchTerm, setMemberSearchTerm] = useState('');
+  const [showMemberDropdown, setShowMemberDropdown] = useState(false);
 
   // Late Fee State
   const [feeAmount, setFeeAmount] = useState<number>(5);
@@ -225,6 +229,8 @@ export default function LoanManager() {
       setFormPurpose('');
       setSelectedMemberId('');
       setPurposeError(null);
+      setMemberSearchTerm('');
+      setShowMemberDropdown(false);
       fetchData();
     } catch (error) {
       console.error(error);
@@ -623,7 +629,18 @@ export default function LoanManager() {
           <div className="bg-white rounded-xl shadow-xl max-w-lg w-full overflow-hidden">
             <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
               <h3 className="text-lg font-bold text-gray-800">{labels.newLoanApp}</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+              <button 
+                onClick={() => {
+                  setIsModalOpen(false);
+                  setMemberSearchTerm('');
+                  setShowMemberDropdown(false);
+                  setSelectedMemberId('');
+                  setFormAmount('');
+                  setFormPurpose('');
+                  setPurposeError(null);
+                }} 
+                className="text-gray-400 hover:text-gray-600"
+              >
                 <X size={24} />
               </button>
             </div>
@@ -632,29 +649,138 @@ export default function LoanManager() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{labels.selectMember}</label>
                 {canEdit ? (
-                  <select 
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
-                    value={selectedMemberId}
-                    onChange={(e) => {
-                      setSelectedMemberId(e.target.value);
-                      setFormAmount(''); // Reset amount when member changes
-                    }}
-                    required
-                  >
-                    <option value="">-- {labels.selectMember} --</option>
-                    {members.map(m => (
-                      <option key={m.id} value={m.id}>{m.fullName} ({labels.totalSavings}: {(m.totalShares * (group?.shareValue || 0)).toLocaleString()})</option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    {/* Search Input */}
+                    <div className="relative">
+                      <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
+                      <input
+                        type="text"
+                        placeholder="Search members by name, phone, or ID..."
+                        value={memberSearchTerm}
+                        onChange={(e) => {
+                          setMemberSearchTerm(e.target.value);
+                          setShowMemberDropdown(true);
+                        }}
+                        onFocus={() => setShowMemberDropdown(true)}
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
+                      />
+                      {selectedMemberId && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedMemberId('');
+                            setMemberSearchTerm('');
+                            setFormAmount('');
+                            setShowMemberDropdown(false);
+                          }}
+                          className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+                        >
+                          <X size={18} />
+                        </button>
+                      )}
+                    </div>
+                    
+                    {/* Member Dropdown */}
+                    {showMemberDropdown && (
+                      <>
+                        <div 
+                          className="fixed inset-0 z-40" 
+                          onClick={() => setShowMemberDropdown(false)}
+                        ></div>
+                        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-64 overflow-y-auto custom-scrollbar">
+                          {(() => {
+                            const filteredMembers = members.filter(member => {
+                              if (!memberSearchTerm) return true;
+                              const search = memberSearchTerm.toLowerCase();
+                              return (
+                                member.fullName.toLowerCase().includes(search) ||
+                                member.phone.includes(search) ||
+                                member.nationalId.includes(search) ||
+                                (member.email && member.email.toLowerCase().includes(search))
+                              );
+                            });
+                            
+                            if (filteredMembers.length === 0) {
+                              return (
+                                <div className="p-4 text-center text-gray-500 text-sm">
+                                  <Search size={24} className="mx-auto mb-2 text-gray-300" />
+                                  <p>No members found</p>
+                                </div>
+                              );
+                            }
+                            
+                            return (
+                              <div className="divide-y divide-gray-100">
+                                {filteredMembers.map((member) => {
+                                  const memberSavings = member.totalShares * (group?.shareValue || 0);
+                                  const isSelected = selectedMemberId === member.id;
+                                  return (
+                                    <button
+                                      key={member.id}
+                                      type="button"
+                                      onClick={() => {
+                                        setSelectedMemberId(member.id);
+                                        setMemberSearchTerm(member.fullName);
+                                        setFormAmount('');
+                                        setShowMemberDropdown(false);
+                                      }}
+                                      className={`w-full text-left p-3 hover:bg-blue-50 transition-colors ${
+                                        isSelected ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
+                                      }`}
+                                    >
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                                            {member.fullName.charAt(0).toUpperCase()}
+                                          </div>
+                                          <div className="flex-1 min-w-0">
+                                            <p className="font-medium text-gray-900 truncate">{member.fullName}</p>
+                                            <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
+                                              <span className="font-mono">{member.phone}</span>
+                                              <span>•</span>
+                                              <span>{labels.totalSavings}: {memberSavings.toLocaleString()} {labels.currency}</span>
+                                            </div>
+                                          </div>
+                                        </div>
+                                        {isSelected && (
+                                          <CheckCircle size={18} className="text-blue-600 flex-shrink-0" />
+                                        )}
+                                      </div>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      </>
+                    )}
+                    
+                    {/* Selected Member Display */}
+                    {selectedMemberId && selectedMember && (
+                      <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold text-sm">
+                              {selectedMember.fullName.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="font-medium text-blue-900">{selectedMember.fullName}</p>
+                              <p className="text-xs text-blue-700">{selectedMember.phone}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-blue-600 font-medium">{labels.maxEligible}:</p>
+                            <p className="text-sm font-bold text-blue-800">{maxLoanAmount.toLocaleString()} {labels.currency}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm">
                      You can only apply for yourself. Please contact leader for assistance.
-                  </div>
-                )}
-                {selectedMember && (
-                  <div className="mt-2 p-3 bg-blue-50 text-blue-700 rounded-lg text-sm flex justify-between items-center">
-                    <span>{labels.maxEligible}:</span>
-                    <span className="font-bold">{maxLoanAmount.toLocaleString()} {labels.currency}</span>
                   </div>
                 )}
               </div>
@@ -720,6 +846,11 @@ export default function LoanManager() {
                   onClick={() => {
                     setIsModalOpen(false);
                     setPurposeError(null);
+                    setMemberSearchTerm('');
+                    setShowMemberDropdown(false);
+                    setSelectedMemberId('');
+                    setFormAmount('');
+                    setFormPurpose('');
                   }}
                   className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
                 >

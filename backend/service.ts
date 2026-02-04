@@ -1128,17 +1128,276 @@ export const updateSMSCap = async (cap: number) => {
 
 // --- Reports ---
 export const generateReport = async (groupId: string, type: string, filters: any) => {
-  // Mock logic based on type to return data structures expected by UI
+  const { data: group } = await supabase.from('groups').select('*').eq('id', groupId).single();
+  if (!group) return [];
+
+  // Apply date filter
+  const startDate = filters.startDate || '';
+  const endDate = filters.endDate || new Date().toISOString().split('T')[0];
+  const memberIdFilter = filters.memberId || '';
+
   if (type === 'SAVINGS_SUMMARY') {
-    const { data: members } = await supabase.from('members').select('*').eq('groupId', groupId);
-    const { data: group } = await supabase.from('groups').select('shareValue').eq('id', groupId).single();
+    let { data: members } = await supabase.from('members').select('*').eq('groupId', groupId);
+    if (!members) return [];
+    
+    if (memberIdFilter) {
+      members = members.filter(m => m.id === memberIdFilter);
+    }
+
     return members.map((m: any) => ({
       "Member Name": m.fullName,
-      "Total Shares": m.totalShares,
-      "Total Savings": m.totalShares * group.shareValue
+      "Phone": m.phone,
+      "National ID": m.nationalId,
+      "Total Shares": m.totalShares || 0,
+      "Total Savings": (m.totalShares || 0) * (group.shareValue || 0),
+      "Status": m.status
     }));
   }
-  // Implement other report types similarly...
+
+  if (type === 'LOAN_PORTFOLIO') {
+    let { data: loans } = await supabase.from('loans').select('*').eq('groupId', groupId);
+    if (!loans) return [];
+    
+    if (memberIdFilter) {
+      loans = loans.filter(l => l.memberId === memberIdFilter);
+    }
+
+    const { data: allMembers } = await supabase.from('members').select('id, fullName').eq('groupId', groupId);
+    const memberMap = new Map((allMembers || []).map(m => [m.id, m.fullName]));
+
+    return loans.map((l: any) => ({
+      "Member Name": memberMap.get(l.memberId) || 'Unknown',
+      "Principal": l.principal || 0,
+      "Interest Rate": `${l.interestRate || 0}%`,
+      "Total Repayable": l.totalRepayable || 0,
+      "Balance": l.balance || 0,
+      "Status": l.status,
+      "Start Date": l.startDate,
+      "Due Date": l.dueDate,
+      "Purpose": l.purpose || ''
+    }));
+  }
+
+  if (type === 'CASH_FLOW') {
+    let { data: transactions } = await supabase.from('transactions')
+      .select('*')
+      .eq('groupId', groupId)
+      .eq('isVoid', false);
+    
+    if (!transactions) return { inflows: {}, outflows: {}, netCash: 0 };
+
+    // Apply date filter
+    if (startDate || endDate) {
+      transactions = transactions.filter((t: any) => {
+        const txDate = t.date || '';
+        if (startDate && txDate < startDate) return false;
+        if (endDate && txDate > endDate) return false;
+        return true;
+      });
+    }
+
+    const inflows: Record<string, number> = {};
+    const outflows: Record<string, number> = {};
+
+    transactions.forEach((t: any) => {
+      const amount = t.amount || 0;
+      const solidarity = t.solidarityAmount || 0;
+      const total = amount + solidarity;
+
+      if (t.type === TransactionType.SHARE_DEPOSIT || 
+          t.type === TransactionType.LOAN_REPAYMENT || 
+          t.type === TransactionType.FINE_PAYMENT) {
+        const key = t.type.replace(/_/g, ' ');
+        inflows[key] = (inflows[key] || 0) + total;
+      } else if (t.type === TransactionType.EXPENSE || 
+                 t.type === TransactionType.LOAN_DISBURSEMENT) {
+        const key = t.type.replace(/_/g, ' ');
+        outflows[key] = (outflows[key] || 0) + amount;
+      }
+    });
+
+    const totalIn = Object.values(inflows).reduce((a, b) => a + b, 0);
+    const totalOut = Object.values(outflows).reduce((a, b) => a + b, 0);
+
+    return {
+      inflows,
+      outflows,
+      netCash: totalIn - totalOut,
+      totalInflow: totalIn,
+      totalOutflow: totalOut
+    };
+  }
+
+  if (type === 'FINE_REPORT') {
+    let { data: fines } = await supabase.from('fines').select('*').eq('groupId', groupId);
+    if (!fines) return [];
+
+    if (memberIdFilter) {
+      fines = fines.filter(f => f.memberId === memberIdFilter);
+    }
+
+    const { data: allMembers } = await supabase.from('members').select('id, fullName').eq('groupId', groupId);
+    const memberMap = new Map((allMembers || []).map(m => [m.id, m.fullName]));
+
+    return fines.map((f: any) => ({
+      "Member Name": memberMap.get(f.memberId) || 'Unknown',
+      "Amount": f.amount || 0,
+      "Paid Amount": f.paidAmount || 0,
+      "Balance": (f.amount || 0) - (f.paidAmount || 0),
+      "Status": f.status,
+      "Date": f.date,
+      "Reason": f.reason || ''
+    }));
+  }
+
+  if (type === 'EXPENSE_REPORT') {
+    let { data: expenses } = await supabase.from('transactions')
+      .select('*')
+      .eq('groupId', groupId)
+      .eq('type', TransactionType.EXPENSE)
+      .eq('isVoid', false);
+    
+    if (!expenses) return [];
+
+    // Apply date filter
+    if (startDate || endDate) {
+      expenses = expenses.filter((e: any) => {
+        const expDate = e.date || '';
+        if (startDate && expDate < startDate) return false;
+        if (endDate && expDate > endDate) return false;
+        return true;
+      });
+    }
+
+    return expenses.map((e: any) => ({
+      "Date": e.date,
+      "Amount": e.amount || 0,
+      "Description": e.description || '',
+      "Category": e.categoryId || 'Uncategorized',
+      "Recorded By": e.recordedBy || 'System'
+    }));
+  }
+
+  if (type === 'ATTENDANCE_REGISTER') {
+    let { data: attendance } = await supabase.from('attendance').select('*').eq('groupId', groupId);
+    if (!attendance) return [];
+
+    // Apply date filter
+    if (startDate || endDate) {
+      attendance = attendance.filter((a: any) => {
+        const attDate = a.date || '';
+        if (startDate && attDate < startDate) return false;
+        if (endDate && attDate > endDate) return false;
+        return true;
+      });
+    }
+
+    const { data: allMembers } = await supabase.from('members').select('id, fullName').eq('groupId', groupId);
+    const memberMap = new Map((allMembers || []).map(m => [m.id, m.fullName]));
+
+    const { data: meetings } = await supabase.from('meetings').select('id, date, type').eq('groupId', groupId);
+    const meetingMap = new Map((meetings || []).map(m => [m.id, `${m.date} (${m.type})`]));
+
+    return attendance.map((a: any) => ({
+      "Member Name": memberMap.get(a.memberId) || 'Unknown',
+      "Meeting": meetingMap.get(a.meetingId) || a.date,
+      "Date": a.date,
+      "Status": a.status,
+      "Notes": a.notes || ''
+    }));
+  }
+
+  if (type === 'MEMBER_FINANCIAL_SUMMARY') {
+    if (!memberIdFilter) return [];
+
+    const { data: member } = await supabase.from('members').select('*').eq('id', memberIdFilter).single();
+    if (!member) return [];
+
+    const { data: memberLoans } = await supabase.from('loans').select('*').eq('memberId', memberIdFilter);
+    const { data: memberTransactions } = await supabase.from('transactions')
+      .select('*')
+      .eq('memberId', memberIdFilter)
+      .eq('isVoid', false);
+    const { data: memberFines } = await supabase.from('fines').select('*').eq('memberId', memberIdFilter);
+
+    const totalSavings = (member.totalShares || 0) * (group.shareValue || 0);
+    const totalLoans = (memberLoans || []).reduce((sum, l) => sum + (l.balance || 0), 0);
+    const totalFines = (memberFines || []).reduce((sum, f) => sum + ((f.amount || 0) - (f.paidAmount || 0)), 0);
+    const totalContributions = (memberTransactions || [])
+      .filter(t => t.type === TransactionType.SHARE_DEPOSIT)
+      .reduce((sum, t) => sum + (t.amount || 0) + (t.solidarityAmount || 0), 0);
+
+    return [{
+      "Member Name": member.fullName,
+      "Phone": member.phone,
+      "National ID": member.nationalId,
+      "Total Savings": totalSavings,
+      "Total Shares": member.totalShares || 0,
+      "Outstanding Loans": totalLoans,
+      "Outstanding Fines": totalFines,
+      "Total Contributions": totalContributions,
+      "Net Position": totalSavings - totalLoans - totalFines,
+      "Status": member.status
+    }];
+  }
+
+  if (type === 'SHARE_OUT') {
+    // Calculate share-out based on current cycle
+    const { data: members } = await supabase.from('members').select('*').eq('groupId', groupId).eq('status', 'ACTIVE');
+    if (!members) return { members: [], summary: {} };
+
+    const { data: transactions } = await supabase.from('transactions')
+      .select('*')
+      .eq('groupId', groupId)
+      .eq('isVoid', false);
+    
+    const { data: loans } = await supabase.from('loans').select('*').eq('groupId', groupId);
+    const { data: expenses } = await supabase.from('transactions')
+      .select('*')
+      .eq('groupId', groupId)
+      .eq('type', TransactionType.EXPENSE)
+      .eq('isVoid', false);
+
+    const totalContributions = (transactions || [])
+      .filter(t => t.type === TransactionType.SHARE_DEPOSIT)
+      .reduce((sum, t) => sum + (t.amount || 0) + (t.solidarityAmount || 0), 0);
+    
+    const totalExpenses = (expenses || []).reduce((sum, e) => sum + (e.amount || 0), 0);
+    const totalLoansOut = (loans || []).reduce((sum, l) => sum + (l.balance || 0), 0);
+    const totalShares = (members || []).reduce((sum, m) => sum + (m.totalShares || 0), 0);
+
+    const netWorth = totalContributions - totalExpenses;
+    const valuePerShare = totalShares > 0 ? netWorth / totalShares : 0;
+
+    const memberBreakdown = (members || []).map((m: any) => {
+      const shares = m.totalShares || 0;
+      const invested = shares * (group.shareValue || 0);
+      const currentValue = shares * valuePerShare;
+      const profit = currentValue - invested;
+
+      return {
+        name: m.fullName,
+        shares,
+        invested,
+        profit,
+        currentValue: Math.round(currentValue),
+        payout: Math.round(currentValue)
+      };
+    });
+
+    return {
+      members: memberBreakdown,
+      summary: {
+        netWorth: Math.round(netWorth),
+        valuePerShare: Math.round(valuePerShare),
+        outstandingLoans: totalLoansOut,
+        cashOnHand: netWorth - totalLoansOut,
+        totalShares,
+        totalMembers: members.length
+      }
+    };
+  }
+
   return [];
 };
 

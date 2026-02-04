@@ -8,9 +8,11 @@ import { Member, Cycle } from '../types';
 import { 
   FileText, Download, Printer, Filter, Calendar, Users, 
   BarChart2, PieChart, TrendingUp, AlertCircle, Loader2, 
-  ChevronRight, Lock, Wallet, ArrowUpRight, ArrowDownRight, LayoutTemplate, CheckCircle
+  ChevronRight, Lock, Wallet, ArrowUpRight, ArrowDownRight, LayoutTemplate, CheckCircle,
+  RefreshCw, Clock, TrendingDown, DollarSign, Activity, Eye
 } from 'lucide-react';
 import { Skeleton, TableRowSkeleton } from '../components/Skeleton';
+import { MemberSearchSelect } from '../components/MemberSearchSelect';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, 
   PieChart as RePieChart, Pie, Cell
@@ -54,10 +56,12 @@ export default function Reports() {
   const [members, setMembers] = useState<Member[]>([]);
   const [cycle, setCycle] = useState<Cycle | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [autoRefresh, setAutoRefresh] = useState(false);
 
   // Filters
   const [filters, setFilters] = useState({
-    startDate: '',
+    startDate: new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString().split('T')[0],
     endDate: new Date().toISOString().split('T')[0],
     memberId: '',
     status: 'ALL'
@@ -87,20 +91,32 @@ export default function Reports() {
   }, [activeGroupId, group]);
 
   // Fetch Report Data
-  useEffect(() => {
+  const fetchReportData = async () => {
     if (!activeGroupId) return;
     setLoading(true);
-    setData(null);
-    api.generateReport(activeGroupId, activeReport, filters)
-      .then(res => {
-        setData(res);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        setLoading(false);
-      });
+    try {
+      const res = await api.generateReport(activeGroupId, activeReport, filters);
+      setData(res);
+      setLastUpdated(new Date());
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchReportData();
   }, [activeGroupId, activeReport, filters]);
+
+  // Auto-refresh every 30 seconds if enabled
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const interval = setInterval(() => {
+      fetchReportData();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [autoRefresh, activeGroupId, activeReport, filters]);
 
   const handlePrint = () => {
     if (!data || !group) return;
@@ -158,48 +174,81 @@ export default function Reports() {
     if (!data) return null;
 
     if (activeReport === 'CASH_FLOW' && data.inflows) {
-        const totalIn = Object.values(data.inflows as Record<string, number>).reduce((a,b) => a+b, 0);
-        const totalOut = Object.values(data.outflows as Record<string, number>).reduce((a,b) => a+b, 0);
+        const totalIn = data.totalInflow || Object.values(data.inflows as Record<string, number>).reduce((a,b) => a+b, 0);
+        const totalOut = data.totalOutflow || Object.values(data.outflows as Record<string, number>).reduce((a,b) => a+b, 0);
+        const netCash = data.netCash || (totalIn - totalOut);
+        const isPositive = netCash >= 0;
+        
         return (
-            <div className="grid grid-cols-3 gap-6 mb-8 print:grid-cols-3">
-                <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100 flex flex-col">
-                    <span className="text-xs font-bold text-emerald-600 uppercase mb-1">{labels.totalInflow}</span>
-                    <span className="text-2xl font-bold text-emerald-900 flex items-center">
-                        <ArrowUpRight size={20} className="mr-1"/> {totalIn.toLocaleString()}
-                    </span>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 p-6 rounded-xl border-2 border-emerald-200 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold text-emerald-700 uppercase tracking-wide">{labels.totalInflow}</span>
+                        <div className="p-2 bg-emerald-200 rounded-lg">
+                            <ArrowUpRight size={18} className="text-emerald-700"/>
+                        </div>
+                    </div>
+                    <p className="text-3xl font-bold text-emerald-900">{totalIn.toLocaleString()} <span className="text-sm font-normal text-emerald-700">RWF</span></p>
                 </div>
-                <div className="bg-red-50 p-4 rounded-xl border border-red-100 flex flex-col">
-                    <span className="text-xs font-bold text-red-600 uppercase mb-1">{labels.totalOutflow}</span>
-                    <span className="text-2xl font-bold text-red-900 flex items-center">
-                        <ArrowDownRight size={20} className="mr-1"/> {totalOut.toLocaleString()}
-                    </span>
+                <div className="bg-gradient-to-br from-red-50 to-red-100 p-6 rounded-xl border-2 border-red-200 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold text-red-700 uppercase tracking-wide">{labels.totalOutflow}</span>
+                        <div className="p-2 bg-red-200 rounded-lg">
+                            <ArrowDownRight size={18} className="text-red-700"/>
+                        </div>
+                    </div>
+                    <p className="text-3xl font-bold text-red-900">{totalOut.toLocaleString()} <span className="text-sm font-normal text-red-700">RWF</span></p>
                 </div>
-                <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex flex-col">
-                    <span className="text-xs font-bold text-blue-600 uppercase mb-1">{labels.netPosition}</span>
-                    <span className="text-2xl font-bold text-blue-900">{data.netCash.toLocaleString()}</span>
+                <div className={`bg-gradient-to-br ${isPositive ? 'from-blue-50 to-blue-100 border-blue-200' : 'from-orange-50 to-orange-100 border-orange-200'} p-6 rounded-xl border-2 shadow-sm hover:shadow-md transition-shadow`}>
+                    <div className="flex items-center justify-between mb-2">
+                        <span className={`text-xs font-bold uppercase tracking-wide ${isPositive ? 'text-blue-700' : 'text-orange-700'}`}>{labels.netPosition}</span>
+                        <div className={`p-2 rounded-lg ${isPositive ? 'bg-blue-200' : 'bg-orange-200'}`}>
+                            {isPositive ? (
+                                <TrendingUp size={18} className={isPositive ? 'text-blue-700' : 'text-orange-700'}/>
+                            ) : (
+                                <TrendingDown size={18} className="text-orange-700"/>
+                            )}
+                        </div>
+                    </div>
+                    <p className={`text-3xl font-bold ${isPositive ? 'text-blue-900' : 'text-orange-900'}`}>
+                        {netCash.toLocaleString()} <span className={`text-sm font-normal ${isPositive ? 'text-blue-700' : 'text-orange-700'}`}>RWF</span>
+                    </p>
                 </div>
             </div>
         );
     }
 
-    if (activeReport === 'SHARE_OUT' && data.summary) {
+    if (activeReport === 'SHARE_OUT' && data && typeof data === 'object' && 'summary' in data && data.summary) {
+        const shareOutData = data as { summary: any };
         return (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 print:grid-cols-4">
-                <div className="bg-slate-900 text-white p-4 rounded-xl">
-                    <span className="text-xs text-slate-400 uppercase">{labels.netWorth}</span>
-                    <p className="text-2xl font-bold">{data.summary.netWorth.toLocaleString()}</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                <div className="bg-gradient-to-br from-slate-800 to-slate-900 text-white p-6 rounded-xl shadow-lg border-2 border-slate-700">
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs text-slate-300 uppercase tracking-wide font-bold">{labels.netWorth}</span>
+                        <DollarSign size={20} className="text-slate-400"/>
+                    </div>
+                    <p className="text-3xl font-bold">{shareOutData.summary.netWorth?.toLocaleString() || 0} <span className="text-sm font-normal text-slate-300">RWF</span></p>
                 </div>
-                <div className="bg-white border border-gray-200 p-4 rounded-xl">
-                    <span className="text-xs text-gray-500 uppercase">{labels.valuePerShare}</span>
-                    <p className="text-2xl font-bold text-green-600">{Math.round(data.summary.valuePerShare).toLocaleString()}</p>
+                <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl border-2 border-green-200 shadow-sm">
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs text-green-700 uppercase tracking-wide font-bold">{labels.valuePerShare}</span>
+                        <TrendingUp size={20} className="text-green-600"/>
+                    </div>
+                    <p className="text-3xl font-bold text-green-900">{Math.round(shareOutData.summary.valuePerShare || 0).toLocaleString()} <span className="text-sm font-normal text-green-700">RWF</span></p>
                 </div>
-                <div className="bg-white border border-gray-200 p-4 rounded-xl">
-                    <span className="text-xs text-gray-500 uppercase">{labels.outstandingLoans}</span>
-                    <p className="text-2xl font-bold text-blue-600">{data.summary.outstandingLoans.toLocaleString()}</p>
+                <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl border-2 border-blue-200 shadow-sm">
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs text-blue-700 uppercase tracking-wide font-bold">{labels.outstandingLoans}</span>
+                        <AlertCircle size={20} className="text-blue-600"/>
+                    </div>
+                    <p className="text-3xl font-bold text-blue-900">{shareOutData.summary.outstandingLoans?.toLocaleString() || 0} <span className="text-sm font-normal text-blue-700">RWF</span></p>
                 </div>
-                <div className="bg-white border border-gray-200 p-4 rounded-xl">
-                    <span className="text-xs text-gray-500 uppercase">{labels.cashBalance}</span>
-                    <p className="text-2xl font-bold text-gray-800">{data.summary.cashOnHand.toLocaleString()}</p>
+                <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-xl border-2 border-purple-200 shadow-sm">
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs text-purple-700 uppercase tracking-wide font-bold">{labels.cashBalance}</span>
+                        <Wallet size={20} className="text-purple-600"/>
+                    </div>
+                    <p className="text-3xl font-bold text-purple-900">{shareOutData.summary.cashOnHand?.toLocaleString() || 0} <span className="text-sm font-normal text-purple-700">RWF</span></p>
                 </div>
             </div>
         );
@@ -222,17 +271,45 @@ export default function Reports() {
             label = labels.outstandingFines;
         }
 
-        if (total > 0) {
+        if (total > 0 || count > 0) {
             return (
-                <div className="flex gap-6 mb-8 bg-gray-50 p-4 rounded-xl border border-gray-200">
-                    <div>
-                        <span className="text-xs font-bold text-gray-500 uppercase">{label}</span>
-                        <p className="text-2xl font-bold text-gray-900">{total.toLocaleString()} <span className="text-sm font-normal text-gray-500">{labels.currency}</span></p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl border-2 border-blue-200 shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-bold text-blue-700 uppercase tracking-wide">{label}</span>
+                            <DollarSign size={20} className="text-blue-600"/>
+                        </div>
+                        <p className="text-3xl font-bold text-blue-900">{total.toLocaleString()} <span className="text-sm font-normal text-blue-700">RWF</span></p>
                     </div>
-                    <div className="pl-6 border-l border-gray-300">
-                        <span className="text-xs font-bold text-gray-500 uppercase">Records</span>
-                        <p className="text-2xl font-bold text-gray-900">{count}</p>
+                    <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-xl border-2 border-purple-200 shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-bold text-purple-700 uppercase tracking-wide">Total Records</span>
+                            <FileText size={20} className="text-purple-600"/>
+                        </div>
+                        <p className="text-3xl font-bold text-purple-900">{count}</p>
                     </div>
+                    {activeReport === 'SAVINGS_SUMMARY' && (
+                        <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl border-2 border-green-200 shadow-sm">
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-bold text-green-700 uppercase tracking-wide">Average Savings</span>
+                                <TrendingUp size={20} className="text-green-600"/>
+                            </div>
+                            <p className="text-3xl font-bold text-green-900">
+                                {count > 0 ? Math.round(total / count).toLocaleString() : 0} <span className="text-sm font-normal text-green-700">RWF</span>
+                            </p>
+                        </div>
+                    )}
+                    {activeReport === 'LOAN_PORTFOLIO' && (
+                        <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-6 rounded-xl border-2 border-orange-200 shadow-sm">
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-bold text-orange-700 uppercase tracking-wide">Active Loans</span>
+                                <AlertCircle size={20} className="text-orange-600"/>
+                            </div>
+                            <p className="text-3xl font-bold text-orange-900">
+                                {data.filter((l: any) => l.Status === 'ACTIVE' || l.Status === 'APPROVED').length}
+                            </p>
+                        </div>
+                    )}
                 </div>
             );
         }
@@ -244,29 +321,79 @@ export default function Reports() {
     if (!data) return null;
 
     // 1. Savings Distribution (Bar Chart of Top 10)
-    if (activeReport === 'SAVINGS_SUMMARY' && Array.isArray(data)) {
-        const chartData = [...data].sort((a,b) => b["Total Savings"] - a["Total Savings"]).slice(0, 10);
+    if (activeReport === 'SAVINGS_SUMMARY' && Array.isArray(data) && data.length > 0) {
+        const chartData = [...data]
+          .filter((m: any) => (m["Total Savings"] || 0) > 0)
+          .sort((a,b) => (b["Total Savings"] || 0) - (a["Total Savings"] || 0))
+          .slice(0, 10)
+          .map((m: any, idx: number) => ({
+            ...m,
+            name: m["Member Name"]?.substring(0, 15) + (m["Member Name"]?.length > 15 ? '...' : ''),
+            savings: m["Total Savings"] || 0
+          }));
+        
+        if (chartData.length === 0) return null;
+        
         return (
-            <div className="h-64 mb-8 print:h-48">
-                <h3 className="text-sm font-bold text-gray-500 uppercase mb-4">{labels.topSavers}</h3>
-                <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                        <XAxis dataKey="Member Name" hide />
-                        <YAxis />
-                        <Tooltip 
-                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                            formatter={(value: any) => [`${value.toLocaleString()} RWF`, 'Savings']}
-                        />
-                        <Bar dataKey="Total Savings" fill="#10b981" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                </ResponsiveContainer>
+            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm mb-8">
+                <div className="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                            <TrendingUp size={20} className="text-green-600"/>
+                            Top Savers
+                        </h3>
+                        <p className="text-sm text-gray-500 mt-1">Top 10 members by savings</p>
+                    </div>
+                </div>
+                <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 60 }}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                            <XAxis 
+                                dataKey="name" 
+                                angle={-45}
+                                textAnchor="end"
+                                height={80}
+                                tick={{ fontSize: 11, fill: '#6b7280' }}
+                            />
+                            <YAxis 
+                                tick={{ fontSize: 12, fill: '#6b7280' }}
+                                tickFormatter={(value) => `${(value / 1000).toFixed(0)}K`}
+                            />
+                            <Tooltip 
+                                contentStyle={{ 
+                                    borderRadius: '8px', 
+                                    border: '1px solid #e5e7eb', 
+                                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                                    backgroundColor: 'white'
+                                }}
+                                formatter={(value: any) => [`${Number(value).toLocaleString()} RWF`, 'Savings']}
+                                labelStyle={{ fontWeight: 'bold', marginBottom: '4px' }}
+                            />
+                            <Bar 
+                                dataKey="savings" 
+                                fill="url(#colorGradient)"
+                                radius={[8, 8, 0, 0]}
+                            >
+                                {chartData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                ))}
+                            </Bar>
+                            <defs>
+                                <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#10b981" stopOpacity={0.8}/>
+                                    <stop offset="100%" stopColor="#059669" stopOpacity={0.6}/>
+                                </linearGradient>
+                            </defs>
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
             </div>
         );
     }
 
     // 2. Loan Status (Pie Chart)
-    if (activeReport === 'LOAN_PORTFOLIO' && Array.isArray(data)) {
+    if (activeReport === 'LOAN_PORTFOLIO' && Array.isArray(data) && data.length > 0) {
         const statusCounts = data.reduce((acc: any, curr: any) => {
             const s = curr["Status"] || 'Unknown';
             acc[s] = (acc[s] || 0) + 1;
@@ -274,19 +401,46 @@ export default function Reports() {
         }, {});
         const chartData = Object.keys(statusCounts).map(k => ({ name: k, value: statusCounts[k] }));
 
+        if (chartData.length === 0) return null;
+
         return (
-            <div className="h-64 mb-8 print:h-48 flex flex-col md:flex-row items-center gap-8">
-                <div className="flex-1 w-full h-full">
-                    <h3 className="text-sm font-bold text-gray-500 uppercase mb-2 text-center">{labels.portfolioHealth}</h3>
+            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm mb-8">
+                <div className="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                            <PieChart size={20} className="text-blue-600"/>
+                            Portfolio Health
+                        </h3>
+                        <p className="text-sm text-gray-500 mt-1">Loan status distribution</p>
+                    </div>
+                </div>
+                <div className="h-80 flex items-center justify-center">
                     <ResponsiveContainer width="100%" height="100%">
                         <RePieChart>
-                            <Pie data={chartData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} fill="#8884d8" paddingAngle={5} dataKey="value">
+                            <Pie 
+                                data={chartData} 
+                                cx="50%" 
+                                cy="50%" 
+                                innerRadius={70} 
+                                outerRadius={100} 
+                                paddingAngle={3}
+                                dataKey="value"
+                                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                                labelLine={false}
+                            >
                                 {chartData.map((entry, index) => (
                                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                 ))}
                             </Pie>
-                            <Tooltip />
-                            <Legend />
+                            <Tooltip 
+                                contentStyle={{ 
+                                    borderRadius: '8px', 
+                                    border: '1px solid #e5e7eb', 
+                                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                                    backgroundColor: 'white'
+                                }}
+                                formatter={(value: any, name: string) => [value, name]}
+                            />
                         </RePieChart>
                     </ResponsiveContainer>
                 </div>
@@ -294,28 +448,67 @@ export default function Reports() {
         );
     }
 
-    // 3. Cash Flow (Simple Bar)
+    // 3. Cash Flow (Detailed Breakdown)
     if (activeReport === 'CASH_FLOW' && data.inflows) {
-        const chartData = [
-            { name: 'Inflow', amount: Object.values(data.inflows as Record<string, number>).reduce((a,b) => a+b, 0) },
-            { name: 'Outflow', amount: Object.values(data.outflows as Record<string, number>).reduce((a,b) => a+b, 0) },
-        ];
+        const inflowEntries = Object.entries(data.inflows as Record<string, number>).map(([name, amount]) => ({
+            name: name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+            amount,
+            type: 'Inflow'
+        }));
+        const outflowEntries = Object.entries(data.outflows as Record<string, number>).map(([name, amount]) => ({
+            name: name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+            amount,
+            type: 'Outflow'
+        }));
+        const chartData = [...inflowEntries, ...outflowEntries].sort((a, b) => b.amount - a.amount);
+
         return (
-            <div className="h-64 mb-8 print:h-48">
-                <h3 className="text-sm font-bold text-gray-500 uppercase mb-4">{labels.flowComparison}</h3>
-                <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData} layout="vertical">
-                        <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
-                        <XAxis type="number" />
-                        <YAxis dataKey="name" type="category" />
-                        <Tooltip formatter={(value: any) => `${value.toLocaleString()} RWF`} />
-                        <Bar dataKey="amount" fill="#3b82f6" radius={[0, 4, 4, 0]}>
-                            {chartData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.name === 'Inflow' ? '#10b981' : '#ef4444'} />
-                            ))}
-                        </Bar>
-                    </BarChart>
-                </ResponsiveContainer>
+            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm mb-8">
+                <div className="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                            <BarChart2 size={20} className="text-blue-600"/>
+                            Cash Flow Breakdown
+                        </h3>
+                        <p className="text-sm text-gray-500 mt-1">Detailed inflow and outflow analysis</p>
+                    </div>
+                </div>
+                <div className="h-96">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={chartData} layout="vertical" margin={{ top: 20, right: 30, left: 100, bottom: 5 }}>
+                            <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e5e7eb" />
+                            <XAxis 
+                                type="number" 
+                                tick={{ fontSize: 12, fill: '#6b7280' }}
+                                tickFormatter={(value) => `${(value / 1000).toFixed(0)}K`}
+                            />
+                            <YAxis 
+                                dataKey="name" 
+                                type="category" 
+                                width={90}
+                                tick={{ fontSize: 11, fill: '#6b7280' }}
+                            />
+                            <Tooltip 
+                                contentStyle={{ 
+                                    borderRadius: '8px', 
+                                    border: '1px solid #e5e7eb', 
+                                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                                    backgroundColor: 'white'
+                                }}
+                                formatter={(value: any) => `${Number(value).toLocaleString()} RWF`}
+                            />
+                            <Legend />
+                            <Bar dataKey="amount" radius={[0, 8, 8, 0]}>
+                                {chartData.map((entry, index) => (
+                                    <Cell 
+                                        key={`cell-${index}`} 
+                                        fill={entry.type === 'Inflow' ? '#10b981' : '#ef4444'} 
+                                    />
+                                ))}
+                            </Bar>
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
             </div>
         );
     }
@@ -324,61 +517,137 @@ export default function Reports() {
   };
 
   const renderTable = () => {
-    if (activeReport === 'SHARE_OUT' && data?.members) {
+    if (activeReport === 'SHARE_OUT' && data && typeof data === 'object' && 'members' in data && Array.isArray(data.members)) {
+        const shareOutData = data as { members: any[]; summary?: any };
         return (
-            <table className="w-full text-sm text-left">
-                <thead className="bg-gray-100 text-gray-600 font-bold uppercase text-xs">
-                <tr>
-                    <th className="p-3 border-b">{labels.members}</th>
-                    <th className="p-3 text-right border-b">{labels.shareCount}</th>
-                    <th className="p-3 text-right border-b">{labels.invested}</th>
-                    <th className="p-3 text-right border-b">{labels.profit}</th>
-                    <th className="p-3 text-right border-b">{labels.totalPayout}</th>
-                </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                {data.members.map((m: any, i: number) => (
-                    <tr key={i} className="hover:bg-gray-50">
-                        <td className="p-3 font-medium text-gray-900">{m.name}</td>
-                        <td className="p-3 text-right">{m.shares}</td>
-                        <td className="p-3 text-right text-gray-600">{m.invested.toLocaleString()}</td>
-                        <td className="p-3 text-right text-green-600 font-medium">+{Math.round(m.profit).toLocaleString()}</td>
-                        <td className="p-3 text-right font-bold text-gray-900 bg-gray-50">{Math.round(m.currentValue).toLocaleString()}</td>
-                    </tr>
-                ))}
-                </tbody>
-            </table>
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="overflow-x-auto custom-scrollbar">
+                    <table className="w-full text-sm">
+                        <thead className="bg-gradient-to-r from-slate-800 to-slate-900 text-white">
+                            <tr>
+                                <th className="p-4 text-left font-bold uppercase text-xs tracking-wide sticky left-0 bg-slate-900 z-10">Member</th>
+                                <th className="p-4 text-right font-bold uppercase text-xs tracking-wide">Shares</th>
+                                <th className="p-4 text-right font-bold uppercase text-xs tracking-wide">Invested</th>
+                                <th className="p-4 text-right font-bold uppercase text-xs tracking-wide">Profit</th>
+                                <th className="p-4 text-right font-bold uppercase text-xs tracking-wide bg-blue-600">Total Payout</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 bg-white">
+                            {shareOutData.members.map((m: any, i: number) => (
+                                <tr key={i} className="hover:bg-blue-50/30 transition-colors group">
+                                    <td className="p-4 font-bold text-gray-900 sticky left-0 bg-white group-hover:bg-blue-50/30 z-10">
+                                        {m.name}
+                                    </td>
+                                    <td className="p-4 text-right text-gray-700">{m.shares}</td>
+                                    <td className="p-4 text-right text-gray-600">{m.invested.toLocaleString()} <span className="text-xs text-gray-400">RWF</span></td>
+                                    <td className={`p-4 text-right font-semibold ${m.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                        {m.profit >= 0 ? '+' : ''}{Math.round(m.profit).toLocaleString()} <span className="text-xs">RWF</span>
+                                    </td>
+                                    <td className="p-4 text-right font-bold text-gray-900 bg-blue-50">
+                                        {Math.round(m.currentValue).toLocaleString()} <span className="text-xs text-gray-500 font-normal">RWF</span>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                        {shareOutData.summary && (
+                            <tfoot className="bg-gradient-to-r from-gray-50 to-gray-100 border-t-2 border-gray-300">
+                                <tr>
+                                    <td colSpan={4} className="p-4 text-right font-bold text-gray-700 uppercase text-xs">Total Distributable</td>
+                                    <td className="p-4 text-right font-bold text-lg text-gray-900 bg-blue-100">
+                                        {shareOutData.summary.cashOnHand?.toLocaleString() || shareOutData.summary.netWorth?.toLocaleString() || 0} <span className="text-sm font-normal">RWF</span>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        )}
+                    </table>
+                </div>
+            </div>
         );
     }
 
     if (Array.isArray(data)) {
-        if (data.length === 0) return <div className="p-8 text-center text-gray-400 italic bg-gray-50 rounded-lg">{labels.noData}</div>;
+        if (data.length === 0) {
+            return (
+                <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl p-12 text-center">
+                    <FileText size={48} className="mx-auto mb-4 text-gray-300" />
+                    <p className="text-lg font-medium text-gray-500">{labels.noData}</p>
+                    <p className="text-sm text-gray-400 mt-2">No data available for the selected filters</p>
+                </div>
+            );
+        }
         
         const cols = Object.keys(data[0]).filter(k => k !== 'id');
         return (
-            <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left border-collapse">
-                    <thead className="bg-gray-100 text-gray-600 font-bold uppercase text-xs">
-                        <tr>
-                            {cols.map(key => (
-                                <th key={key} className="p-3 border-b border-gray-200 whitespace-nowrap">
-                                    {key.replace(/([A-Z])/g, ' $1').trim().replace(/^./, str => str.toUpperCase())}
-                                </th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                        {data.map((row: any, idx: number) => (
-                            <tr key={row.id || idx} className="hover:bg-gray-50">
-                                {cols.map((key: any) => (
-                                    <td key={key} className="p-3 text-gray-700 whitespace-nowrap">
-                                        {typeof row[key] === 'number' && !key.toLowerCase().includes('rate') ? row[key].toLocaleString() : row[key]}
-                                    </td>
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="overflow-x-auto custom-scrollbar">
+                    <table className="w-full text-sm">
+                        <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-200">
+                            <tr>
+                                {cols.map((key, idx) => (
+                                    <th 
+                                        key={key} 
+                                        className={`p-4 text-left font-bold text-gray-700 uppercase text-xs tracking-wide whitespace-nowrap ${
+                                            idx === 0 ? 'sticky left-0 bg-gradient-to-r from-gray-50 to-gray-100 z-10' : ''
+                                        }`}
+                                    >
+                                        {key.replace(/([A-Z])/g, ' $1').trim().replace(/^./, str => str.toUpperCase())}
+                                    </th>
                                 ))}
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 bg-white">
+                            {data.map((row: any, idx: number) => (
+                                <tr 
+                                    key={row.id || idx} 
+                                    className="hover:bg-blue-50/50 transition-colors group"
+                                >
+                                    {cols.map((key: any, colIdx: number) => {
+                                        const value = row[key];
+                                        const isNumber = typeof value === 'number';
+                                        const isAmount = isNumber && (key.toLowerCase().includes('amount') || 
+                                            key.toLowerCase().includes('savings') || 
+                                            key.toLowerCase().includes('balance') ||
+                                            key.toLowerCase().includes('principal') ||
+                                            key.toLowerCase().includes('repayable') ||
+                                            key.toLowerCase().includes('invested') ||
+                                            key.toLowerCase().includes('profit') ||
+                                            key.toLowerCase().includes('payout'));
+                                        const isStatus = key.toLowerCase() === 'status';
+                                        
+                                        return (
+                                            <td 
+                                                key={key} 
+                                                className={`p-4 text-gray-700 whitespace-nowrap ${
+                                                    colIdx === 0 ? 'sticky left-0 bg-white group-hover:bg-blue-50/50 z-10 font-medium' : ''
+                                                } ${
+                                                    isAmount ? 'text-right font-semibold' : ''
+                                                }`}
+                                            >
+                                                {isAmount ? (
+                                                    <span className="text-gray-900">{value.toLocaleString()} <span className="text-gray-500 text-xs">RWF</span></span>
+                                                ) : isStatus ? (
+                                                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${
+                                                        value === 'ACTIVE' || value === 'PAID' ? 'bg-green-100 text-green-700' :
+                                                        value === 'PENDING' || value === 'APPROVED' ? 'bg-blue-100 text-blue-700' :
+                                                        value === 'DEFAULTED' || value === 'UNPAID' ? 'bg-red-100 text-red-700' :
+                                                        value === 'CLEARED' ? 'bg-gray-100 text-gray-700' :
+                                                        'bg-gray-100 text-gray-600'
+                                                    }`}>
+                                                        {value}
+                                                    </span>
+                                                ) : isNumber ? (
+                                                    value.toLocaleString()
+                                                ) : (
+                                                    value || '-'
+                                                )}
+                                            </td>
+                                        );
+                                    })}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         );
     }
@@ -399,20 +668,60 @@ export default function Reports() {
       )}
 
       {/* Main Content Area */}
-      <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
+      <div className="flex-1 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gray-50/50">
-           <div>
-              {/* @ts-ignore */}
-              <h2 className="text-xl font-bold text-gray-800">{labels[REPORT_CONFIGS.find(r => r.id === activeReport)?.titleKey] || activeReport}</h2>
-              <p className="text-sm text-gray-500 mt-1">{group?.name} • {new Date().toLocaleDateString()}</p>
+        <div className="p-6 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gradient-to-r from-gray-50 to-white">
+           <div className="flex-1">
+              <div className="flex items-center gap-3 mb-2">
+                {REPORT_CONFIGS.find(r => r.id === activeReport)?.icon && (
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    {React.createElement(REPORT_CONFIGS.find(r => r.id === activeReport)!.icon, { 
+                      size: 24, 
+                      className: "text-blue-600" 
+                    })}
+                  </div>
+                )}
+                <div>
+                  {/* @ts-ignore */}
+                  <h2 className="text-2xl font-bold text-gray-900">{labels[REPORT_CONFIGS.find(r => r.id === activeReport)?.titleKey] || activeReport}</h2>
+                  <div className="flex items-center gap-3 mt-1">
+                    <p className="text-sm text-gray-600">{group?.name}</p>
+                    <span className="text-gray-300">•</span>
+                    <div className="flex items-center gap-1 text-xs text-gray-500">
+                      <Clock size={12} />
+                      <span>Updated {lastUpdated.toLocaleTimeString()}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
            </div>
-           <div className="flex gap-2">
-              <button onClick={exportCSV} disabled={!data} className="flex items-center px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium disabled:opacity-50">
-                 <Download size={16} className="mr-2" /> {labels.exportCsv}
+           <div className="flex gap-2 flex-wrap">
+              <button 
+                onClick={() => setAutoRefresh(!autoRefresh)}
+                className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  autoRefresh 
+                    ? 'bg-green-100 text-green-700 hover:bg-green-200' 
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+                title={autoRefresh ? 'Auto-refresh enabled (30s)' : 'Enable auto-refresh'}
+              >
+                <Activity size={16} className={`mr-2 ${autoRefresh ? 'animate-pulse' : ''}`} />
+                Auto
               </button>
-              <button onClick={handlePrint} disabled={!data} className="flex items-center px-3 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 text-sm font-medium disabled:opacity-50 shadow-sm">
-                 <Printer size={16} className="mr-2" /> {labels.printPdf}
+              <button 
+                onClick={fetchReportData} 
+                disabled={loading}
+                className="flex items-center px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium disabled:opacity-50 transition-colors"
+                title="Refresh data"
+              >
+                <RefreshCw size={16} className={`mr-2 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </button>
+              <button onClick={exportCSV} disabled={!data || loading} className="flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium disabled:opacity-50 transition-colors shadow-sm">
+                 <Download size={16} className="mr-2" /> CSV
+              </button>
+              <button onClick={handlePrint} disabled={!data || loading} className="flex items-center px-4 py-2 bg-gradient-to-r from-slate-700 to-slate-800 text-white rounded-lg hover:from-slate-800 hover:to-slate-900 text-sm font-medium disabled:opacity-50 shadow-md transition-all">
+                 <Printer size={16} className="mr-2" /> PDF
               </button>
            </div>
         </div>
@@ -436,61 +745,188 @@ export default function Reports() {
       </div>
 
       {/* Sidebar Report Selector */}
-      <div className="w-full lg:w-72 flex-shrink-0 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col print:hidden">
-         <div className="p-4 border-b border-gray-100 bg-gray-50 font-bold text-gray-700">
-            {labels.reportTypes}
+      <div className="w-full lg:w-80 flex-shrink-0 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden flex flex-col print:hidden">
+         <div className="p-5 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+            <h3 className="font-bold text-gray-900 text-lg flex items-center gap-2">
+               <FileText size={20} className="text-blue-600"/>
+               {labels.reportTypes}
+            </h3>
+            <p className="text-xs text-gray-600 mt-1">Select a report to view</p>
          </div>
-         <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
-            {REPORT_CONFIGS.map(report => (
-               <button
-                  key={report.id}
-                  onClick={() => setActiveReport(report.id)}
-                  className={`w-full flex items-center p-3 rounded-lg text-left transition-colors ${
-                     activeReport === report.id 
-                     ? 'bg-blue-50 text-blue-700 border border-blue-100 shadow-sm' 
-                     : 'text-gray-600 hover:bg-gray-50 border border-transparent'
-                  }`}
-               >
-                  <div className={`p-2 rounded-lg mr-3 ${activeReport === report.id ? 'bg-blue-200 text-blue-800' : 'bg-gray-100 text-gray-500'}`}>
-                     <report.icon size={18} />
-                  </div>
-                  <div>
-                     {/* @ts-ignore */}
-                     <p className="font-bold text-sm">{labels[report.titleKey] || report.id}</p>
-                     {/* @ts-ignore */}
-                     <p className="text-[10px] opacity-70 uppercase tracking-wide font-bold mt-0.5">{labels[report.categoryKey]}</p>
-                  </div>
-                  {activeReport === report.id && <ChevronRight size={16} className="ml-auto opacity-50" />}
-               </button>
-            ))}
+         <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar bg-gray-50/50">
+            {REPORT_CONFIGS.map(report => {
+               const isActive = activeReport === report.id;
+               return (
+                  <button
+                     key={report.id}
+                     onClick={() => setActiveReport(report.id)}
+                     className={`w-full flex items-start p-4 rounded-xl text-left transition-all ${
+                        isActive 
+                        ? 'bg-gradient-to-r from-blue-50 to-blue-100 text-blue-900 border-2 border-blue-300 shadow-md transform scale-[1.02]' 
+                        : 'text-gray-700 hover:bg-white border-2 border-transparent hover:border-gray-200 hover:shadow-sm'
+                     }`}
+                  >
+                     <div className={`p-2.5 rounded-lg mr-3 flex-shrink-0 ${
+                        isActive ? 'bg-blue-200 text-blue-800 shadow-sm' : 'bg-gray-100 text-gray-500'
+                     }`}>
+                        <report.icon size={20} />
+                     </div>
+                     <div className="flex-1 min-w-0">
+                        {/* @ts-ignore */}
+                        <p className={`font-bold text-sm mb-1 ${isActive ? 'text-blue-900' : 'text-gray-900'}`}>
+                           {labels[report.titleKey] || report.id}
+                        </p>
+                        {/* @ts-ignore */}
+                        <p className={`text-[10px] uppercase tracking-wide font-bold mb-1 ${
+                           isActive ? 'text-blue-700' : 'text-gray-500'
+                        }`}>
+                           {report.categoryKey === 'financial' ? 'Financial' : 
+                            report.categoryKey === 'operational' ? 'Operational' : 'End of Cycle'}
+                        </p>
+                        {report.description && (
+                           <p className={`text-[11px] leading-tight ${isActive ? 'text-blue-800' : 'text-gray-600'}`}>
+                              {report.description}
+                           </p>
+                        )}
+                     </div>
+                     {isActive && (
+                        <ChevronRight size={18} className="ml-2 text-blue-600 flex-shrink-0" />
+                     )}
+                  </button>
+               );
+            })}
          </div>
          
          {/* Filters Panel */}
-         <div className="p-4 border-t border-gray-100 bg-gray-50 space-y-3">
-            <h4 className="text-xs font-bold text-gray-500 uppercase mb-2 flex items-center">
-               <Filter size={12} className="mr-1" /> Filters
-            </h4>
-            <div>
-               <label className="block text-xs font-medium text-gray-600 mb-1">{labels.date}</label>
-               <input 
-                  type="date" 
-                  className="w-full p-2 border border-gray-300 rounded bg-white text-xs"
-                  value={filters.endDate}
-                  onChange={e => setFilters({...filters, endDate: e.target.value})}
-               />
+         <div className="p-4 border-t border-gray-200 bg-gradient-to-b from-gray-50 to-white space-y-4">
+            <div className="flex items-center justify-between">
+               <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
+                  <Filter size={14} className="text-blue-600" /> Filters
+               </h4>
+               <button
+                  onClick={() => {
+                     setFilters({
+                        startDate: new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString().split('T')[0],
+                        endDate: new Date().toISOString().split('T')[0],
+                        memberId: '',
+                        status: 'ALL'
+                     });
+                  }}
+                  className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+               >
+                  Reset
+               </button>
             </div>
-            {/* Add Member Filter only for relevant reports */}
-            {['SAVINGS_SUMMARY', 'LOAN_PORTFOLIO'].includes(activeReport) && (
+            
+            {/* Date Range Filter */}
+            {['CASH_FLOW', 'EXPENSE_REPORT', 'ATTENDANCE_REGISTER', 'FINE_REPORT'].includes(activeReport) && (
+               <>
+                  <div>
+                     <label className="block text-xs font-medium text-gray-700 mb-1.5 flex items-center gap-1">
+                        <Calendar size={12} />
+                        Start Date
+                     </label>
+                     <input 
+                        type="date" 
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                        value={filters.startDate}
+                        onChange={e => setFilters({...filters, startDate: e.target.value})}
+                     />
+                  </div>
+                  <div>
+                     <label className="block text-xs font-medium text-gray-700 mb-1.5 flex items-center gap-1">
+                        <Calendar size={12} />
+                        End Date
+                     </label>
+                     <input 
+                        type="date" 
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                        value={filters.endDate}
+                        onChange={e => setFilters({...filters, endDate: e.target.value})}
+                     />
+                  </div>
+               </>
+            )}
+            
+            {/* Member Filter */}
+            {['SAVINGS_SUMMARY', 'LOAN_PORTFOLIO', 'MEMBER_FINANCIAL_SUMMARY'].includes(activeReport) && (
                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">{labels.members}</label>
-                  <select 
-                     className="w-full p-2 border border-gray-300 rounded bg-white text-xs"
-                     value={filters.memberId}
-                     onChange={e => setFilters({...filters, memberId: e.target.value})}
-                  >
-                     <option value="">All Members</option>
-                     {members.map(m => <option key={m.id} value={m.id}>{m.fullName}</option>)}
-                  </select>
+                  <MemberSearchSelect
+                    members={members}
+                    selectedMemberId={filters.memberId || ''}
+                    onSelect={(memberId) => setFilters({...filters, memberId: memberId || ''})}
+                    onClear={() => setFilters({...filters, memberId: ''})}
+                    label={labels.members}
+                    placeholder="Search members..."
+                    showAllOption={true}
+                    allOptionLabel="All Members"
+                    className="text-xs"
+                  />
+               </div>
+            )}
+            
+            {/* Quick Date Presets */}
+            {['CASH_FLOW', 'EXPENSE_REPORT', 'ATTENDANCE_REGISTER', 'FINE_REPORT'].includes(activeReport) && (
+               <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-2">Quick Filters</label>
+                  <div className="grid grid-cols-2 gap-2">
+                     <button
+                        onClick={() => {
+                           const today = new Date();
+                           setFilters({
+                              ...filters,
+                              startDate: new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0],
+                              endDate: today.toISOString().split('T')[0]
+                           });
+                        }}
+                        className="px-3 py-1.5 text-xs bg-white border border-gray-300 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors"
+                     >
+                        This Month
+                     </button>
+                     <button
+                        onClick={() => {
+                           const today = new Date();
+                           const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                           const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
+                           setFilters({
+                              ...filters,
+                              startDate: lastMonth.toISOString().split('T')[0],
+                              endDate: lastMonthEnd.toISOString().split('T')[0]
+                           });
+                        }}
+                        className="px-3 py-1.5 text-xs bg-white border border-gray-300 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors"
+                     >
+                        Last Month
+                     </button>
+                     <button
+                        onClick={() => {
+                           const today = new Date();
+                           setFilters({
+                              ...filters,
+                              startDate: new Date(today.getFullYear(), 0, 1).toISOString().split('T')[0],
+                              endDate: today.toISOString().split('T')[0]
+                           });
+                        }}
+                        className="px-3 py-1.5 text-xs bg-white border border-gray-300 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors"
+                     >
+                        This Year
+                     </button>
+                     <button
+                        onClick={() => {
+                           const today = new Date();
+                           const lastWeek = new Date(today);
+                           lastWeek.setDate(today.getDate() - 7);
+                           setFilters({
+                              ...filters,
+                              startDate: lastWeek.toISOString().split('T')[0],
+                              endDate: today.toISOString().split('T')[0]
+                           });
+                        }}
+                        className="px-3 py-1.5 text-xs bg-white border border-gray-300 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors"
+                     >
+                        Last 7 Days
+                     </button>
+                  </div>
                </div>
             )}
          </div>

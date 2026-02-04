@@ -6,6 +6,7 @@ import { Fine, FineCategory, Member, FineStatus } from '../types';
 import { Gavel, Plus, Search, Edit, Trash2, CheckCircle, Ban, Filter, AlertTriangle, Loader2, X, Settings as SettingsIcon } from 'lucide-react';
 import { TableRowSkeleton } from '../components/Skeleton';
 import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog';
+import { MemberSearchSelect } from '../components/MemberSearchSelect';
 
 export default function Fines() {
   const { activeGroupId, lang } = useContext(AppContext);
@@ -343,20 +344,15 @@ export default function Fines() {
             <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6">
                <h3 className="font-bold text-lg mb-4">{labels.recordFine}</h3>
                <form onSubmit={handleCreate} className="space-y-4">
-                  <div>
-                     <label className="block text-sm font-medium text-gray-700 mb-1">{labels.members}</label>
-                     <select 
-                        required
-                        className="w-full p-2 border rounded-lg bg-white"
-                        value={createData.memberId}
-                        onChange={e => setCreateData({...createData, memberId: e.target.value})}
-                     >
-                        <option value="">-- Select --</option>
-                        {members.filter(m => m.status === 'ACTIVE').map(m => (
-                           <option key={m.id} value={m.id}>{m.fullName}</option>
-                        ))}
-                     </select>
-                  </div>
+                  <MemberSearchSelect
+                    members={members}
+                    selectedMemberId={createData.memberId}
+                    onSelect={(memberId) => setCreateData({...createData, memberId})}
+                    label={labels.members}
+                    required
+                    filterActive={true}
+                    placeholder="Search members by name, phone, or ID..."
+                  />
                   <div>
                      <label className="block text-sm font-medium text-gray-700 mb-1">{labels.type}</label>
                      <select 

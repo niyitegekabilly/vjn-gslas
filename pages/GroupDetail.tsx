@@ -3,7 +3,8 @@ import { useParams, Link } from 'react-router-dom';
 import { AppContext } from '../App';
 import { api } from '../api/client';
 import { LABELS } from '../constants';
-import { GSLAGroup, Member, Loan, Transaction, Cycle } from '../types';
+import { GSLAGroup, Member, Loan, Transaction, Cycle, TransactionType } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 import { 
   Building, MapPin, Users, DollarSign, Calendar, Edit, ArrowLeft,
   TrendingUp, FileText, Shield, CreditCard, Clock,
@@ -14,6 +15,7 @@ import { GroupForm } from '../components/GroupForm';
 export default function GroupDetail() {
   const { id } = useParams<{ id: string }>();
   const { lang, refreshApp } = useContext(AppContext);
+  const { user } = useAuth();
   const labels = LABELS[lang];
 
   const [group, setGroup] = useState<GSLAGroup | null>(null);
@@ -62,10 +64,10 @@ export default function GroupDetail() {
   };
 
   const handleSave = async (data: any) => {
-    if (!group) return;
+    if (!group || !user) return;
     setSubmitting(true);
     try {
-      await api.updateGroup(group.id, data, data.reason || 'Admin Update', 'Admin');
+      await api.updateGroup(group.id, data, data.reason || 'Admin Update', user.id);
       await loadGroupData();
       refreshApp();
       setIsEditModalOpen(false);
@@ -83,11 +85,18 @@ export default function GroupDetail() {
     return member?.fullName || 'Unknown';
   };
 
+  const isInflowTransaction = (txType: string) => {
+    // Transactions that bring money INTO the group
+    return txType === TransactionType.SHARE_DEPOSIT ||
+           txType === TransactionType.LOAN_REPAYMENT ||
+           txType === TransactionType.FINE_PAYMENT;
+  };
+
   const activeLoans = loans.filter(l => l.status === 'ACTIVE' || l.status === 'APPROVED');
   const totalLoansOutstanding = activeLoans.reduce((sum, l) => sum + l.balance, 0);
-  const recentTransactions = transactions.slice(0, 10).sort((a, b) => 
+  const recentTransactions = [...transactions].sort((a, b) => 
     new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
+  ).slice(0, 10);
 
   if (loading) {
     return (
@@ -354,11 +363,11 @@ export default function GroupDetail() {
                     </div>
                     <div className="text-right">
                       <p className={`text-sm font-bold ${
-                        tx.type.includes('DEPOSIT') || tx.type.includes('REPAYMENT')
+                        isInflowTransaction(tx.type)
                           ? 'text-green-600' 
                           : 'text-red-600'
                       }`}>
-                        {tx.type.includes('DEPOSIT') || tx.type.includes('REPAYMENT') ? '+' : '-'}
+                        {isInflowTransaction(tx.type) ? '+' : '-'}
                         {tx.amount.toLocaleString()} RWF
                       </p>
                     </div>
@@ -467,15 +476,17 @@ export default function GroupDetail() {
       {/* Edit Modal */}
       {isEditModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-xl">
-            <GroupForm
-              initialData={group}
-              onSubmit={handleSave}
-              onCancel={() => setIsEditModalOpen(false)}
-              isSubmitting={submitting}
-              labels={labels}
-              title={labels.modifyGroup}
-            />
+          <div className="w-full max-w-3xl max-h-[90vh] overflow-hidden rounded-xl flex flex-col bg-white shadow-xl">
+            <div className="flex-1 overflow-y-auto custom-scrollbar">
+              <GroupForm
+                initialData={group}
+                onSubmit={handleSave}
+                onCancel={() => setIsEditModalOpen(false)}
+                isSubmitting={submitting}
+                labels={labels}
+                title={labels.modifyGroup}
+              />
+            </div>
           </div>
         </div>
       )}

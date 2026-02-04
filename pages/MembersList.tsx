@@ -282,15 +282,15 @@ export default function MembersList() {
 
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in zoom-in-95 duration-200">
-          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6">
-            <div className="flex justify-between items-center mb-6 border-b border-gray-100 pb-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center p-6 border-b border-gray-100 flex-shrink-0">
               <h3 className="text-lg font-bold text-gray-800">{editingMember ? labels.editMember : labels.addMember}</h3>
               <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600">
                 <X size={24} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form id="member-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar min-h-0">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{labels.fullName}</label>
                 <input
@@ -351,23 +351,24 @@ export default function MembersList() {
                 </div>
               </div>
 
-              <div className="pt-2 flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="flex-1 py-2.5 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50"
-                >
-                  {labels.cancel}
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 flex justify-center items-center shadow-sm"
-                >
-                  {isSubmitting ? <Loader2 className="animate-spin mr-2" size={18} /> : labels.save}
-                </button>
-              </div>
             </form>
+            <div className="pt-2 flex gap-3 p-6 border-t border-gray-100 flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="flex-1 py-2.5 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50"
+              >
+                {labels.cancel}
+              </button>
+              <button
+                type="submit"
+                form="member-form"
+                disabled={isSubmitting}
+                className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 flex justify-center items-center shadow-sm"
+              >
+                {isSubmitting ? <Loader2 className="animate-spin mr-2" size={18} /> : labels.save}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -3,24 +3,33 @@ import { useNavigate } from 'react-router-dom';
 import { AppContext } from '../App';
 import { api } from '../api/client';
 import { LABELS } from '../constants';
-import { GSLAGroup } from '../types';
-import { Plus, Building, MapPin, Users, Edit, Search } from 'lucide-react';
+import { GSLAGroup, Member, MemberStatus, UserRole } from '../types';
+import { Plus, Building, MapPin, Users, Edit, Search, X, CheckCircle, AlertCircle, Phone, Mail, Calendar, ChevronRight } from 'lucide-react';
 import { GroupForm } from '../components/GroupForm';
 import { TableRowSkeleton } from '../components/Skeleton';
 import { CsvImporter } from '../components/CsvImporter';
 
 export default function Groups() {
-  const { lang, groups: contextGroups, refreshApp } = useContext(AppContext);
+  const { lang, groups: contextGroups, refreshApp, setActiveGroupId } = useContext(AppContext);
   const navigate = useNavigate();
   const labels = LABELS[lang];
   
   const [groups, setGroups] = useState<GSLAGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [memberCounts, setMemberCounts] = useState<Record<string, number>>({});
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<GSLAGroup | undefined>(undefined);
   const [submitting, setSubmitting] = useState(false);
+  
+  // Members modal state
+  const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
+  const [selectedGroupMembers, setSelectedGroupMembers] = useState<Member[]>([]);
+  const [loadingMembers, setLoadingMembers] = useState(false);
+  const [membersGroupName, setMembersGroupName] = useState('');
+  const [selectedGroupId, setSelectedGroupId] = useState<string>('');
+  const [memberSearchTerm, setMemberSearchTerm] = useState('');
 
   useEffect(() => {
     // Initial load from context, then background refresh
@@ -33,9 +42,57 @@ export default function Groups() {
     try {
       const data = await api.getGroups();
       setGroups(data);
+      // Fetch member counts for all groups
+      fetchMemberCounts(data);
     } catch (e) {
       console.error(e);
     }
+  };
+
+  const fetchMemberCounts = async (groupsList: GSLAGroup[]) => {
+    const counts: Record<string, number> = {};
+    try {
+      // Fetch members for all groups in parallel
+      const memberPromises = groupsList.map(async (group) => {
+        try {
+          const members = await api.getMembers(group.id);
+          counts[group.id] = members.length;
+        } catch (e) {
+          console.error(`Failed to fetch members for group ${group.id}:`, e);
+          counts[group.id] = 0;
+        }
+      });
+      await Promise.all(memberPromises);
+      setMemberCounts(counts);
+    } catch (e) {
+      console.error('Failed to fetch member counts:', e);
+    }
+  };
+
+  const handleMembersClick = async (e: React.MouseEvent, group: GSLAGroup) => {
+    e.stopPropagation(); // Prevent card navigation
+    setMembersGroupName(group.name);
+    setSelectedGroupId(group.id);
+    setLoadingMembers(true);
+    setIsMembersModalOpen(true);
+    try {
+      const members = await api.getMembers(group.id);
+      setSelectedGroupMembers(members);
+    } catch (e) {
+      console.error('Failed to fetch members:', e);
+      setSelectedGroupMembers([]);
+    } finally {
+      setLoadingMembers(false);
+    }
+  };
+
+  const handleMemberClick = (member: Member) => {
+    // Set active group and navigate to members page
+    if (selectedGroupId) {
+      setActiveGroupId(selectedGroupId);
+    }
+    navigate('/members');
+    setIsMembersModalOpen(false);
   };
 
   const handleSave = async (data: any) => {
@@ -151,15 +208,17 @@ export default function Groups() {
 
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-           <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-xl">
-              <GroupForm 
-                initialData={selectedGroup}
-                onSubmit={handleSave}
-                onCancel={() => setIsModalOpen(false)}
-                isSubmitting={submitting}
-                labels={labels}
-                title={selectedGroup ? labels.modifyGroup : labels.createGroupTitle}
-              />
+           <div className="w-full max-w-3xl max-h-[90vh] overflow-hidden rounded-xl flex flex-col bg-white shadow-xl">
+              <div className="flex-1 overflow-y-auto custom-scrollbar">
+                <GroupForm 
+                  initialData={selectedGroup}
+                  onSubmit={handleSave}
+                  onCancel={() => setIsModalOpen(false)}
+                  isSubmitting={submitting}
+                  labels={labels}
+                  title={selectedGroup ? labels.modifyGroup : labels.createGroupTitle}
+                />
+              </div>
            </div>
         </div>
       )}
@@ -217,9 +276,13 @@ export default function Groups() {
                       </div>
                       <div>
                          <p className="text-gray-400 text-xs uppercase font-bold">{labels.members}</p>
-                         <p className="font-medium text-gray-700 mt-1 flex items-center">
-                            <Users size={14} className="mr-1 text-gray-400" /> --
-                         </p>
+                         <button
+                           onClick={(e) => handleMembersClick(e, group)}
+                           className="font-medium text-gray-700 mt-1 flex items-center hover:text-blue-600 transition-colors cursor-pointer"
+                           title="View members"
+                         >
+                            <Users size={14} className="mr-1 text-gray-400" /> {memberCounts[group.id] ?? '...'}
+                         </button>
                       </div>
                    </div>
                 </div>
@@ -227,6 +290,194 @@ export default function Groups() {
            ))
         )}
       </div>
+
+      {/* Members Modal */}
+      {isMembersModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setIsMembersModalOpen(false)}>
+          <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+            {/* Modal Header */}
+            <div className="flex flex-col gap-4 p-6 border-b border-gray-200 flex-shrink-0 bg-white">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <div className="bg-blue-50 p-2 rounded-lg">
+                    <Users className="text-blue-600" size={24} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-800">{labels.members}</h3>
+                    <p className="text-sm text-gray-500">{membersGroupName} • {selectedGroupMembers.length} {selectedGroupMembers.length === 1 ? 'member' : 'members'}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setIsMembersModalOpen(false);
+                    setMemberSearchTerm('');
+                  }}
+                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+              
+              {/* Search Bar */}
+              {selectedGroupMembers.length > 0 && (
+                <div className="relative">
+                  <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
+                  <input 
+                    type="text" 
+                    placeholder="Search members by name, phone, or ID..." 
+                    value={memberSearchTerm}
+                    onChange={(e) => setMemberSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Modal Content - Scrollable */}
+            <div className="flex-1 overflow-y-auto min-h-0 custom-scrollbar bg-gray-50" style={{ maxHeight: 'calc(90vh - 200px)' }}>
+              {loadingMembers ? (
+                <div className="p-6 space-y-3">
+                  {[...Array(8)].map((_, i) => (
+                    <div key={i} className="h-16 bg-gray-100 rounded-lg animate-pulse"></div>
+                  ))}
+                </div>
+              ) : (() => {
+                const filteredMembers = selectedGroupMembers.filter(member => {
+                  if (!memberSearchTerm) return true;
+                  const search = memberSearchTerm.toLowerCase();
+                  return (
+                    member.fullName.toLowerCase().includes(search) ||
+                    member.phone.includes(search) ||
+                    member.nationalId.includes(search) ||
+                    (member.email && member.email.toLowerCase().includes(search))
+                  );
+                });
+                
+                if (filteredMembers.length === 0) {
+                  return (
+                    <div className="text-center py-16 text-gray-500">
+                      <Search size={48} className="mx-auto mb-4 text-gray-300" />
+                      <p className="text-lg font-medium">No members found</p>
+                      <p className="text-sm mt-2">Try adjusting your search terms</p>
+                    </div>
+                  );
+                }
+                
+                return (
+                  <div className="divide-y divide-gray-100">
+                    {filteredMembers.map((member) => (
+                      <div
+                        key={member.id}
+                        className="p-4 hover:bg-blue-50 transition-colors cursor-pointer group border-l-4 border-l-transparent hover:border-l-blue-500"
+                        onClick={() => handleMemberClick(member)}
+                      >
+                        <div className="flex items-center gap-4">
+                          {/* Avatar */}
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold text-lg flex-shrink-0 shadow-sm">
+                            {member.fullName.charAt(0).toUpperCase()}
+                          </div>
+                          
+                          {/* Member Info */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-1">
+                              <h4 
+                                className="font-bold text-gray-900 text-base hover:text-blue-600 transition-colors cursor-pointer"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleMemberClick(member);
+                                }}
+                              >
+                                {member.fullName}
+                              </h4>
+                              <ChevronRight size={18} className="text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all flex-shrink-0" />
+                            </div>
+                            
+                            <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600">
+                              <div className="flex items-center gap-1.5">
+                                <Phone size={14} className="text-gray-400" />
+                                <span>{member.phone}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-mono text-xs">{member.nationalId}</span>
+                              </div>
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                                  member.status === MemberStatus.ACTIVE
+                                    ? 'bg-green-100 text-green-700'
+                                    : member.status === MemberStatus.SUSPENDED
+                                      ? 'bg-orange-100 text-orange-700'
+                                      : 'bg-red-100 text-red-700'
+                                }`}
+                              >
+                                {member.status === MemberStatus.ACTIVE ? (
+                                  <span className="flex items-center gap-1">
+                                    <CheckCircle size={10} />
+                                    {member.status}
+                                  </span>
+                                ) : (
+                                  <span className="flex items-center gap-1">
+                                    <AlertCircle size={10} />
+                                    {member.status}
+                                  </span>
+                                )}
+                              </span>
+                              {member.role === UserRole.GROUP_LEADER && (
+                                <span className="px-2 py-0.5 rounded text-xs font-bold bg-purple-100 text-purple-700">
+                                  {labels.groupLeader}
+                                </span>
+                              )}
+                            </div>
+                            
+                            {/* Additional Info Row */}
+                            <div className="flex flex-wrap items-center gap-4 mt-2 text-xs text-gray-500">
+                              <span>{labels.sharesCollected || 'Shares'}: <strong className="text-gray-700">{member.totalShares}</strong></span>
+                              <span>{labels.loans || 'Loans'}: <strong className="text-gray-700">{member.totalLoans}</strong></span>
+                              {member.email && (
+                                <span className="flex items-center gap-1">
+                                  <Mail size={12} />
+                                  {member.email}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-6 border-t border-gray-200 flex justify-between items-center flex-shrink-0 bg-white">
+              <div className="text-sm text-gray-500">
+                {(() => {
+                  const filtered = selectedGroupMembers.filter(member => {
+                    if (!memberSearchTerm) return true;
+                    const search = memberSearchTerm.toLowerCase();
+                    return (
+                      member.fullName.toLowerCase().includes(search) ||
+                      member.phone.includes(search) ||
+                      member.nationalId.includes(search) ||
+                      (member.email && member.email.toLowerCase().includes(search))
+                    );
+                  });
+                  return `${filtered.length} of ${selectedGroupMembers.length} members`;
+                })()}
+              </div>
+              <button
+                onClick={() => {
+                  setIsMembersModalOpen(false);
+                  setMemberSearchTerm('');
+                }}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              >
+                {labels.close}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
